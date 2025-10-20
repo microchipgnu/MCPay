@@ -59,11 +59,16 @@ function shortAddress(addr?: string) {
   return `${a.slice(0, 6)}…${a.slice(-4)}`
 }
 
-export function UserAccountPanel({ isActive = true }: { isActive?: boolean }) {
+type UserAccountPanelProps = {
+  isActive?: boolean
+  initialTab?: "wallets" | "developer"
+}
+
+export function UserAccountPanel({ isActive = true, initialTab }: UserAccountPanelProps) {
   const { data: session } = useSession()
   const { isDark } = useTheme()
 
-  const [activeTab, setActiveTab] = useState<"wallets" | "developer">("wallets")
+  const [activeTab, setActiveTab] = useState<"wallets" | "developer">(initialTab || "wallets")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>("")
 
@@ -113,6 +118,7 @@ export function UserAccountPanel({ isActive = true }: { isActive?: boolean }) {
       if (activeTab === "developer") loadApiKeys()
     }
   }, [isActive, session?.user, activeTab, loadWallets, loadApiKeys])
+
 
   async function handleGitHubSignIn() {
     setLoading(true)

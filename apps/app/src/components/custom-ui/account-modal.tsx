@@ -14,10 +14,10 @@ import { UserAccountPanel } from "@/components/custom-ui/user-modal"
 type AccountModalProps = {
   isOpen: boolean
   onClose: (open: boolean) => void
-  defaultTab?: "funds" | "wallets" | "developer"
+  defaultTab?: "wallets" | "developer"
 }
 
-export function AccountModal({ isOpen, onClose }: AccountModalProps) {
+export function AccountModal({ isOpen, onClose, defaultTab }: AccountModalProps) {
   const { data: session, isPending: sessionLoading } = useSession()
   const { isDark } = useTheme()
 
@@ -25,6 +25,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
   const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [error, setError] = useState<string>("")
   const [isMobile, setIsMobile] = useState(false)
+  const [detectedTab, setDetectedTab] = useState<"wallets" | "developer" | undefined>(undefined)
 
   // Deprecated iframe approach removed in favor of in-app panel
 
@@ -33,6 +34,27 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
     checkMobile()
     window.addEventListener("resize", checkMobile)
     return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+
+  // Hash detection for tab selection
+  useEffect(() => {
+    const detectTabFromHash = () => {
+      const hash = window.location.hash
+      if (hash === "#account-developer") {
+        setDetectedTab("developer")
+      } else if (hash === "#account-wallet") {
+        setDetectedTab("wallets")
+      } else {
+        setDetectedTab(undefined)
+      }
+    }
+
+    // Check hash on mount
+    detectTabFromHash()
+
+    // Listen for hash changes
+    window.addEventListener("hashchange", detectTabFromHash)
+    return () => window.removeEventListener("hashchange", detectTabFromHash)
   }, [])
 
   // Legacy iframe message listener no longer needed
@@ -162,7 +184,7 @@ export function AccountModal({ isOpen, onClose }: AccountModalProps) {
     </div>
   )
 
-  const Frame = () => <UserAccountPanel isActive={true} />
+  const Frame = () => <UserAccountPanel isActive={true} initialTab={detectedTab || defaultTab} />
 
   // Show loading during session loading or authentication flow
   if (sessionLoading || isAuthenticating) {

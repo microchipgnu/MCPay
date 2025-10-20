@@ -16,7 +16,7 @@ import {
   SheetHeader,
   SheetClose,
 } from "@/components/ui/sheet"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 export default function Navbar() {
   const pathname = usePathname()
@@ -24,6 +24,17 @@ export default function Navbar() {
   const { data: session, isPending: sessionLoading } = useSession()
   const { isOpen, defaultTab, openModal, closeModal } = useAccountModal()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  // Hash detection for auto-opening account modal (only on mount)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash === "#account-developer" || hash === "#account-wallet") {
+      const tab = hash === "#account-developer" ? "developer" : "wallets"
+      openModal(tab)
+      // Clear the hash from URL after opening modal
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+    }
+  }, []) // Empty dependency array - only run on mount
 
   const logoSrc = isDark ? "/MCPay-logo-dark.svg" : "/MCPay-logo-light.svg"
   const symbolSrc = isDark ? "/MCPay-symbol-dark.svg" : "/MCPay-symbol-light.svg"
