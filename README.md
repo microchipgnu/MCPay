@@ -23,60 +23,82 @@
 
 ## What is MCPay?
 
-**Payments for MCPs**. Pay-per-call, no subscriptions, agent‑ready.
+MCPay is open-source infrastructure that adds **on-chain payments** to any [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server using the [x402 "Payment Required" protocol](https://x402.org).
 
-MCPay is a **payment layer for MCP servers and plain HTTP APIs**. It uses the long‑dormant `HTTP 402 Payment Required` status and the **x402** pattern so that a client (human app or AI agent) can:
+It enables MCP clients — such as ChatGPT, Cursor, and others — to make **pay-per-call requests** instead of relying on static subscriptions or API keys.
 
-1. call a protected endpoint → 2) receive **402 + price metadata** → 3) pay on‑chain (e.g. USDC) → 4) **retry automatically** → 5) get the result.
-
-No subscriptions. No manual API keys. Works with autonomous agents.
+The goal is to let AI agents and applications pay only for what they use, automatically and transparently.
 
 ---
 
 ## Why MCPay (in 30 seconds)
 
-* **Developers**: Ship paid tools in minutes. No OAuth, no recurring billing infra, no key juggling.
-* **MCP Hosts**: Price **each tool** (per call / per token / dynamic) and get instant revenue.
-* **AI Agents**: Do true **agent↔service micropayments** without human sign‑ups.
-
-Use cases: paid search, embeddings, scraping, premium APIs, inference, downloads, rate‑limited features, one‑off unlocks.
+* **Clients** → Pay only for what they use — no subscriptions, no keys, no setup. Works out of the box with MCP-compatible apps (ChatGPT, Cursor, and more).
+* **Developers** → Monetize and get discovered instantly using our SDK (or a compatible one), monetization wrapper, or public index. Set per-call, per-token, or dynamic pricing and receive payments automatically.
+* **Agents** → Perform real **agent↔service micropayments**, enabling autonomous access to APIs, inference, data, and more.
 
 ---
 
 ## How it works
 
-```
-                            ┌──────────────┐
-                            │    Client    │
-                            │ (app/agent)  │
-                            └──────┬───────┘
-                ① unauthenticated │ HTTP request
-                                   ▼
-        ┌─────────────────────────────────────────────┐
-        │              MCP Proxy (Edge)               │
-        │  • replies 402 + price metadata             │
-        │  • signs & broadcasts payment               │
-        │  • retries request once payment confirmed   │
-        └──────┬──────────────┬───────────────────────┘
-               │              │
-               │② on-chain    │③ original request
-               │   payment    │   (after pay)
-               ▼              ▼
-        ┌──────────────┐  ┌──────────────┐
-        │  Blockchain   │  │   Your API   │
-        │ (USDC/EUROe)  │  │ (any stack)  │
-        └──────┬────────┘  └──────────────┘
-               │
-               │④ streamed usage & revenue events
-               ▼
-           (dashboard / analytics)
+MCPay handles the entire payment lifecycle transparently for both developers and clients:
+
+- Follows x402 protocol with structured price metadata.
+- Accepts and verifies the on-chain payment, then automatically retries the original MCP request once confirmed.
+- Streams usage and revenue events to dashboards and analytics endpoints.
+
+This mechanism ensures that any MCP-compatible app or agent can pay per call — either directly (via wallet) or through a delegated, policy-based proxy.
+
+```mermaid
+sequenceDiagram
+  participant C as MCP Client
+  participant CP as Client Proxy + Wallet
+  participant P as MCPay Proxy (Edge)
+  participant U as Upstream Service<br/>(Server Proxy / x402 MCP / api2 / mcp2)
+  participant B as Blockchain (USDC/EUROe)
+  participant D as Analytics/Dashboard
+
+  C->>CP: (1) MCP call
+  CP->>P: (2) Forward request
+
+  %% normal path: proxy upstreams the original call
+  P->>U: (3) Upstream original request
+
+  alt Upstream returns price-gated
+    U-->>P: (4) 402 + price metadata
+
+    alt Proxy is authorized to pay (MCPay Auth/wallet & policy allows)
+      P->>B: (5a) Pay on-chain
+      B-->>P: (6a) Payment confirmation
+      P->>U: (7a) Retry original request
+      U-->>P: (8a) Result
+      P-->>CP: (9a) Forward result
+      CP-->>C: (10a) Deliver result
+    else Proxy cannot/shouldn't pay
+      P-->>CP: (5b) Downstream 402 + price metadata
+      CP->>B: (6b) Client-side payment (sign via wallet/MCPay Auth)
+      B-->>P: (7b) Confirmation to proxy
+      P->>U: (8b) Retry original request
+      U-->>P: (9b) Result
+      P-->>CP: (10b) Forward result
+      CP-->>C: (11b) Deliver result
+    end
+
+  else Upstream returns success
+    U-->>P: (4') Tool result
+    P-->>CP: (5') Forward result
+    CP-->>C: (6') Deliver result
+  end
+
+  P-->>D: (✱) Emit usage & revenue events (both branches)
+
 ```
 
-Under the hood we:
+In practice, this means any MCP server can become a paid endpoint with zero friction.
 
-* Return `402` with structured **price metadata** (asset, amount, destination, memo, expiry).
-* Accept the in‑flight payment, verify on‑chain, and **retry the original request**.
-* Emit **usage/revenue events** for your dashboard.
+The MCPay proxy acts as the coordination layer between **clients, wallets, and upstream services** — automatically handling `402` negotiation, on-chain payments, and retries.
+
+Once a payment is confirmed, the same request is retried transparently, and the result is streamed back to the client along with usage and revenue data.
 
 ---
 
@@ -86,63 +108,24 @@ Under the hood we:
 
 Discover MCP servers and their priced tools at **[mcpay.tech/servers](https://mcpay.tech/servers)**. Searchable, machine‑readable, agent‑friendly.
 
-### 2) Builder (MCPay Build)
-
-Create and iterate on new MCP servers quickly at **[mcpay.tech/build](https://mcpay.tech/build)**. Preview in a sandbox, publish, and (optionally) set prices per tool.
-
-With MCPay Build you can:
-
-- **Create & iterate** on MCP servers entirely in a chat flow.
-- **Preview** them live in an isolated Vercel Sandbox.
-- **Deploy** to GitHub + Vercel with one click.
-- **Monetize** your tools instantly with MCPay (x402 per-call payments).
-
-This lowers the barrier for developers who find MCP confusing or want to get started without boilerplate. The default template is a production-ready MCP server with free + paid tools side by side.
-
-The MCP code lives in https://github.com/microchipgnu/mcpay-build
-
-
-### 3) Monetizer (Proxy)
+### 2) Monetizer (Proxy)
 
 Wrap existing HTTP endpoints or MCP servers with the **MCPay proxy** to enforce pay‑per‑call. Zero code changes to your upstream service.
 
-You can monetize via [MCPay Registry](https://mcpay.tech/register) or [programmatically](/js-sdk/).
-
----
-
-## How the `apps/app` works (high level)
-
-This repo includes a Next.js app (`app/`) that powers the website, registry, builder, monetizer proxy, and APIs.
-
-- Registry UI and pages
-  - `/` shows featured/trending servers using `GET /api/servers?type=trending`.
-  - `/servers` lists servers; `/servers/[id]` shows analytics, recent payments, tools, and integration snippets.
-
-- Builder (sandbox) UI
-  - `/build` is a chat-driven builder. It calls `POST /api/chat`, which spins up an MCP client via streamable HTTP transport, discovers tools, and streams preview links and session data back to the UI.
-
-- Monetizer proxy (x402)
-  - `ALL /v1/mcp/:id/*` forwards MCP JSON-RPC over HTTP to the upstream server URL stored for `:id`.
-  - If a tool is monetized, the route returns `402` with `accepts` payment requirements unless a valid `X-PAYMENT` header is present. When provided, payment is verified and settled, analytics are recorded, then the original request is retried upstream.
-  - Extras: header scrubbing, basic caching for GETs, lightweight rate limiting, optional auto‑signing for managed wallets or API‑key callers.
-
-- Payment services (for paid tool flows)
-  - `POST /requirements` – given simple or advanced pricing, returns x402 "accepts" requirements. Requires API key.
-  - `POST /validate` – validates an `X-PAYMENT` header against recorded payments (e.g., after settlement).
-  - `POST /ping` – inspects a remote MCP server, extracts tools and pricing, and auto‑registers/updates it in the registry. Requires API key.
-
-- REST API (selected endpoints)
-  - `GET /api/servers`, `GET /api/servers/:id` – registry and analytics.
-  - `GET /api/analytics/usage` – usage analytics.
-  - `POST /api/proofs` – submit verification proofs (vLayer), plus list/get/verify endpoints.
-  - Wallets & keys: `GET/POST /api/users/:userId/wallets`, `GET/POST/DELETE /api/users/:userId/api-keys`.
-  - Onramp helpers: `POST /api/users/:userId/onramp/buy-url`, `GET /api/onramp/config`.
-
-Environment is validated via `apps/app/src/lib/gateway/env.ts` (Zod). See that file for the full list of vars and defaults.
+You can monetize via [MCPay Registry](https://mcpay.tech/register) or [programmatically](./packages/js-sdk/README.md).
 
 ---
 
 ## Quickstart
+
+MCPay lets you add on-chain pricing to any MCP or OpenAPI server.
+
+Whether you prefer to configure everything from the dashboard or define logic in code, both paths use the same x402 standard.
+
+| Path | Best for | What it does |
+|---|---|---|
+| **[Website](https://mcpay.tech/register)** | Fastest go-live, existing services | Configure prices per tool/route in the dashboard. |
+| **[SDK](./packages/js-sdk/README.md)** | Custom logic & full control | Define **paid tools** in code, set pricing, and ship an MCP server that speaks x402 out of the box. |
 
 ### Option A — Connect to a paid MCP server (CLI)
 
@@ -210,33 +193,54 @@ Features:
 
 See **[js-sdk/README.md](./js-sdk/README.md)** for API details.
 
-### Building monetized server (NextJS)
+### Building monetized server (Hono)
 
 ```ts
-import { createMcpPaidHandler } from 'mcpay/handler';
-import { z } from 'zod';
+import { Hono } from "hono"
+import { createMcpPaidHandler } from "mcpay/handler"
+import { z } from "zod"
 
-const handler = createMcpPaidHandler(async (server) => {
-  server.paidTool(
-    'hello',
-    'Say hello to someone',
-    { price: 0.05, currency: 'USD' },
-    { name: z.string().describe('Your name') },
-    {}, //annotations
-    async ({ name }) => ({ content: [{ type: 'text', text: `Hello, ${name}!` }] })
-  );
-}, {
-  recipient: {
-    'base-sepolia': '0x1234567890abcdef1234567890abcdef12345678',
-    'solana-devnet': 'So11111111111111111111111111111111111111112'
-  },
-  facilitator: {
-    url: "FACILITATOR_URL"
-  }
-});
+const app = new Hono()
 
-// Next.js (route handlers)
-export { handler as GET, handler as POST, handler as DELETE };
+const handler = createMcpPaidHandler(
+    (server) => {
+        server.paidTool(
+            "weather",
+            "Paid tool",
+            "$0.001",
+            { city: z.string() },
+            {},
+            async ({ city }) => ({
+                content: [{ type: "text", text: `The weather in ${city} is sunny` }],
+            })
+        )
+
+        server.tool(
+            "free_tool",
+            "Free to use",
+            { s: z.string(), city: z.string() },
+            async ({ s, city }) => ({
+                content: [{ type: "text", text: `We support ${city}` }],
+            })
+        )
+    },
+    {
+        facilitator: {
+            url: "https://facilitator.mcpay.tech"
+        },
+        recipient: {
+            "evm": {address: "0xc9343113c791cB5108112CFADa453Eef89a2E2A2", isTestnet: true},
+            "svm": {address: "4VQeAqyPxR9pELndskj38AprNj1btSgtaCrUci8N4Mdg", isTestnet: true}
+        }
+    },
+    {
+        serverInfo: { name: "paid-mcp", version: "1.0.0" },
+    },
+)
+
+app.use("*", (c) => handler(c.req.raw))
+
+export default app
 ```
 
 ---
@@ -264,59 +268,3 @@ Start a local stdio proxy to remote MCP servers:
 ```
 
 Run `mcpay connect --help` for all flags.
-
----
-
-## Pricing models
-
-* **Flat per call** (e.g., \$0.05 per tool call)
-* **Tiered** (different tools/routes have different prices)
-
----
-
-## Project structure
-
-* **`apps/app`** – Next.js app for website, registry, builder, monetizer proxy, and APIs
-* **`apps/app-v2`** – Next.js app (v2) for newer UI/flows
-* **`apps/mcp2`** – Hono service and scripts (Upstash, tooling)
-* **`packages/js-sdk`** – JS/TS SDK + CLI ([packages/js-sdk/README.md](./packages/js-sdk/README.md))
-* **`assets/`** – Static repo assets (docs, images)
-
----
-
-## Getting started (repo)
-
-```bash
-git clone https://github.com/your-username/mcpay.fun.git
-cd mcpay.fun
-```
-
-Run the website (Next.js):
-
-```bash
-pnpm install
-pnpm dev --filter @mcpay/app
-# or
-pnpm dev --filter @mcpay/app-v2
-```
-
-Build SDK/CLI:
-
-```bash
-pnpm -F mcpay build
-```
-
-Notes:
-- Minimal env for local dev lives in `app/src/lib/gateway/env.ts`. Common vars: `DATABASE_URL`, `BETTER_AUTH_SECRET`, GitHub OAuth (`GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`), KV (`KV_REST_API_URL`/`KV_REST_API_TOKEN`). For managed wallets and on-chain flows: `CDP_*`, and a facilitator key if you enable auto‑signing.
-- For real payments, use a secure signer and set a low‑value test key in development only.
-
----
-
-## FAQ
-
-**Stripe but for agents?**  Similar goal (monetize usage), different approach: **no checkout**, **no subscriptions**, **no API keys**.
-
-**Do I have to use MCP?**  No. MCPay works for plain HTTP endpoints too. MCP features (tool discovery/pricing) make it nicer for agent ecosystems.
-
-**Can humans pay in a browser?**  Yes, via wallet extensions or embedded wallets — same `402` flow.
-
