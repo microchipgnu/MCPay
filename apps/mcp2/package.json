@@ -6,6 +6,7 @@
   "scripts": {
     "migrate:upstash": "tsx scripts/migrate-to-upstash.ts",
     "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
     "dev": "tsx --watch src/index.ts"
   },
   "dependencies": {
