@@ -20,7 +20,8 @@
     "NEXT_PUBLIC_MCP2_URL",
     "NEXT_PUBLIC_MCP_PROXY_URL",
     "MCP_DATA_URL",
-    "MCP_DATA_SECRET"
+    "MCP_DATA_SECRET",
+    "INGESTION_SECRET"
   ],
   "tasks": {
     "build": {
