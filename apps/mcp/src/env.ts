@@ -19,6 +19,10 @@ const envSchema = z.object({
   GITHUB_CLIENT_ID: z.string().min(1, "GITHUB_CLIENT_ID is required").default(""),
   GITHUB_CLIENT_SECRET: z.string().min(1, "GITHUB_CLIENT_SECRET is required").default(""),
 
+  // Google OAuth
+  GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID is required").default(""),
+  GOOGLE_CLIENT_SECRET: z.string().min(1, "GOOGLE_CLIENT_SECRET is required").default(""),
+
   // CDP Configuration
   CDP_API_KEY: z.string().min(1, "CDP_API_KEY is required").default(""),
   CDP_API_SECRET: z.string().min(1, "CDP_API_SECRET is required").default(""),

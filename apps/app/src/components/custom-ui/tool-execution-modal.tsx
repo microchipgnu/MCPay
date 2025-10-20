@@ -3,6 +3,8 @@
 import { ConnectButton } from "@/components/custom-ui/connect-button"
 import { useTheme } from "@/components/providers/theme-context"
 import { usePrimaryWallet, useUser, useUserWallets } from "@/components/providers/user"
+import { useAccountModal } from "@/components/hooks/use-account-modal"
+import { AccountModal } from "@/components/custom-ui/account-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -179,6 +181,7 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
   const { address: connectedWalletAddress, isConnected: isBrowserWalletConnected } = useAccount()
   const chainId = useChainId()
   const themeClasses = getThemeClasses(isDark)
+  const { isOpen: isAccountModalOpen, openModal: openAccountModal, closeModal: closeAccountModal } = useAccountModal()
 
   // State for selected wallet (defaults to primary wallet)
   const [selectedWallet, setSelectedWallet] = useState<UserWallet | null>(null)
@@ -1313,6 +1316,13 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
                 <p className="text-xs text-muted-foreground">
                   You need a connected wallet to pay for tool execution.
                 </p>
+                <Button
+                  onClick={() => openAccountModal('wallets')}
+                  size="sm"
+                  className="text-xs h-7 px-3 bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Connect Wallet
+                </Button>
               </div>
             </div>
           </div>
@@ -1686,53 +1696,69 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent className="max-h-[85vh] bg-background border-border">
-          <DrawerHeader>
-            <div className="flex items-center justify-between">
-              <DrawerTitle className="flex items-center gap-2 text-foreground">
-                <Wrench className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-                {stableTool?.name || 'Run Tool'}
-              </DrawerTitle>
-              {stableTool && renderStatusChip()}
+      <>
+        <Drawer open={isOpen} onOpenChange={onClose}>
+          <DrawerContent className="max-h-[85vh] bg-background border-border">
+            <DrawerHeader>
+              <div className="flex items-center justify-between">
+                <DrawerTitle className="flex items-center gap-2 text-foreground">
+                  <Wrench className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  {stableTool?.name || 'Run Tool'}
+                </DrawerTitle>
+                {stableTool && renderStatusChip()}
+              </div>
+              <DrawerDescription className="text-muted-foreground">
+                {stableTool
+                  ? ((isInitialized && (mcpToolsCollection[stableTool.name] as MCPToolFromClient)?.description) || stableTool.description || 'Configure and execute').slice(0, 100) + ((stableTool.description && stableTool.description.length > 100) ? '...' : '')
+                  : 'Configure and execute'
+                }
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-6 overflow-y-auto">
+              {renderContent()}
             </div>
-            <DrawerDescription className="text-muted-foreground">
-              {stableTool
-                ? ((isInitialized && (mcpToolsCollection[stableTool.name] as MCPToolFromClient)?.description) || stableTool.description || 'Configure and execute').slice(0, 100) + ((stableTool.description && stableTool.description.length > 100) ? '...' : '')
-                : 'Configure and execute'
-              }
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-6 overflow-y-auto">
-            {renderContent()}
-          </div>
-        </DrawerContent>
-      </Drawer>
+          </DrawerContent>
+        </Drawer>
+        
+        <AccountModal 
+          isOpen={isAccountModalOpen} 
+          onClose={closeAccountModal} 
+          defaultTab="wallets" 
+        />
+      </>
     )
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col bg-background border-border">
-        <DialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 text-foreground">
-              <Wrench className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-              {stableTool?.name || 'Run Tool'}
-            </DialogTitle>
-            {stableTool && renderStatusChip()}
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col bg-background border-border">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-foreground">
+                <Wrench className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                {stableTool?.name || 'Run Tool'}
+              </DialogTitle>
+              {stableTool && renderStatusChip()}
+            </div>
+            <DialogDescription className="text-muted-foreground">
+              {stableTool
+                ? ((isInitialized && (mcpToolsCollection[stableTool.name] as MCPToolFromClient)?.description) || stableTool.description || 'Configure and execute').slice(0, 100) + ((stableTool.description && stableTool.description.length > 100) ? '...' : '')
+                : 'Configure and execute'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 flex-1 overflow-y-auto">
+            {renderContent()}
           </div>
-          <DialogDescription className="text-muted-foreground">
-            {stableTool
-              ? ((isInitialized && (mcpToolsCollection[stableTool.name] as MCPToolFromClient)?.description) || stableTool.description || 'Configure and execute').slice(0, 100) + ((stableTool.description && stableTool.description.length > 100) ? '...' : '')
-              : 'Configure and execute'
-            }
-          </DialogDescription>
-        </DialogHeader>
-        <div className="mt-4 flex-1 overflow-y-auto">
-          {renderContent()}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+      
+      <AccountModal 
+        isOpen={isAccountModalOpen} 
+        onClose={closeAccountModal} 
+        defaultTab="wallets" 
+      />
+    </>
   )
 } 
