@@ -2,6 +2,7 @@
   "name": "@mcpay/mcp2",
   "private": true,
   "type": "module",
+  "version": "0.0.3",
   "scripts": {
     "migrate:upstash": "tsx scripts/migrate-to-upstash.ts",
     "start": "tsx src/index.ts",

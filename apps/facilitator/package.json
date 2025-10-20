@@ -1,5 +1,6 @@
 {
   "name": "facilitator",
+  "version": "0.0.1",
   "module": "index.ts",
   "type": "module",
   "private": true,

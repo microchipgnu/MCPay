@@ -1,3 +1,0 @@
-# chatgpt-mcpay-web
-
-## null

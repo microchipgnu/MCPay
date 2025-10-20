@@ -2,6 +2,7 @@
   "name": "@mcpay/api2",
   "private": true,
   "type": "module",
+  "version": "0.0.1",
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx --watch src/index.ts"
