@@ -19,6 +19,24 @@ neonConfig.fetchConnectionCache = true;
 const sql = neon(getDatabaseUrl());
 export const db = drizzle(sql, { schema });
 
+const crossDomainConfig = () => {
+  const isDevelopment = env.NODE_ENV === "development" || env.NODE_ENV === "test";
+  if (isDevelopment) {
+    return {
+      crossSubDomainCookies: {
+        enabled: true,
+        domain: ".localhost"
+      },
+    }
+  }
+  return {
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: ".mcpay.tech"
+    },
+  }
+}
+
 export const auth = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
     database: drizzleAdapter(db, {
@@ -38,11 +56,8 @@ export const auth = betterAuth({
           clientSecret: env.GOOGLE_CLIENT_SECRET,
         }
     },
-    advanced: {
-        crossSubDomainCookies: {
-            enabled: true,
-            domain: ".mcpay.tech"
-        },
+      advanced: {
+        ...crossDomainConfig(),
         useSecureCookies: true
     },
     plugins: [

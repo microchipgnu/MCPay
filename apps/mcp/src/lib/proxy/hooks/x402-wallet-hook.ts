@@ -2,6 +2,7 @@ import type { CallToolRequest, CallToolResult } from "@modelcontextprotocol/sdk/
 import type { Hook, RequestExtra, ToolCallResponseHookResult } from "mcpay/handler";
 import { PaymentRequirements } from "x402/types";
 import { attemptSignPayment } from "../../3rd-parties/payment-strategies/index.js";
+import { createOneClickBuyUrl } from "../../3rd-parties/cdp/onramp/index.js";
 
 
 type X402ErrorPayload = {
@@ -28,8 +29,10 @@ function isPaymentRequired(res: any): X402ErrorPayload | null {
     if (!payload) return null;
     if (!payload.error) return null;
     // Treat any pricing-related error as an opportunity to auto-pay
-    const codes = new Set(["PAYMENT_REQUIRED", "INVALID_PAYMENT", "UNABLE_TO_MATCH_PAYMENT_REQUIREMENTS", "PRICE_COMPUTE_FAILED"]);
-    return codes.has(payload.error) ? payload : null;
+    // Normalize error codes to lowercase for consistent validation
+    const normalizedError = payload.error.toLowerCase();
+    const codes = new Set(["payment_required", "invalid_payment", "unable_to_match_payment_requirements", "price_compute_failed", "insufficient_funds"]);
+    return codes.has(normalizedError) ? payload : null;
 }
 
 export class X402WalletHook implements Hook {
@@ -52,6 +55,12 @@ export class X402WalletHook implements Hook {
                 return { resultType: "continue" as const, response: res };
             }
 
+            // Handle insufficient_funds error by providing funding links
+            // Normalize error code to lowercase for consistent comparison
+            if (payload.error && payload.error.toLowerCase() === "insufficient_funds") {
+                console.log("[X402WalletHook] Insufficient funds detected, providing funding links.");
+                return this.handleInsufficientFunds(res, payload, req, extra);
+            }
 
             // Must have an authenticated user to auto-pay
             const session = this.session;
@@ -96,6 +105,84 @@ export class X402WalletHook implements Hook {
         } catch (err) {
             console.error("[X402WalletHook] Error in processCallToolResult:", err);
             return { resultType: "continue" as const, response: res };
+        }
+    }
+
+    private async handleInsufficientFunds(res: CallToolResult, payload: X402ErrorPayload, req: CallToolRequest, extra: RequestExtra): Promise<ToolCallResponseHookResult> {
+        try {
+            // Extract payer address from payload
+            const payerAddress = (payload as any).payer as string | undefined;
+            
+            // Build funding message in markdown format
+            let fundingMessage = `## Funding Required\n\nTo fund your account:\n\n• **Wallet Management**: Visit [mcpay.tech/#account-wallet](https://mcpay.tech/#account-wallet) to manage your wallet`;
+            
+            // Generate onramp URL if we have a payer address and session
+            if (payerAddress && this.session?.userId) {
+                try {
+                    const onrampUrl = await this.generateOnrampUrl(payerAddress, payload.accepts || []);
+                    if (onrampUrl) {
+                        fundingMessage += `\n• **Quick Funding**: [Fund with Coinbase](${onrampUrl})`;
+                    }
+                } catch (error) {
+                    console.warn("[X402WalletHook] Failed to generate onramp URL:", error);
+                }
+            }
+            
+            fundingMessage += `\n• **Balance Check**: Ensure you have sufficient balance for the required payment\n\n---\n\n## Payment Details`;
+            
+            // Create enhanced response with funding information placed before error details
+            const enhancedContent = Array.isArray(res.content) ? [...res.content] : [];
+            // Insert funding message at the beginning
+            enhancedContent.unshift({ type: "text", text: fundingMessage });
+            
+            const enhancedResponse: CallToolResult = {
+                ...res,
+                content: enhancedContent
+            };
+            
+            return { resultType: "continue" as const, response: enhancedResponse };
+        } catch (error) {
+            console.error("[X402WalletHook] Error in handleInsufficientFunds:", error);
+            return { resultType: "continue" as const, response: res };
+        }
+    }
+
+    private async generateOnrampUrl(payerAddress: string, accepts: X402ErrorPayload["accepts"]): Promise<string | null> {
+        try {
+            // Find the first EVM network requirement for onramp
+            const evmRequirement = accepts?.find(req => 
+                req.network && 
+                (req.network.includes('base') || req.network.includes('ethereum') || req.network.includes('polygon') || req.network.includes('avalanche')) &&
+                req.scheme === "exact"
+            );
+            
+            if (!evmRequirement) return null;
+            
+            // Extract network name (remove testnet suffixes for onramp)
+            const network = evmRequirement.network.replace(/-sepolia|-fuji|-amoy|-testnet|-devnet/g, '');
+            
+            // Extract asset address
+            const assetAddress = evmRequirement.asset;
+            
+            // Determine asset symbol
+            let assetSymbol = 'USDC'; // Default to USDC
+            if (assetAddress && evmRequirement.extra?.name) {
+                assetSymbol = String(evmRequirement.extra.name);
+            }
+            
+            // Generate onramp URL directly using the internal function
+            const url = await createOneClickBuyUrl(payerAddress, {
+                network: network,
+                asset: assetSymbol,
+                amount: 20, // Default $20
+                currency: 'USD',
+                userId: this.session?.userId
+            });
+            
+            return url;
+        } catch (error) {
+            console.warn("[X402WalletHook] Error generating onramp URL:", error);
+            return null;
         }
     }
 }

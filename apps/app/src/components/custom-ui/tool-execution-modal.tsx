@@ -41,6 +41,8 @@ import { toast } from "sonner"
 import { Account } from "viem/accounts"
 import { useAccount, useChainId, useWalletClient } from "wagmi"
 import type { MultiNetworkSigner } from "x402/types"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 // Helper function to format wallet address for display
 const formatWalletAddress = (address: string): string => {
@@ -584,13 +586,30 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
                 arguments: params,
                 toolCallId: options.toolCallId,
               })
-              // Attempt to extract a useful result from MCP response content
+              // Extract all content from MCP response
               const isRecord = (v: unknown): v is Record<string, unknown> =>
                 typeof v === 'object' && v !== null
               const hasContentArray = (v: unknown): v is { content: unknown[] } =>
                 isRecord(v) && Array.isArray((v as Record<string, unknown>)['content'])
               const content: unknown[] | undefined = hasContentArray(res) ? res.content : undefined
-              let text: string | undefined
+              
+              log.info(`[Execute] MCP response structure:`, { 
+                isError: res.isError,
+                hasContent: !!content, 
+                contentLength: content?.length,
+                hasMeta: !!res._meta,
+                metaKeys: res._meta ? Object.keys(res._meta) : [],
+                hasX402Error: res._meta && isRecord(res._meta) && !!res._meta['x402/error'],
+                contentItems: content?.map((item, index) => ({
+                  index,
+                  type: isRecord(item) ? item.type : 'unknown',
+                  hasText: isRecord(item) && typeof item.text === 'string',
+                  textPreview: isRecord(item) && typeof item.text === 'string' ? item.text.substring(0, 50) + '...' : 'no text'
+                }))
+              })
+              
+              // Collect all text content items
+              const textItems: string[] = []
               if (Array.isArray(content)) {
                 for (const item of content) {
                   if (isRecord(item)) {
@@ -598,23 +617,53 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
                     if (typeof typeValue === 'string' && typeValue === 'text') {
                       const textValue = item['text']
                       if (typeof textValue === 'string') {
-                        text = textValue
-                        break
+                        textItems.push(textValue)
+                        log.info(`[Execute] Added text item:`, { 
+                          length: textValue.length, 
+                          preview: textValue.substring(0, 100) + (textValue.length > 100 ? '...' : '')
+                        })
                       }
                     }
                   }
                 }
               }
-              if (typeof text === 'string') {
-                try {
-                  const parsed = JSON.parse(text)
-                  log.info(`[Execute] Parsed JSON result`, { tool: toolName })
-                  return parsed
-                } catch {
-                  log.info(`[Execute] Non-JSON text result`, { tool: toolName })
-                  return text
+              
+              log.info(`[Execute] Collected ${textItems.length} text items from ${content?.length || 0} content items`)
+              
+              // Check if this is an error response with x402/error metadata
+              if (res.isError && res._meta && isRecord(res._meta) && res._meta['x402/error']) {
+                log.info(`[Execute] X402 error response detected`, { 
+                  tool: toolName,
+                  contentLength: content?.length,
+                  textItemsLength: textItems.length,
+                  x402ErrorData: res._meta['x402/error']
+                })
+                // Return the full content array to preserve structure
+                return {
+                  isX402Error: true,
+                  content: content || [],
+                  textItems: textItems
                 }
               }
+              
+              // If we have text content, combine it all for normal responses
+              if (textItems.length > 0) {
+                const combinedText = textItems.join('\n\n')
+                
+                try {
+                  const parsed = JSON.parse(combinedText)
+                  log.info(`[Execute] Parsed JSON result from ${textItems.length} content items`, { tool: toolName })
+                  return parsed
+                } catch {
+                  log.info(`[Execute] Combined text result from ${textItems.length} content items`, { 
+                    tool: toolName,
+                    totalLength: combinedText.length,
+                    preview: combinedText.substring(0, 200) + (combinedText.length > 200 ? '...' : '')
+                  })
+                  return combinedText
+                }
+              }
+              
               log.info(`[Execute] Raw MCP result returned`, { tool: toolName })
               return res
             }
@@ -706,6 +755,31 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
       })
 
       log.info(`[Execute] Success`, { tool: stableTool.name })
+
+      // Check if the result contains x402 error information
+      const isX402Error = typeof result === 'object' && result !== null && 'isX402Error' in result && result.isX402Error === true
+      
+      log.info(`[Execute] Result analysis:`, {
+        tool: stableTool.name,
+        resultType: typeof result,
+        isObject: typeof result === 'object' && result !== null,
+        hasIsX402Error: typeof result === 'object' && result !== null && 'isX402Error' in result,
+        isX402ErrorValue: typeof result === 'object' && result !== null && 'isX402Error' in result ? (result as any).isX402Error : 'N/A',
+        isX402Error
+      })
+      
+      if (isX402Error) {
+        log.info(`[Execute] X402 error detected in result`, { 
+          tool: stableTool.name,
+          resultContent: result
+        })
+        setExecution({
+          status: 'success', // Show as success but with error content
+          result,
+          transactionId: undefined
+        })
+        return
+      }
 
       // Try to extract transaction ID from result if available
       let transactionId: string | undefined
@@ -1537,6 +1611,36 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
     if (execution.status === 'success' && execution.result) {
       const formatResult = () => {
         if (execution.result === undefined) return 'No result'
+        
+        // Check if this is an x402 error response with structured content
+        if (typeof execution.result === 'object' && execution.result !== null && 'isX402Error' in execution.result) {
+          const x402Result = execution.result as { isX402Error: boolean; content: unknown[]; textItems: string[] }
+          log.info(`[Format] Rendering x402 error with ${x402Result.content.length} content items`)
+          
+          // Render each content item separately with proper formatting
+          return x402Result.content.map((item, index) => {
+            if (typeof item === 'object' && item !== null && 'type' in item && 'text' in item) {
+              const contentItem = item as { type: string; text: string }
+              const isJsonContent = contentItem.text.trim().startsWith('{') && contentItem.text.trim().endsWith('}')
+              const isMarkdownContent = contentItem.text.includes('##') || contentItem.text.includes('**') || contentItem.text.includes('[')
+              
+              if (isMarkdownContent) {
+                return contentItem.text
+              } else if (isJsonContent) {
+                try {
+                  const parsed = JSON.parse(contentItem.text)
+                  return `\`\`\`json\n${JSON.stringify(parsed, null, 2)}\n\`\`\``
+                } catch {
+                  return `\`\`\`\n${contentItem.text}\n\`\`\``
+                }
+              } else {
+                return contentItem.text
+              }
+            }
+            return `\`\`\`json\n${JSON.stringify(item, null, 2)}\n\`\`\``
+          }).join('\n\n')
+        }
+        
         if (typeof execution.result === 'string') {
           // Try to parse and reformat if it's JSON string
           try {
@@ -1546,6 +1650,7 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
             return execution.result
           }
         }
+        
         try {
           return showPrettyJson ? JSON.stringify(execution.result, null, 2) : JSON.stringify(execution.result)
         } catch {
@@ -1588,10 +1693,50 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
               </Button>
             </div>
           </div>
-          <div className={`rounded-md border max-h-60 overflow-hidden ${themeClasses.background.code}`}>
-            <pre className={`text-xs p-3 max-h-60 overflow-auto whitespace-pre-wrap ${themeClasses.text.primary}`}>
-              {formatResult()}
-            </pre>
+          <div className={`rounded-md border ${themeClasses.background.code}`}>
+            {/* Check if result contains markdown content */}
+            {typeof execution.result === 'object' && execution.result !== null && 'isX402Error' in execution.result ? (
+              <div className="p-3">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({ children }) => <h1 className="text-lg font-bold mb-2 text-foreground">{children}</h1>,
+                    h2: ({ children }) => <h2 className="text-base font-semibold mb-2 text-foreground">{children}</h2>,
+                    h3: ({ children }) => <h3 className="text-sm font-medium mb-1 text-foreground">{children}</h3>,
+                    p: ({ children }) => <p className="text-xs mb-2 text-foreground">{children}</p>,
+                    ul: ({ children }) => <ul className="text-xs mb-2 text-foreground list-disc list-inside">{children}</ul>,
+                    li: ({ children }) => <li className="text-xs mb-1 text-foreground">{children}</li>,
+                    a: ({ href, children }) => (
+                      <a 
+                        href={href} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        {children}
+                      </a>
+                    ),
+                    code: ({ children }) => (
+                      <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                        {children}
+                      </code>
+                    ),
+                    pre: ({ children }) => (
+                      <pre className="bg-muted p-2 rounded text-xs font-mono overflow-x-auto">
+                        {children}
+                      </pre>
+                    ),
+                    hr: () => <hr className="border-border my-3" />
+                  }}
+                >
+                  {formatResult()}
+                </ReactMarkdown>
+              </div>
+            ) : (
+              <pre className={`text-xs p-3 whitespace-pre-wrap ${themeClasses.text.primary}`}>
+                {formatResult()}
+              </pre>
+            )}
           </div>
 
           {/* Transaction Info & New Query */}
