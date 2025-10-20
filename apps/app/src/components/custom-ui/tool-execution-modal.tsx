@@ -1693,7 +1693,7 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
               </Button>
             </div>
           </div>
-          <div className={`rounded-md border ${themeClasses.background.code}`}>
+          <div className={`rounded-md border ${themeClasses.background.code} max-h-96 overflow-y-auto`}>
             {/* Check if result contains markdown content */}
             {typeof execution.result === 'object' && execution.result !== null && 'isX402Error' in execution.result ? (
               <div className="p-3">
