@@ -244,8 +244,9 @@ export default function ServerPage() {
 
             <div className="mb-2">
               <ServerHeader
-                name={data.info?.name || data.origin}
-                description={data.info?.description}
+                name={data?.info?.name || data?.origin || ''}
+                description={data?.info?.description}
+                origin={data?.origin || ''}
                 onExplore={() => {
                   // Scroll to tools
                   const el = document.getElementById('tools-section')
