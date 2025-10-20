@@ -14,9 +14,11 @@ import { SupportedEVMNetworks, SupportedSVMNetworks } from "x402/types"
 import { type Network } from "@/types/blockchain"
 import { AlertCircle, ArrowUpRight, CheckCircle, Clipboard, Info, Loader2, Server, Trash2, FlaskConical } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import dynamic from "next/dynamic"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { MonetizeWizard } from "@/components/custom-ui/monetize-wizard"
+const MonetizeWizard = dynamic(() => import("@/components/custom-ui/monetize-wizard").then(m => ({ default: m.MonetizeWizard })), { ssr: false })
 
 
 
@@ -144,20 +146,20 @@ function RegisterPageLoading() {
 
 // New Register Options Page Component
 function RegisterOptionsPage() {
+  const router = useRouter()
   const [indexing, setIndexing] = useState(false)
   const [indexError, setIndexError] = useState<string | null>(null)
   const [monetizing, setMonetizing] = useState(false)
-  const [monetizeError] = useState<string | null>(null)
+  // Remove unused monetizeError state
   const [serverUrl, setServerUrl] = useState('')
   const [urlTouched, setUrlTouched] = useState(false)
   const [urlValid, setUrlValid] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [previewTools, setPreviewTools] = useState<RegisterMCPTool[] | null>(null)
-  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
-  const [previewError, setPreviewError] = useState<string | null>(null)
-  const [lastMonetizedUrl] = useState<string | null>(null)
-  const [clipboardUrlSuggestion, setClipboardUrlSuggestion] = useState<string | null>(null)
-  const [clipboardPrompted, setClipboardPrompted] = useState(false)
+  // Remove clipboard auto-detect related state
+  const [authRequiredDetected, setAuthRequiredDetected] = useState(false)
+
+  // Manual preview removed
 
   // Monetize wizard state
   const [monetizeOpen, setMonetizeOpen] = useState(false)
@@ -184,9 +186,13 @@ function RegisterOptionsPage() {
 
 
 
-  const handleAddServer = async () => {
+  const handleAddServer = useCallback(async () => {
     if (!serverUrl.trim()) {
       toast.error('Please enter a server URL')
+      return
+    }
+    if (authRequiredDetected) {
+      toast.warning('This server requires authentication; indexing is unavailable. Use Monetize with auth headers.')
       return
     }
 
@@ -207,7 +213,9 @@ function RegisterOptionsPage() {
       if ('ok' in result && result.ok) {
         toast.success('Server indexed successfully!')
         // Redirect to server page or explorer
-        window.location.href = `/servers/${result.serverId}`
+        if (result.serverId) {
+          router.push(`/servers/${result.serverId}`)
+        }
       } else if ('error' in result && result.error) {
         toast.error(`Failed to index server: ${result.error}`)
       } else {
@@ -220,9 +228,9 @@ function RegisterOptionsPage() {
     } finally {
       setIndexing(false)
     }
-  }
+  }, [serverUrl, isOpenApiMode, router, authRequiredDetected])
 
-  const handleMonetize = async () => {
+  const handleMonetize = useCallback(async () => {
     if (!serverUrl.trim()) {
       toast.error('Please enter a server URL')
       return
@@ -281,9 +289,9 @@ function RegisterOptionsPage() {
       // On error, show auth config dialog
       setAuthConfigOpen(true)
     }
-  }
+  }, [serverUrl, urlValid, isOpenApiMode])
 
-  const handleAuthConfigSubmit = async () => {
+  const handleAuthConfigSubmit = useCallback(async () => {
     if (!serverUrl.trim()) return
     
     setAuthConfigLoading(true)
@@ -327,7 +335,7 @@ function RegisterOptionsPage() {
     } finally {
       setAuthConfigLoading(false)
     }
-  }
+  }, [serverUrl, authHeaders])
 
   const createMonetizedEndpointWithData = async (data: {
     prices: Record<string, number>
@@ -401,7 +409,7 @@ function RegisterOptionsPage() {
         const result = await mcpDataApi.runIndex(endpoint)
         if ('ok' in result && result.ok && result.serverId) {
           toast.success('Server indexed successfully!')
-          window.location.href = `/servers/${result.serverId}`
+          router.push(`/servers/${result.serverId}`)
           return
         }
       } catch { }
@@ -472,7 +480,7 @@ function RegisterOptionsPage() {
         const result = await mcpDataApi.runIndex(endpoint)
         if ('ok' in result && result.ok && result.serverId) {
           toast.success('Server indexed successfully!')
-          window.location.href = `/servers/${result.serverId}`
+          router.push(`/servers/${result.serverId}`)
           return
         }
       } catch { }
@@ -505,102 +513,31 @@ function RegisterOptionsPage() {
     } catch { }
   }, [])
 
-  // Attempt to detect a URL in the clipboard (best-effort)
-  useEffect(() => {
-    let cancelled = false
-    const detectClipboard = async () => {
-      if (clipboardPrompted) return
-      try {
-        const text = await navigator.clipboard.readText()
-        const value = (text || '').trim()
-        if (!cancelled && value && !serverUrl) {
-          const { valid } = validateServerUrl(value)
-          if (valid) {
-            setClipboardUrlSuggestion(value)
-          }
-        }
-      } catch { }
-    }
-    detectClipboard()
-    return () => { cancelled = true }
-  }, [clipboardPrompted, serverUrl])
+  // Preview removed
 
-  // Validate URL and fetch preview on change (debounced)
-  useEffect(() => {
-    const value = serverUrl.trim()
-    if (!value) {
-      setUrlValid(false)
-      setUrlError(null)
-      setPreviewTools(null)
-      return
-    }
-    const id = setTimeout(async () => {
-      const { valid, error } = validateServerUrl(value)
-      setUrlValid(valid)
-      setUrlError(error || null)
-      try { localStorage.setItem('mcp_register_last_url', value) } catch { }
-
-      if (valid) {
-        setIsPreviewLoading(true)
-        setPreviewError(null)
-        try {
-          if (isOpenApiMode) {
-            // For OpenAPI mode, use dedicated OpenAPI inspection endpoint
-            const res = await fetch(`/api/inspect-openapi?url=${encodeURIComponent(value)}`)
-            if (res.ok) {
-              const data = await res.json() as { ok?: boolean; tools?: Array<{ name: string; description?: string }> }
-              if (data?.ok && Array.isArray(data.tools)) {
-                setPreviewTools(data.tools.slice(0, 5).map((t) => ({ 
-                  name: t.name, 
-                  description: t.description 
-                })))
-              } else {
-                setPreviewTools(null)
-              }
-            } else {
-              throw new Error(`Failed to inspect OpenAPI: ${res.status}`)
-            }
-          } else {
-            // For MCP mode, use existing logic
-            const tools = await api.getMcpTools(value)
-            setPreviewTools(Array.isArray(tools) ? tools.slice(0, 5) : null)
-          }
-        } catch (e) {
-          setPreviewTools(null)
-          setPreviewError(e instanceof Error ? e.message : 'Failed to inspect server')
-        } finally {
-          setIsPreviewLoading(false)
-        }
-      } else {
-        setPreviewTools(null)
-      }
-    }, 350)
-    return () => clearTimeout(id)
-  }, [serverUrl])
-
-  const onPaste = async () => {
+  const onPaste = useCallback(async () => {
     try {
       const text = await navigator.clipboard.readText()
       if (text) setServerUrl(text)
     } catch {
       toast.error('Could not read clipboard')
     }
-  }
+  }, [])
 
-  const onClear = () => {
+  const onClear = useCallback(() => {
     setServerUrl('')
     setUrlTouched(false)
     setUrlValid(false)
     setUrlError(null)
     setPreviewTools(null)
-  }
+  }, [])
 
-  const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+  const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((e) => {
     if (e.key === 'Enter' && urlValid && !monetizing) {
       e.preventDefault()
       handleMonetize()
     }
-  }
+  }, [urlValid, monetizing, handleMonetize])
 
 
   return (
@@ -649,6 +586,7 @@ function RegisterOptionsPage() {
                           setUrlValid(false)
                           setUrlError(null)
                           setPreviewTools(null)
+                          setAuthRequiredDetected(false)
                         }}
                         className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md transition-colors ${
                           !isOpenApiMode 
@@ -666,6 +604,7 @@ function RegisterOptionsPage() {
                           setUrlValid(false)
                           setUrlError(null)
                           setPreviewTools(null)
+                          setAuthRequiredDetected(false)
                         }}
                         className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md transition-colors ${
                           isOpenApiMode 
@@ -694,18 +633,27 @@ function RegisterOptionsPage() {
                       type="url"
                       aria-label={isOpenApiMode ? "OpenAPI URL" : "Server URL"}
                       aria-describedby="server-url-help"
+                      aria-invalid={Boolean(serverUrl) && !urlValid}
                       placeholder={isOpenApiMode ? "https://api.example.com/openapi.json" : "https://your-mcp-server.com/mcp"}
                       value={serverUrl}
-                      onChange={(e) => setServerUrl(e.target.value)}
-                      onBlur={() => setUrlTouched(true)}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setServerUrl(val)
+                        const { valid, error } = validateServerUrl(val.trim())
+                        setUrlValid(valid)
+                        setUrlError(error || null)
+                        setAuthRequiredDetected(false)
+                      }}
+                      onBlur={() => {
+                        setUrlTouched(true)
+                        try { localStorage.setItem('mcp_register_last_url', serverUrl.trim()) } catch {}
+                      }}
                       onKeyDown={onKeyDown}
                       className="flex-1 pr-9 transition-shadow bg-background border-border text-foreground placeholder:text-muted-foreground focus:bg-background focus:shadow-[0_0_0_2px_rgba(0,82,255,0.25)]"
                     />
                     {(serverUrl || urlTouched) && (
                       <div className="absolute inset-y-0 right-2 flex items-center">
-                        {isPreviewLoading ? (
-                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                        ) : urlValid ? (
+                        {urlValid ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="text-teal-600 dark:text-teal-400" aria-label="Valid URL">
@@ -728,6 +676,8 @@ function RegisterOptionsPage() {
                     )}
                   </div>
 
+                  {/* Preview removed */}
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button type="button" variant="outline" size="icon" onClick={onPaste} className="shrink-0 border-border" aria-label="Paste from clipboard">
@@ -741,38 +691,9 @@ function RegisterOptionsPage() {
                     Clear
                   </Button>
                 </div>
-                {/* Clipboard suggestion */}
-                {clipboardUrlSuggestion && !serverUrl && (
-                  <div className="mt-2 text-xs flex items-center gap-2 text-muted-foreground">
-                    <span>We detected a URL in your clipboard.</span>
-                    <Button type="button" variant="link" size="sm" className="h-6 px-0" onClick={() => { setServerUrl(clipboardUrlSuggestion); setClipboardPrompted(true); }}>
-                      Paste it?
-                    </Button>
-                    <button type="button" className="underline underline-offset-2 text-muted-foreground" onClick={() => setClipboardPrompted(true)}>Dismiss</button>
-                  </div>
-                )}
+                {/* Clipboard suggestion removed */}
 
-                {/* Preview tools */}
-                {(isPreviewLoading || previewTools || previewError) && (
-                  <div className="mt-3 text-sm">
-                    {isPreviewLoading && (
-                      <span className="text-muted-foreground">
-                        {isOpenApiMode ? 'Inspecting OpenAPI specification…' : 'Inspecting server…'}
-                      </span>
-                    )}
-                    {!isPreviewLoading && previewError && (
-                      <span className="text-red-600 dark:text-red-400">{previewError}</span>
-                    )}
-                    {!isPreviewLoading && previewTools && previewTools.length > 0 && (
-                      <div className="text-foreground">
-                        <span className="font-medium">
-                          {isOpenApiMode ? 'Detected API endpoints:' : 'Detected tools:'}
-                        </span>{' '}
-                        {previewTools.map((t) => t.name).join(', ')}{previewTools.length >= 5 ? '…' : ''}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Preview removed */}
               </CardContent>
             </Card>
 
@@ -832,21 +753,7 @@ function RegisterOptionsPage() {
                           </>
                         )}
                       </Button>
-                      {monetizeError && (
-                        <p className="text-sm text-red-600 dark:text-red-400 mt-2">{monetizeError}</p>
-                      )}
-                      {lastMonetizedUrl && (
-                        <div className="mt-3 flex items-center gap-2">
-                          <code className="text-xs font-mono p-2 px-3 rounded-md bg-muted/40 border border-border break-all flex-1 text-foreground">{lastMonetizedUrl}</code>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            className="text-xs h-7 px-2"
-                            onClick={async (e) => { e.stopPropagation(); await navigator.clipboard.writeText(lastMonetizedUrl); toast.success('Copied URL') }}
-                          >Copy</Button>
-                        </div>
-                      )}
+
                     </CardContent>
                   </Card>
 
@@ -866,7 +773,7 @@ function RegisterOptionsPage() {
                     <CardContent className="pt-0 mt-auto">
                       <Button
                         onClick={handleAddServer}
-                        disabled={indexing}
+                        disabled={indexing || authRequiredDetected}
                         className="w-full transition-all duration-200 font-medium bg-teal-600 hover:bg-teal-700 text-white hover:shadow-lg"
                       >
                         {indexing ? (

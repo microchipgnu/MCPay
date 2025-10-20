@@ -70,8 +70,12 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
 
   // Update auth state when initial props change
   useEffect(() => {
-    console.log('MonetizeWizard: initialRequireAuth', initialRequireAuth)
-    console.log('MonetizeWizard: initialAuthHeaders', initialAuthHeaders)
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log('MonetizeWizard: initialRequireAuth', initialRequireAuth)
+      // eslint-disable-next-line no-console
+      console.log('MonetizeWizard: initialAuthHeaders', initialAuthHeaders)
+    }
     if (initialRequireAuth !== undefined) {
       setRequireAuth(initialRequireAuth)
     }
@@ -649,7 +653,10 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => {
-                        console.log('Clear EVM button clicked')
+                        if (process.env.NODE_ENV !== 'production') {
+                          // eslint-disable-next-line no-console
+                          console.log('Clear EVM button clicked')
+                        }
                         setEvmRecipientAddress("")
                         setEvmManuallyCleared(true)
                       }}
@@ -836,7 +843,10 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => {
-                        console.log('Clear SVM button clicked')
+                        if (process.env.NODE_ENV !== 'production') {
+                          // eslint-disable-next-line no-console
+                          console.log('Clear SVM button clicked')
+                        }
                         setSvmRecipientAddress("")
                         setSvmManuallyCleared(true)
                       }}
