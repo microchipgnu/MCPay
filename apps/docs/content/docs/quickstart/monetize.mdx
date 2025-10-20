@@ -3,43 +3,39 @@ title: "Monetize"
 description: "Two paths to price and protect your tools: no-code on the website or full-control with the SDK."
 ---
 
-There are two ways to monetize an MCP server (or a plain HTTP API):
+MCPay lets you add on-chain pricing to any MCP or OpenAPI server.
+
+Whether you prefer to configure everything from the dashboard or define logic in code, both paths use the same x402 standard.
 
 | Path | Best for | What it does |
 |---|---|---|
-| **Website (No-code)** | Fastest go-live, existing services | Configure prices per tool/route in the dashboard. The MCPay proxy returns `402` + price metadata and auto-retries after payment. |
-| **SDK (Code)** | Custom logic & full control | Define **paid tools** in code, set pricing, and ship an MCP/HTTP server that speaks x402 out of the box. |
+| **[Website](https://mcpay.tech/register)** | Fastest go-live, existing services | Configure prices per tool/route in the dashboard. |
+| **[SDK](/quickstart/sdk)** | Custom logic & full control | Define **paid tools** in code, set pricing, and ship an MCP server that speaks x402 out of the box. |
 
 ---
 
-## Option A — Website (No-code)
+## Website (No-code)
 
-Use the **Register/Monetize** flow to price tools with zero code changes to your upstream.
+Use the **Monetize** flow to price tools with zero code changes to your upstream.
 
-**Steps**
-1. Go to **`https://mcpay.tech/register`** and register your MCP server (or an HTTP endpoint to wrap).
+**Steps**:
+1. Go to [mcpay.tech/register](https://mcpay.tech/register) and input your MCP or OpenAPI URL.
 2. Pick the **tools/routes** you want to charge for.
 3. Set **price** (e.g., `$0.05` per call), **asset** (e.g., USDC), and **chain** (e.g., Base).
-4. (Optional) Configure memo/expiry and basic rate-limits.
-5. **Publish**. Your server’s MCPay URL is now pay-protected.
+4. **Publish**. Your server’s MCPay URL is now pay-protected.
 
-**What happens under the hood**
-- First unauthenticated call → **`402 Payment Required`** with `accepts { asset, amount, destination, memo, expiry }`.
-- Client (or the MCPay transport) pays on-chain, then **the proxy retries the original request** and returns the real response.
-- **Usage/revenue events** are emitted for your analytics.
-
-**Great for**
-- Wrapping an existing API **without touching code**.
-- Quickly turning individual **MCP tools** into paid endpoints.
-- Letting **agents and browsers** pay per call with the same flow.
+**Great for**:
+- Wrapping an existing API **without touching code** with pricing.
+- Quickly charging for individiaul **MCP tools** or API routes into paid MCP tools.
 
 ---
 
-## Option B — SDK (Code)
+## SDK (Code)
 
-Choose the SDK when you want **code-level control**. Define free or paid tools, attach per-call pricing, and let the client transport **auto-handle `402`/x402 (pay → retry)** for MCP **and** plain HTTP services. Ideal for versioned codebases, testing, and CI/CD.
+Choose the SDK when you want **code-level control**. Define free or paid tools, attach per-call pricing, and let the client transport **auto-handle x402 (pay → retry)** for MCP **and** plain HTTP services.
 
+**Great for**:
 - Full control over pricing & validation in code  
 - Works with Next.js, Express, Workers, etc.
 
-→ Start here: [Building with the SDK](/quickstart/sdk)
+→ Learn more: [Building with the SDK](/quickstart/sdk)
