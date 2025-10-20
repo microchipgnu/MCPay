@@ -270,3 +270,5 @@ Start a local stdio proxy to remote MCP servers:
 Run `mcpay connect --help` for all flags.
 
 ---
+
+BUILD
