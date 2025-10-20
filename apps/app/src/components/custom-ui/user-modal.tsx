@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
 import { Github, Copy as CopyIcon, Check as CheckIcon, ExternalLink, Loader2 } from "lucide-react"
 import { useSession, signIn, signOut } from "@/lib/client/auth"
 import { authApi } from "@/lib/client/utils"
@@ -26,6 +27,7 @@ type Wallet = {
   provider?: string
   walletType?: string
   blockchain?: string
+  architecture?: string
   isPrimary?: boolean
   isActive?: boolean
   createdAt?: string
@@ -57,6 +59,31 @@ function shortAddress(addr?: string) {
   const a = addr.trim()
   if (a.length <= 12) return a
   return `${a.slice(0, 6)}…${a.slice(-4)}`
+}
+
+function getArchitectureBadge(architecture?: string, blockchain?: string) {
+  if (!architecture && !blockchain) return null
+  
+  // Determine architecture from blockchain if not provided
+  const arch = architecture || (blockchain === 'solana' ? 'solana' : 'evm')
+  
+  const badgeConfig = {
+    'solana': {
+      label: 'Solana',
+      variant: 'secondary' as const
+    },
+    'evm': {
+      label: 'EVM',
+      variant: 'secondary' as const
+    }
+  }
+  
+  const config = badgeConfig[arch as keyof typeof badgeConfig] || badgeConfig.evm
+  
+  return {
+    label: config.label,
+    variant: config.variant
+  }
 }
 
 type UserAccountPanelProps = {
@@ -390,11 +417,27 @@ export function UserAccountPanel({ isActive = true, initialTab }: UserAccountPan
                           <div className={`font-mono text-sm font-medium ${isDark ? "text-white" : "text-gray-900"}`}>
                             {shortAddress(wallet.walletAddress)}
                           </div>
-                          {wallet.isPrimary && (
-                            <span className={`ml-1 inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium rounded-sm border ${isDark ? "bg-teal-800/50 text-teal-400 border-teal-800/50" : "bg-teal-500/10 text-teal-600 border-teal-500/20"}`}>
-                              Primary
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {(() => {
+                              const architectureBadge = getArchitectureBadge(wallet.architecture, wallet.blockchain)
+                              return architectureBadge ? (
+                                <Badge 
+                                  variant={architectureBadge.variant}
+                                  className="text-xs"
+                                >
+                                  {architectureBadge.label}
+                                </Badge>
+                              ) : null
+                            })()}
+                            {wallet.isPrimary && (
+                              <Badge 
+                                variant="default"
+                                className="text-xs"
+                              >
+                                Primary
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-1.5">
                           <Tooltip>

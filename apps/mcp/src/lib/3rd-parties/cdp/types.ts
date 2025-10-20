@@ -141,7 +141,9 @@ export type CDPNetwork = Extract<UnifiedNetwork,
     | "ethereum-sepolia"
     | "polygon"
     | "arbitrum"
-    | "sei-testnet">;
+    | "sei-testnet"
+    | "solana-mainnet"
+    | "solana-devnet">;
 
 // CDP smart account networks (subset of EVM networks that support smart accounts)
 export type CDPNetworkSmartAccount = Extract<EVMNetwork,
@@ -161,6 +163,7 @@ export interface CDPAccountInfo {
     smartAccountAddress?: string;
     ownerAccountId?: string;
     accountName?: string;
+    architecture?: BlockchainArchitecture; // Add architecture for Solana/EVM distinction
 }
 
 // CDP Wallet creation options

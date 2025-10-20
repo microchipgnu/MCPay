@@ -9,6 +9,8 @@ import { createPaymentHeader } from "x402/client";
 import { PaymentRequirements } from "x402/types";
 export type { Wallet } from "../../db/actions.js";
 import { toAccount } from "viem/accounts";
+import { createSignerFromSolanaAccount, isSolanaNetwork } from "../../utils/solana-signer.js";
+import { createSignerFromCDPEVMAccount, isEVMNetwork } from "../../utils/evm-signer.js";
 
 export class CDPSigningStrategy implements PaymentSigningStrategy {
     name = "CDP";
@@ -150,7 +152,21 @@ export class CDPSigningStrategy implements PaymentSigningStrategy {
             // Get the CDP account instance
             const cdpAccount = await getCDPAccount(accountId, network);
 
-            const signer = createSignerFromViemAccount(network, toAccount(cdpAccount))
+            // Determine network type and create appropriate signer
+            let signer: any;
+            if (isSolanaNetwork(network)) {
+                console.log(`[CDP Strategy] Creating Solana signer for network: ${network}`);
+                signer = await createSignerFromSolanaAccount(network, cdpAccount as any);
+            } else if (isEVMNetwork(network)) {
+                console.log(`[CDP Strategy] Creating EVM signer for network: ${network}`);
+                signer = await createSignerFromCDPEVMAccount(network, cdpAccount);
+            } else {
+                console.log(`[CDP Strategy] Unsupported network type: ${network}`);
+                return {
+                    success: false,
+                    error: `Unsupported network type: ${network}. Only EVM and Solana networks are supported.`
+                };
+            }
             
             const signedPayment = await createPaymentHeader(signer, x402Version, paymentRequirement);
 

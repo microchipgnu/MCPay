@@ -106,7 +106,7 @@ export async function createOneClickBuyUrl(
   // Prepare addresses for session token
   const addresses: OnrampAddress[] = [{
     address: walletAddress,
-    blockchains: [options.network || 'base', 'ethereum']
+    blockchains: [options.network || 'base']
   }];
 
   // Create session token
@@ -143,7 +143,8 @@ export function getSupportedNetworks(): string[] {
     'polygon',
     'arbitrum',
     'optimism',
-    'avalanche'
+    'avalanche',
+    'solana'
   ];
 }
 
@@ -156,6 +157,7 @@ export function getSupportedAssets(): string[] {
     'USDC',
     'USDT',
     'BTC',
-    'WETH'
+    'WETH',
+    'SOL'
   ];
 } 

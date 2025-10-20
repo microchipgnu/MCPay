@@ -149,25 +149,28 @@ export class X402WalletHook implements Hook {
 
     private async generateOnrampUrl(payerAddress: string, accepts: X402ErrorPayload["accepts"]): Promise<string | null> {
         try {
-            // Find the first EVM network requirement for onramp
-            const evmRequirement = accepts?.find(req => 
+            // Find the first supported network requirement for onramp (EVM or Solana)
+            const supportedRequirement = accepts?.find(req => 
                 req.network && 
-                (req.network.includes('base') || req.network.includes('ethereum') || req.network.includes('polygon') || req.network.includes('avalanche')) &&
+                (req.network.includes('base') || req.network.includes('ethereum') || req.network.includes('polygon') || req.network.includes('avalanche') || req.network.includes('solana')) &&
                 req.scheme === "exact"
             );
             
-            if (!evmRequirement) return null;
+            if (!supportedRequirement) return null;
             
             // Extract network name (remove testnet suffixes for onramp)
-            const network = evmRequirement.network.replace(/-sepolia|-fuji|-amoy|-testnet|-devnet/g, '');
+            const network = supportedRequirement.network.replace(/-sepolia|-fuji|-amoy|-testnet|-devnet/g, '');
             
             // Extract asset address
-            const assetAddress = evmRequirement.asset;
+            const assetAddress = supportedRequirement.asset;
             
             // Determine asset symbol
             let assetSymbol = 'USDC'; // Default to USDC
-            if (assetAddress && evmRequirement.extra?.name) {
-                assetSymbol = String(evmRequirement.extra.name);
+            if (assetAddress && supportedRequirement.extra?.name) {
+                assetSymbol = String(supportedRequirement.extra.name);
+            } else if (supportedRequirement.network.includes('solana')) {
+                // For Solana, default to SOL if no specific asset is specified
+                assetSymbol = 'USDC';
             }
             
             // Generate onramp URL directly using the internal function

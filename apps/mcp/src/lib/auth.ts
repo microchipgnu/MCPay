@@ -119,6 +119,7 @@ export const auth = betterAuth({
                 displayName: user.displayName || undefined,
               }, {
                 createSmartAccount: false,
+                includeSolana: true, // Create both EVM and Solana wallets
               })();
               // Removed experimental SEI faucet funding block
     
@@ -132,7 +133,9 @@ export const auth = betterAuth({
                   smartWallet: result.wallets.find(w => {
                     const metadata = w.walletMetadata as CDPWalletMetadata;
                     return metadata?.isSmartAccount;
-                  })?.walletAddress
+                  })?.walletAddress,
+                  evmWallet: result.wallets.find(w => w.blockchain === 'ethereum')?.walletAddress,
+                  solanaWallet: result.wallets.find(w => w.blockchain === 'solana')?.walletAddress
                 });
               } else {
                 console.log(`[AUTH HOOK] User ${user.id} already has CDP wallets, no action needed`);

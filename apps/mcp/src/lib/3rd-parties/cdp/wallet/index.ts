@@ -7,10 +7,11 @@
  * 
  * ## Features:
  * - Create managed EVM accounts across multiple networks
- * - Support for smart accounts with gas sponsorship 
+ * - Create managed Solana accounts on mainnet and devnet
+ * - Support for smart accounts with gas sponsorship (EVM only)
  * - Network-scoped account management
  * - Automatic integration with Base Paymaster for gasless transactions
- * - Support for Base, Ethereum, Polygon, and Arbitrum networks
+ * - Support for Base, Ethereum, Polygon, Arbitrum, and Solana networks
  * 
  * ## Setup:
  * 
@@ -27,10 +28,17 @@
  * 
  * ### Creating a managed wallet:
  * ```typescript
- * const result = await createCDPAccount({
+ * // EVM wallet with smart account
+ * const evmResult = await createCDPAccount({
  *   accountName: 'user-wallet-123',
  *   network: 'base-sepolia',
  *   createSmartAccount: true
+ * });
+ * 
+ * // Solana wallet
+ * const solanaResult = await createCDPAccount({
+ *   accountName: 'user-solana-123',
+ *   network: 'solana-mainnet'
  * });
  * ```
  * 
@@ -102,7 +110,7 @@ export function getCDPClient(): CdpClient {
 }
 
 /**
- * Create a new CDP managed account
+ * Create a new CDP managed account (EVM or Solana)
  */
 export async function createCDPAccount(options: CreateCDPWalletOptions = {}): Promise<CDPWalletResult> {
     console.log("[CDP] Starting createCDPAccount with options:", options);
@@ -122,64 +130,14 @@ export async function createCDPAccount(options: CreateCDPWalletOptions = {}): Pr
     console.log("[CDP] Account details:", { accountName, network });
     
     try {
-        // Create the main account
-        console.log("[CDP] Creating main account...");
-        const account = await cdp.evm.getOrCreateAccount({
-            name: accountName,
-        });
-        console.log("[CDP] Main account created successfully");
+        // Determine if this is a Solana network
+        const isSolanaNetwork = network === 'solana-mainnet' || network === 'solana-devnet';
         
-        // Get the wallet address
-        const walletAddress = account.address;
-        console.log("[CDP] Main account address:", walletAddress);
-        
-        const accountInfo: CDPAccountInfo = {
-            accountId: accountName, // Use the account name as the ID
-            walletAddress,
-            network,
-            isSmartAccount: false,
-            accountName,
-        };
-        
-        const result: CDPWalletResult = {
-            account: accountInfo,
-        };
-        
-        // Create smart account if requested and network supports it
-        if (options.createSmartAccount && supportsSmartAccounts(network)) {
-            console.log("[CDP] Creating smart account...");
-            try {
-                // Ensure smart account name doesn't exceed 36 characters
-                const smartAccountName = accountName.length > 30 
-                    ? `${accountName.slice(0, 30)}-smart`
-                    : `${accountName}-smart`;
-                const smartAccount = await cdp.evm.getOrCreateSmartAccount({
-                    name: smartAccountName,
-                    owner: account,
-                });
-                console.log("[CDP] Smart account created successfully");
-                
-                const smartAccountInfo: CDPAccountInfo = {
-                    accountId: `${accountName}-smart`,
-                    walletAddress: smartAccount.address,
-                    network,
-                    isSmartAccount: true,
-                    ownerAccountId: accountName,
-                    accountName: `${accountName}-smart`,
-                };
-                
-                result.smartAccount = smartAccountInfo;
-                console.log("[CDP] Smart account address:", smartAccount.address);
-            } catch (smartAccountError) {
-                console.warn('[CDP] Failed to create smart account:', smartAccountError);
-                // Continue without smart account
-            }
-        } else if (options.createSmartAccount && !supportsSmartAccounts(network)) {
-            console.warn(`[CDP] Smart accounts not supported on network: ${network}`);
+        if (isSolanaNetwork) {
+            return await createSolanaAccount(cdp, accountName, network);
+        } else {
+            return await createEVMAccount(cdp, accountName, network, options);
         }
-        
-        console.log("[CDP] Account creation completed successfully");
-        return result;
     } catch (error) {
         console.error('[CDP] Failed to create CDP account:', error);
         console.error('[CDP] Error details:', {
@@ -189,6 +147,115 @@ export async function createCDPAccount(options: CreateCDPWalletOptions = {}): Pr
         });
         throw new Error(`Failed to create CDP account: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+}
+
+/**
+ * Create a Solana account with retry logic
+ */
+async function createSolanaAccount(cdp: CdpClient, accountName: string, network: CDPNetwork): Promise<CDPWalletResult> {
+    console.log("[CDP] Creating Solana account...");
+    
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const account = await cdp.solana.getOrCreateAccount({
+                name: accountName,
+            });
+            console.log("[CDP] Solana account created successfully");
+            
+            const walletAddress = account.address;
+            console.log("[CDP] Solana account address:", walletAddress);
+            
+            const accountInfo: CDPAccountInfo = {
+                accountId: accountName,
+                walletAddress,
+                network,
+                isSmartAccount: false,
+                accountName,
+                architecture: 'solana',
+            };
+            
+            return {
+                account: accountInfo,
+            };
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            console.warn(`[CDP] Solana account creation attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+            
+            if (attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+                console.log(`[CDP] Retrying Solana account creation in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+    
+    throw lastError || new Error('Failed to create Solana account after all retries');
+}
+
+/**
+ * Create an EVM account (existing logic)
+ */
+async function createEVMAccount(cdp: CdpClient, accountName: string, network: CDPNetwork, options: CreateCDPWalletOptions): Promise<CDPWalletResult> {
+    console.log("[CDP] Creating EVM account...");
+    
+    const account = await cdp.evm.getOrCreateAccount({
+        name: accountName,
+    });
+    console.log("[CDP] EVM account created successfully");
+    
+    const walletAddress = account.address;
+    console.log("[CDP] EVM account address:", walletAddress);
+    
+    const accountInfo: CDPAccountInfo = {
+        accountId: accountName,
+        walletAddress,
+        network,
+        isSmartAccount: false,
+        accountName,
+        architecture: 'evm',
+    };
+    
+    const result: CDPWalletResult = {
+        account: accountInfo,
+    };
+    
+    // Create smart account if requested and network supports it
+    if (options.createSmartAccount && supportsSmartAccounts(network)) {
+        console.log("[CDP] Creating smart account...");
+        try {
+            const smartAccountName = accountName.length > 30 
+                ? `${accountName.slice(0, 30)}-smart`
+                : `${accountName}-smart`;
+            const smartAccount = await cdp.evm.getOrCreateSmartAccount({
+                name: smartAccountName,
+                owner: account,
+            });
+            console.log("[CDP] Smart account created successfully");
+            
+            const smartAccountInfo: CDPAccountInfo = {
+                accountId: `${accountName}-smart`,
+                walletAddress: smartAccount.address,
+                network,
+                isSmartAccount: true,
+                ownerAccountId: accountName,
+                accountName: `${accountName}-smart`,
+                architecture: 'evm',
+            };
+            
+            result.smartAccount = smartAccountInfo;
+            console.log("[CDP] Smart account address:", smartAccount.address);
+        } catch (smartAccountError) {
+            console.warn('[CDP] Failed to create smart account:', smartAccountError);
+        }
+    } else if (options.createSmartAccount && !supportsSmartAccounts(network)) {
+        console.warn(`[CDP] Smart accounts not supported on network: ${network}`);
+    }
+    
+    console.log("[CDP] EVM account creation completed successfully");
+    return result;
 }
 
 /**
@@ -238,18 +305,28 @@ export async function createCDPSmartAccount(
 }
 
 /**
- * Get an existing CDP account by name
+ * Get an existing CDP account by name (EVM or Solana)
  */
 export async function getCDPAccount(accountName: string, network: CDPNetwork = "base-sepolia") {
     const cdp = getCDPClient();
     
     try {
         console.log(`Getting CDP account ${accountName} for network ${network}`);
-        const account = await cdp.evm.getOrCreateAccount({
-            name: accountName,
-        });
         
-        return account;
+        // Determine if this is a Solana network
+        const isSolanaNetwork = network === 'solana-mainnet' || network === 'solana-devnet';
+        
+        if (isSolanaNetwork) {
+            const account = await cdp.solana.getOrCreateAccount({
+                name: accountName,
+            });
+            return account;
+        } else {
+            const account = await cdp.evm.getOrCreateAccount({
+                name: accountName,
+            });
+            return account;
+        }
     } catch (error) {
         console.error('Failed to get CDP account:', error);
         throw new Error(`Failed to get CDP account: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -286,12 +363,19 @@ export async function getCDPSmartAccount(smartAccountName: string, ownerAccountN
  */
 export async function getNetworkScopedAccount(accountName: string, network: CDPNetwork) {
     const account = await getCDPAccount(accountName, network);
+    
+    // Solana accounts don't have useNetwork method
+    const isSolanaNetwork = network === 'solana-mainnet' || network === 'solana-devnet';
+    if (isSolanaNetwork) {
+        return account; // Solana accounts are already network-scoped
+    }
+    
     const cdpNetworkName = getCDPNetworkName(network);
     if (!cdpNetworkName) {
         throw new Error(`CDP network name not found for ${network}`);
     }
     // CDP SDK expects specific network names - use them directly
-    return await account.useNetwork(cdpNetworkName as CDPNetwork);
+    return await (account as any).useNetwork(cdpNetworkName);
 }
 
 /**

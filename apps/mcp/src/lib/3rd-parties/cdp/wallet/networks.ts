@@ -676,7 +676,7 @@ export const UNIFIED_NETWORKS: Record<UnifiedNetwork, NetworkConfig> = {
     chainId: 'mainnet-beta',
     architecture: 'solana',
     isTestnet: false,
-    isSupported: false,
+    isSupported: true,
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -685,7 +685,8 @@ export const UNIFIED_NETWORKS: Record<UnifiedNetwork, NetworkConfig> = {
     rpcUrls: ['https://api.mainnet-beta.solana.com'],
     blockExplorerUrls: ['https://explorer.solana.com'],
     iconUrl: '/networks/solana.svg',
-    cdpSupported: false,
+    cdpSupported: true,
+    cdpNetworkName: 'solana-mainnet',
     x402Supported: false,
     tokens: {
       'So11111111111111111111111111111111111111112': {
@@ -720,7 +721,7 @@ export const UNIFIED_NETWORKS: Record<UnifiedNetwork, NetworkConfig> = {
     chainId: 'devnet',
     architecture: 'solana',
     isTestnet: true,
-    isSupported: false,
+    isSupported: true,
     nativeCurrency: {
       name: 'Solana',
       symbol: 'SOL',
@@ -729,7 +730,8 @@ export const UNIFIED_NETWORKS: Record<UnifiedNetwork, NetworkConfig> = {
     rpcUrls: ['https://api.devnet.solana.com'],
     blockExplorerUrls: ['https://explorer.solana.com?cluster=devnet'],
     iconUrl: '/networks/solana.svg',
-    cdpSupported: false,
+    cdpSupported: true,
+    cdpNetworkName: 'solana-devnet',
     x402Supported: false,
     tokens: {
       'So11111111111111111111111111111111111111112': {
