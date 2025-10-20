@@ -6,6 +6,7 @@
   "scripts": {
     "start": "tsx src/index.ts",
     "dev": "tsx --watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
     "auth:generate": "npx @better-auth/cli generate",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

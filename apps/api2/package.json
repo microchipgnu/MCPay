@@ -5,7 +5,8 @@
   "version": "0.0.1",
   "scripts": {
     "start": "tsx src/index.ts",
-    "dev": "tsx --watch src/index.ts"
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.1",
