@@ -55,40 +55,36 @@ export const auth = betterAuth({
     ],
     hooks: {
         after: createAuthMiddleware(async (ctx) => {
-        //   const newSession = ctx.context.newSession;
+          const newSession = ctx.context.newSession;
     
-        //   // Only proceed if we have a new session (successful authentication)
-        //   if (!newSession?.user?.id) {
-        //     return;
-        //   }
+          // Only proceed if we have a new session (successful authentication)
+          if (!newSession?.user?.id) {
+            return;
+          }
     
-        //   const user = newSession.user;
+          const user = newSession.user;
     
-        //   // Determine if this is likely a new user based on creation timestamp
-        //   const userCreatedAt = new Date(user.createdAt);
-        //   const now = new Date();
-        //   const timeSinceCreation = now.getTime() - userCreatedAt.getTime();
-        //   const isRecentlyCreated = timeSinceCreation < 60000; // Less than 1 minute old
+          // Determine if this is likely a new user based on creation timestamp
+          const userCreatedAt = new Date(user.createdAt);
+          const now = new Date();
+          const timeSinceCreation = now.getTime() - userCreatedAt.getTime();
+          const isRecentlyCreated = timeSinceCreation < 60000; // Less than 1 minute old
     
-        //   // Log user info for debugging
-        //   console.log(`[AUTH HOOK] Processing authentication for user ${user.id}:`, {
-        //     email: user.email,
-        //     name: user.name,
-        //     createdAt: user.createdAt,
-        //     timeSinceCreation: `${Math.round(timeSinceCreation / 1000)}s`,
-        //     isRecentlyCreated,
-        //     sessionId: newSession.session.id
-        //   });
+          // Log user info for debugging
+          console.log(`[AUTH HOOK] Processing authentication for user ${user.id}:`, {
+            email: user.email,
+            name: user.name,
+            createdAt: user.createdAt,
+            timeSinceCreation: `${Math.round(timeSinceCreation / 1000)}s`,
+            isRecentlyCreated,
+            sessionId: newSession.session.id
+          });
 
-        const user = ctx.context.session?.user
-    
           setImmediate(async () => {
             try {
-
                 if (!user) {
                     return;
                 }
-                const isRecentlyCreated = true
     
               if (isTest()) {
                 console.log(`[AUTH HOOK] Skipping CDP wallet creation for test user ${user.id} due to isTest()`);

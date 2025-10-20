@@ -186,19 +186,11 @@ export const txOperations = {
         return null;
       }
 
-      const timestamp = Date.now().toString().slice(-8);
-      const safeNameSource = userInfo.displayName
-        ? userInfo.displayName.toLowerCase().replace(/[^a-z0-9]/g, "-").slice(0, 10)
-        : userId.slice(0, 8);
-      const accountName = `mcpay-${safeNameSource}-${timestamp}`;
+      // Deterministic account name per user; avoids creating multiple CDP accounts
+      const safeUserId = userId.replace(/[^a-z0-9]/gi, "").toLowerCase().slice(0, 24);
+      const accountName = `mcpay-${safeUserId}`;
 
-      console.log(`[DEBUG] Auto-creating CDP wallet for user ${userId} with account name: ${accountName}`);
-
-      const hasAgain = await txOperations.userHasCDPWallets(userId);
-      if (hasAgain) {
-        console.log(`User ${userId} already has CDP wallets (race condition), skipping`);
-        return null;
-      }
+      console.log(`[DEBUG] Auto-creating (idempotent) CDP wallet for user ${userId} with account name: ${accountName}`);
 
       console.log(`[DEBUG] Calling createCDPAccount...`);
       const cdpResult = await createCDPAccount({
@@ -224,27 +216,38 @@ export const txOperations = {
 
       const makePrimary = existingPrimary.length === 0;
 
-      const mainWallet = await txOperations.createCDPManagedWallet(userId, {
-        walletAddress: cdpResult.account.walletAddress,
-        accountId: cdpResult.account.accountId,
-        accountName: cdpResult.account.accountName || cdpResult.account.accountId,
-        network: cdpResult.account.network,
-        isSmartAccount: false,
-        isPrimary: makePrimary,
-      })();
-      if (mainWallet) wallets.push(mainWallet);
+      // Check if main wallet already recorded (idempotent insert)
+      const existingMain = await txOperations.getCDPWalletByAccountId(cdpResult.account.accountId)();
+      if (!existingMain) {
+        const mainWallet = await txOperations.createCDPManagedWallet(userId, {
+          walletAddress: cdpResult.account.walletAddress,
+          accountId: cdpResult.account.accountId,
+          accountName: cdpResult.account.accountName || cdpResult.account.accountId,
+          network: cdpResult.account.network,
+          isSmartAccount: false,
+          isPrimary: makePrimary,
+        })();
+        if (mainWallet) wallets.push(mainWallet);
+      } else {
+        console.log(`[DEBUG] Main CDP wallet already exists in DB for user ${userId}, skipping insert`);
+      }
 
       if (cdpResult.smartAccount) {
-        const smartWallet = await txOperations.createCDPManagedWallet(userId, {
-          walletAddress: cdpResult.smartAccount.walletAddress,
-          accountId: cdpResult.smartAccount.accountId,
-          accountName: cdpResult.smartAccount.accountName || cdpResult.smartAccount.accountId,
-          network: cdpResult.smartAccount.network,
-          isSmartAccount: true,
-          ownerAccountId: cdpResult.account.accountId,
-          isPrimary: false,
-        })();
-        if (smartWallet) wallets.push(smartWallet);
+        const existingSmart = await txOperations.getCDPWalletByAccountId(cdpResult.smartAccount.accountId)();
+        if (!existingSmart) {
+          const smartWallet = await txOperations.createCDPManagedWallet(userId, {
+            walletAddress: cdpResult.smartAccount.walletAddress,
+            accountId: cdpResult.smartAccount.accountId,
+            accountName: cdpResult.smartAccount.accountName || cdpResult.smartAccount.accountId,
+            network: cdpResult.smartAccount.network,
+            isSmartAccount: true,
+            ownerAccountId: cdpResult.account.accountId,
+            isPrimary: false,
+          })();
+          if (smartWallet) wallets.push(smartWallet);
+        } else {
+          console.log(`[DEBUG] Smart CDP wallet already exists in DB for user ${userId}, skipping insert`);
+        }
       }
 
       console.log(`[DEBUG] Successfully created ${wallets.length} CDP wallets for user ${userId}`);
