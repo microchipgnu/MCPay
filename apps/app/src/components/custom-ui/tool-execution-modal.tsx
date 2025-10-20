@@ -764,7 +764,7 @@ export function ToolExecutionModal({ isOpen, onClose, tool, serverId, url }: Too
         resultType: typeof result,
         isObject: typeof result === 'object' && result !== null,
         hasIsX402Error: typeof result === 'object' && result !== null && 'isX402Error' in result,
-        isX402ErrorValue: typeof result === 'object' && result !== null && 'isX402Error' in result ? (result as any).isX402Error : 'N/A',
+        isX402ErrorValue: typeof result === 'object' && result !== null && 'isX402Error' in result ? (result as { isX402Error: boolean }).isX402Error : 'N/A',
         isX402Error
       })
       
