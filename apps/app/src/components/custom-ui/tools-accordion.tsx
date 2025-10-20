@@ -107,7 +107,14 @@ export function ToolsAccordion({ tools, onTry }: ToolsAccordionProps) {
                   {t.paymentHint && (
                     <div className="flex items-center gap-1">
                       <Badge variant="outline" className="text-xs bg-teal-500/10 text-teal-600 border-teal-500/20 dark:text-teal-400 dark:bg-teal-800/50 dark:border-teal-800/50">
-                        ${t.paymentPriceUSD || 'Paid'}
+                        {t.paymentPriceUSD
+                          ? (typeof t.paymentPriceUSD === 'string'
+                              ? ((t.paymentPriceUSD as string).startsWith('$')
+                                  ? t.paymentPriceUSD
+                                  : `$${t.paymentPriceUSD}`)
+                              : `$${t.paymentPriceUSD}`)
+                          : 'Paid'
+                        }
                       </Badge>
                       {t.paymentNetworks && t.paymentNetworks.length > 0 && (
                         <TooltipProvider>
