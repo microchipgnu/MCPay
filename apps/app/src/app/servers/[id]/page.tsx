@@ -24,6 +24,8 @@ import {
   Clock,
   Copy,
   Loader2,
+  Pause,
+  Play,
   RefreshCcw,
   XCircle
 } from "lucide-react"
@@ -121,6 +123,8 @@ export default function ServerPage() {
   const [selectedTool, setSelectedTool] = useState<ToolFromMcpServerWithStats | null>(null)
   const [isToolsCardExpanded, setIsToolsCardExpanded] = useState(true)
   const [showAllTools, setShowAllTools] = useState(false)
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -131,6 +135,7 @@ export default function ServerPage() {
         const res = await mcpDataApi.getServerById(serverId)
         if (!mounted) return
         setData(res as ServerDetail)
+        setLastRefreshTime(new Date())
       } catch (e) {
         if (!mounted) return
         setError(e instanceof Error ? e.message : 'Failed to load server')
@@ -142,6 +147,24 @@ export default function ServerPage() {
     if (serverId) load()
     return () => { mounted = false }
   }, [serverId])
+
+  // Auto-refresh effect
+  useEffect(() => {
+    if (!autoRefreshEnabled || !serverId) return
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await mcpDataApi.getServerById(serverId)
+        setData(res as ServerDetail)
+        setLastRefreshTime(new Date())
+      } catch (e) {
+        console.error('Auto-refresh failed:', e)
+        // Don't show error toast for auto-refresh failures to avoid spam
+      }
+    }, 10000) // 10 seconds
+
+    return () => clearInterval(interval)
+  }, [autoRefreshEnabled, serverId])
 
   const handleRefresh = async () => {
     if (!data?.origin) {
@@ -408,19 +431,91 @@ export default function ServerPage() {
 
             <Card className={`${isDark ? "bg-gray-800 border-gray-700" : ""} mt-6 overflow-hidden`}>
               <CardHeader>
-                <div>
-                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-teal-500"></div>
-                    Recent Payments
-                    {data.recentPayments && data.recentPayments.length > 0 && (
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full">
-                        {data.recentPayments.length}
-                      </span>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-teal-500"></div>
+                      Recent Payments
+                      {data.recentPayments && data.recentPayments.length > 0 && (
+                        <span className="ml-2 px-2 py-1 text-xs font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full">
+                          {data.recentPayments.length}
+                        </span>
+                      )}
+                    </CardTitle>
+                    <CardDescription className="text-sm text-muted-foreground">
+                      Latest payment transactions from tool usage with verified token information
+                    </CardDescription>
+                    {(lastRefreshTime || autoRefreshEnabled) && (
+                      <div className="flex items-center gap-3 mt-2">
+                        {lastRefreshTime && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Clock className="h-3 w-3" />
+                            <span>Last updated {formatRelative(lastRefreshTime.toISOString())}</span>
+                          </div>
+                        )}
+                        {autoRefreshEnabled && (
+                          <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
+                            <div className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse"></div>
+                            <span>Auto-refresh every 10s</span>
+                          </div>
+                        )}
+                      </div>
                     )}
-                  </CardTitle>
-                  <CardDescription className="text-sm text-muted-foreground">
-                    Latest payment transactions from tool usage with verified token information
-                  </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                            className={`h-6 w-6 p-0 ${
+                              autoRefreshEnabled 
+                                ? "text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70" 
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            } transition-all duration-300`}
+                          >
+                            {autoRefreshEnabled ? (
+                              <Pause className="h-3 w-3" />
+                            ) : (
+                              <Play className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {autoRefreshEnabled 
+                            ? "Pause auto-refresh (every 10s)" 
+                            : "Enable auto-refresh every 10 seconds"
+                          }
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const res = await mcpDataApi.getServerById(serverId)
+                                setData(res as ServerDetail)
+                                setLastRefreshTime(new Date())
+                                toast.success('Data refreshed')
+                              } catch (e) {
+                                toast.error('Failed to refresh data')
+                              }
+                            }}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-300"
+                          >
+                            <RefreshCcw className="h-3 w-3" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Refresh data</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
