@@ -4,6 +4,7 @@ import Footer from "@/components/custom-ui/footer"
 import { TokenIcon } from "@/components/custom-ui/token-icon"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Pagination,
   PaginationContent,
@@ -87,6 +88,9 @@ export default function ClientExplorerPage() {
 
   const pageFromQuery = Number(searchParams.get("page") || "1")
   const [page, setPage] = useState<number>(Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1)
+  
+  const filterFromQuery = searchParams.get("filter") || "approved"
+  const [filter, setFilter] = useState<'approved' | 'all'>(filterFromQuery as 'approved' | 'all')
 
   const [rows, setRows] = useState<ExplorerRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,17 +108,21 @@ export default function ClientExplorerPage() {
   useEffect(() => {
     const sp = new URLSearchParams(searchParams.toString())
     if (page === 1) sp.delete("page"); else sp.set("page", String(page))
+    if (filter === "approved") sp.delete("filter"); else sp.set("filter", filter)
     router.replace(`?${sp.toString()}`, { scroll: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page])
+  }, [page, filter])
 
   /* accept manual query changes */
   useEffect(() => {
     if (page !== pageFromQuery && Number.isFinite(pageFromQuery) && pageFromQuery > 0) {
       setPage(pageFromQuery)
     }
+    if (filter !== filterFromQuery && (filterFromQuery === 'approved' || filterFromQuery === 'all')) {
+      setFilter(filterFromQuery as 'approved' | 'all')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageFromQuery])
+  }, [pageFromQuery, filterFromQuery])
 
   /* polling timer */
   useEffect(() => {
@@ -132,7 +140,7 @@ export default function ClientExplorerPage() {
 
       try {
         const offset = (page - 1) * PAGE_SIZE
-        const { stats, total, hasMore } = await mcpDataApi.getExplorer(PAGE_SIZE, offset)
+        const { stats, total, hasMore } = await mcpDataApi.getExplorer(PAGE_SIZE, offset, filter)
         const mapped: ExplorerRow[] = stats
           .map((s) => {
             const pr = s.payment?.metadata?.paymentResponse as
@@ -188,7 +196,7 @@ export default function ClientExplorerPage() {
 
     fetchRows()
     return () => controller.abort()
-  }, [page, tick])
+  }, [page, tick, filter])
 
   const go = (p: number) => setPage(Math.max(1, p))
   const goPrev = () => go(page - 1)
@@ -230,7 +238,23 @@ export default function ClientExplorerPage() {
         {/* Wider container; title aligned with table */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-3xl font-semibold font-host mb-10">Explorer</h2>
+            <div className="flex items-center justify-between mb-10">
+              <h2 className="text-3xl font-semibold font-host">Explorer</h2>
+              <div className="flex items-center gap-1">
+                <Select value={filter} onValueChange={(value: 'approved' | 'all') => {
+                  setFilter(value)
+                  setPage(1) // Reset to first page when filter changes
+                }}>
+                  <SelectTrigger className="h-8 min-w-20 w-auto border-0 bg-transparent text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
 
           {/* Horizontal scroll on mobile; slightly condensed min width */}

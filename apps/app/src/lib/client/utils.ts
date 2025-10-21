@@ -367,7 +367,8 @@ export const mcpDataApi = {
   // Explorer stats (paginated)
   getExplorer: async (
     limit: number,
-    offset: number
+    offset: number,
+    include: 'approved' | 'all' = 'approved'
   ): Promise<{
     stats: Array<{
       id: string
@@ -411,7 +412,11 @@ export const mcpDataApi = {
     nextOffset: number
     hasMore: boolean
   }> => {
-    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    const params = new URLSearchParams({ 
+      limit: String(limit), 
+      offset: String(offset),
+      include
+    })
     return serviceApiCall(urlUtils.getMcpDataUrl(), `/explorer?${params.toString()}`)
   },
 }
