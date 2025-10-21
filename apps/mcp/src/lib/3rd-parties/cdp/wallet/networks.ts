@@ -54,6 +54,7 @@ export type UnifiedNetwork =
   | 'iotex'
   | 'ethereum'
   | 'ethereum-sepolia'
+  | 'polygon-amoy'
   | 'polygon'
   | 'arbitrum'
   | 'solana-mainnet'
@@ -70,6 +71,7 @@ export type EVMNetwork = Extract<UnifiedNetwork,
   | 'iotex'
   | 'ethereum'
   | 'ethereum-sepolia'
+  | 'polygon-amoy'
   | 'polygon'
   | 'arbitrum'>;
 
@@ -196,6 +198,51 @@ export const STABLECOIN_CONFIGS: Record<StablecoinSymbol, StablecoinConfig> = {
 // =============================================================================
 
 export const UNIFIED_NETWORKS: Record<UnifiedNetwork, NetworkConfig> = {
+  // POLYGON AMOY (TESTNET)
+  'polygon-amoy': {
+    name: 'Polygon Amoy',
+    chainId: 80002,
+    architecture: 'evm',
+    isTestnet: true,
+    isSupported: true,
+    nativeCurrency: {
+      name: 'Polygon',
+      symbol: 'MATIC',
+      decimals: 18,
+    },
+    rpcUrls: ['https://rpc-amoy.polygon.technology'],
+    blockExplorerUrls: ['https://www.oklink.com/amoy'],
+    iconUrl: '/networks/polygon.svg',
+    cdpSupported: true,
+    cdpNetworkName: 'polygon-amoy',
+    x402Supported: true,
+    tokens: {
+      '0x0000000000000000000000000000000000000000': {
+        symbol: 'MATIC',
+        name: 'Polygon',
+        decimals: 18,
+        isNative: true,
+        isStablecoin: false,
+        coingeckoId: 'matic-network',
+        logoUri: '/tokens/matic.svg',
+        verified: true,
+        verificationSource: 'Polygon Official',
+      },
+      // Circle USDC on Amoy (test token address for example; replace if you maintain a registry)
+      '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582': {
+        symbol: 'USDC',
+        name: 'USD Coin',
+        decimals: 6,
+        address: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582',
+        isNative: false,
+        isStablecoin: true,
+        coingeckoId: 'usd-coin',
+        logoUri: '/tokens/usdc.svg',
+        verified: true,
+        verificationSource: 'Project Config',
+      },
+    },
+  },
   // BASE SEPOLIA (TESTNET)
   'base-sepolia': {
     name: 'Base Sepolia',
