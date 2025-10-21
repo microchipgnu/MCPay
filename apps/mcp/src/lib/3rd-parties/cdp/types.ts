@@ -7,6 +7,7 @@ export type UnifiedNetwork =
   | 'iotex'
   | 'ethereum'
   | 'ethereum-sepolia'
+  | 'polygon-amoy'
   | 'polygon'
   | 'arbitrum'
   | 'solana-mainnet'
@@ -23,6 +24,7 @@ export type EVMNetwork = Extract<UnifiedNetwork,
   | 'iotex'
   | 'ethereum'
   | 'ethereum-sepolia'
+  | 'polygon-amoy'
   | 'polygon'
   | 'arbitrum'>;
 
@@ -139,6 +141,7 @@ export type CDPNetwork = Extract<UnifiedNetwork,
     | "base-sepolia" 
     | "ethereum"
     | "ethereum-sepolia"
+    | "polygon-amoy"
     | "polygon"
     | "arbitrum"
     | "sei-testnet">;

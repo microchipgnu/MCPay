@@ -120,12 +120,37 @@ export class CDPSigningStrategy implements PaymentSigningStrategy {
     private isNetworkCompatible(walletNetwork: string | undefined, targetNetwork: UnifiedNetwork): boolean {
         if (!walletNetwork) return false;
 
-        // Direct match
-        if (walletNetwork === targetNetwork) return true;
-
-        // CDP networks that might be stored in different formats
+        // Normalize to unified network names if possible
         const cdpNetworks = getCDPNetworks();
-        return cdpNetworks.includes(walletNetwork as CDPNetwork) && cdpNetworks.includes(targetNetwork);
+        const normalizedWallet = cdpNetworks.includes(walletNetwork as CDPNetwork)
+            ? (walletNetwork as UnifiedNetwork)
+            : (walletNetwork as unknown as UnifiedNetwork);
+
+        // Direct match
+        if (normalizedWallet === targetNetwork) return true;
+
+        // Family pairing: treat testnets as compatible with their mainnet family
+        const family = (n: UnifiedNetwork | string) => {
+            switch (n) {
+                case 'polygon':
+                case 'polygon-amoy':
+                    return 'polygon';
+                case 'base':
+                case 'base-sepolia':
+                    return 'base';
+                case 'ethereum':
+                case 'ethereum-sepolia':
+                    return 'ethereum';
+                case 'arbitrum':
+                    return 'arbitrum';
+                case 'sei-testnet':
+                    return 'sei';
+                default:
+                    return String(n);
+            }
+        };
+
+        return family(normalizedWallet) === family(targetNetwork);
     }
 
     private async signWithCDPWallet(
