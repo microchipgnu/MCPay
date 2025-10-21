@@ -1,4 +1,12 @@
-import { pgTable, text, uuid, jsonb, timestamp, integer, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, uuid, jsonb, timestamp, integer, index, pgEnum } from 'drizzle-orm/pg-core';
+
+export const serverModerationStatus = pgEnum('server_moderation_status', [
+  'pending',
+  'approved',
+  'rejected',
+  'disabled',
+  'flagged',
+]);
 
 export const mcpServers = pgTable(
   'mcp_servers',
@@ -10,7 +18,16 @@ export const mcpServers = pgTable(
     origin: text('origin').notNull(),
     // Consolidated JSON blob for most server attributes (title, tags, tools, resources, capabilities, metadata, etc.)
     data: jsonb('data').$type<unknown>().default({}),
+    // Existing crawl/health status string (e.g., 'ok' | 'error' ...)
     status: text('status'),
+    // New moderation workflow status
+    moderationStatus: serverModerationStatus('moderation_status').notNull().default('pending'),
+    // Optional moderation notes for reviewers
+    moderationNotes: text('moderation_notes'),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    verifiedBy: text('verified_by'),
+    // Overall numeric quality score (0-100)
+    qualityScore: integer('quality_score').notNull().default(0),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
     indexedAt: timestamp('indexed_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
@@ -19,6 +36,8 @@ export const mcpServers = pgTable(
   (table) => [
     // GIN index on data for flexible JSONB search (e.g., tags/title/capabilities)
     index('idx_mcp_servers_data').using('gin', table.data),
+    index('idx_mcp_servers_moderation_status').on(table.moderationStatus),
+    index('idx_mcp_servers_score').on(table.qualityScore),
   ]
 );
 

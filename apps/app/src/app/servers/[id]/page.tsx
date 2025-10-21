@@ -36,6 +36,8 @@ type ServerDetail = {
   origin: string
   originRaw?: string
   status?: string
+  moderationStatus?: 'pending' | 'approved' | 'rejected' | 'disabled' | 'flagged'
+  qualityScore?: number
   lastSeenAt?: string
   indexedAt?: string
   info: { name?: string; description?: string; icon?: string }
@@ -247,6 +249,7 @@ export default function ServerPage() {
                 name={data?.info?.name || data?.origin || ''}
                 description={data?.info?.description}
                 origin={data?.origin || ''}
+                isVerified={data.moderationStatus === 'approved'}
                 onExplore={() => {
                   // Scroll to tools
                   const el = document.getElementById('tools-section')
@@ -269,6 +272,10 @@ export default function ServerPage() {
                 <div className="text-center">
                   <div className="text-sm font-semibold">{data.summary.totalPayments}</div>
                   <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Payments</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-sm font-semibold">{data.qualityScore || 0}</div>
+                  <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Quality Score</div>
                 </div>
               </div>
               <div className="text-center">

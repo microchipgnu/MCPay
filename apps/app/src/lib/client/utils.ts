@@ -286,6 +286,8 @@ export type McpServer = {
   id: string
   origin: string
   status: string
+  moderation_status: 'pending' | 'approved' | 'rejected' | 'disabled' | 'flagged'
+  quality_score: number
   last_seen_at: string
   tools: Array<{
     name: string
@@ -303,10 +305,12 @@ export type McpServer = {
 }
 
 export const mcpDataApi = {
-  // Get MCP servers (with pagination)
+  // Get MCP servers (with pagination) - defaults to approved only
   getServers: async (
     limit: number = 12,
-    offset: number = 0
+    offset: number = 0,
+    include: 'approved' | 'all' = 'approved',
+    sort: 'score' | 'recent' = 'score'
   ): Promise<{
     servers: McpServer[]
     total: number
@@ -315,7 +319,12 @@ export const mcpDataApi = {
     nextOffset: number | null
     hasMore: boolean
   }> => {
-    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    const params = new URLSearchParams({ 
+      limit: String(limit), 
+      offset: String(offset),
+      include,
+      sort
+    })
     return serviceApiCall(urlUtils.getMcpDataUrl(), `/servers?${params.toString()}`)
   },
 
@@ -327,6 +336,8 @@ export const mcpDataApi = {
     origin: string
     originRaw?: string
     status?: string
+    moderationStatus?: 'pending' | 'approved' | 'rejected' | 'disabled' | 'flagged'
+    qualityScore?: number
     lastSeenAt?: string
     indexedAt?: string
     info: { name?: string; description?: string; icon?: string }

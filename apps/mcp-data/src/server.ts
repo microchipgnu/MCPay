@@ -1,6 +1,6 @@
 import { serve } from '@hono/node-server';
 import 'dotenv/config';
-import { desc, eq, ilike, or, sql } from 'drizzle-orm';
+import { asc, desc, eq, sql } from 'drizzle-orm';
 import { Context, Hono } from 'hono';
 import { db } from './db/client.js';
 import { mcpServers, rpcLogs } from './db/schema.js';
@@ -190,31 +190,57 @@ app.post('/index/run', async (c: Context) => {
 
 app.get('/servers', async (c: Context) => {
   try {
-    // Parse optional ?limit and ?offset query params for pagination
-    const limit = Math.max(1, Math.min(100, parseInt(c.req.query('limit') ?? '12', 10))) // default 12, max 100
+    // Parse pagination
+    const limit = Math.max(1, Math.min(100, parseInt(c.req.query('limit') ?? '12', 10)))
     const offset = Math.max(0, parseInt(c.req.query('offset') ?? '0', 10))
 
+    // Moderation filter: include=approved|all (default approved)
+    const include = (c.req.query('include') ?? 'approved').toLowerCase();
+    const includeApprovedOnly = include !== 'all';
+
+    // Sorting: sort=score|recent (default score)
+    const sort = (c.req.query('sort') ?? 'score').toLowerCase();
+
     // Get total count for pagination metadata
-    const [{ count }] = await db.select({ count: sql`count(*)` }).from(mcpServers);
+    const totalQuery = db.select({ count: sql`count(*)` }).from(mcpServers);
+    if (includeApprovedOnly) {
+      // @ts-ignore drizzle infers correct types from schema
+      // count only approved when includeApprovedOnly
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      (totalQuery as any).where(eq(mcpServers.moderationStatus, 'approved'));
+    }
+    const [{ count }] = await totalQuery;
 
     // Fetch paginated results
-    const rows = await db
+    const base = db
       .select({
         id: mcpServers.id,
         origin: mcpServers.origin,
         status: mcpServers.status,
+        moderation_status: mcpServers.moderationStatus,
         last_seen_at: mcpServers.lastSeenAt,
+        quality_score: mcpServers.qualityScore,
         data: mcpServers.data,
       })
-      .from(mcpServers)
-      .orderBy(desc(mcpServers.lastSeenAt))
-      .limit(limit)
-      .offset(offset);
+      .from(mcpServers);
+
+    const filtered = includeApprovedOnly
+      ? base.where(eq(mcpServers.moderationStatus, 'approved'))
+      : base;
+
+    const ordered = sort === 'recent'
+      ? filtered.orderBy(desc(mcpServers.lastSeenAt))
+      : filtered.orderBy(desc(mcpServers.qualityScore), desc(mcpServers.lastSeenAt));
+
+    const rows = await ordered.limit(limit).offset(offset);
 
     const servers = rows.map(row => ({
       id: row.id,
       origin: row.origin,
       status: row.status,
+      moderation_status: row.moderation_status,
+      quality_score: row.quality_score,
       last_seen_at: row.last_seen_at,
       // @ts-ignore
       tools: row.data?.tools || [],
@@ -253,6 +279,8 @@ app.get('/server/:id', async (c: Context) => {
         origin: mcpServers.origin,
         originRaw: mcpServers.originRaw,
         status: mcpServers.status,
+        moderationStatus: mcpServers.moderationStatus,
+        qualityScore: mcpServers.qualityScore,
         lastSeenAt: mcpServers.lastSeenAt,
         indexedAt: mcpServers.indexedAt,
         data: mcpServers.data,
@@ -404,6 +432,8 @@ app.get('/server/:id', async (c: Context) => {
       origin: server.origin,
       originRaw: server.originRaw,
       status: server.status,
+      moderationStatus: server.moderationStatus,
+      qualityScore: server.qualityScore,
       lastSeenAt: server.lastSeenAt,
       indexedAt: server.indexedAt,
       info: { name, description, icon },
@@ -543,6 +573,116 @@ app.get('/explorer', async (c: Context) => {
   });
 });
 
+app.post('/servers/:id/moderate', async (c: Context) => {
+  const expected = process.env.MODERATION_SECRET;
+  const provided = c.req.header('authorization')?.startsWith('Bearer ')
+    ? c.req.header('authorization')!.slice(7)
+    : c.req.header('x-api-key') || '';
+  if (expected && provided !== expected) return c.json({ error: 'unauthorized' }, 401);
+
+  const id = c.req.param('id');
+  const body = await c.req.json().catch(() => ({}));
+  const nextStatus = (body?.status as string | undefined)?.toLowerCase();
+  const notes = (body?.notes as string | undefined) ?? undefined;
+  const verifiedBy = (body?.verifiedBy as string | undefined) ?? undefined;
+
+  const allowed: Record<string, true> = {
+    pending: true,
+    approved: true,
+    rejected: true,
+    disabled: true,
+    flagged: true,
+  };
+  if (!nextStatus || !allowed[nextStatus]) return c.json({ error: 'invalid_status' }, 400);
+
+  const now = new Date();
+  const set: any = {
+    moderationStatus: nextStatus as any,
+    moderationNotes: notes,
+    verifiedBy,
+    verifiedAt: nextStatus === 'approved' ? now : null,
+    updatedAt: now,
+  };
+
+  await db.update(mcpServers).set(set).where(eq(mcpServers.id, id));
+  return c.json({ ok: true });
+});
+
+// Minimal scoring function v1
+async function computeQualityScoreForServer(serverId: string): Promise<number> {
+  // Look back last 30 days
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const logs = await db
+    .select({ ts: rpcLogs.ts, req: rpcLogs.request, res: rpcLogs.response })
+    .from(rpcLogs)
+    .where(eq(rpcLogs.serverId, serverId))
+    .orderBy(desc(rpcLogs.ts));
+
+  const total = logs.length;
+  if (total === 0) return 0;
+
+  // success heuristic: presence of response object
+  const successes = logs.filter((l) => !!l.res && typeof l.res === 'object').length;
+  const successRate = successes / Math.max(1, total); // [0,1]
+
+  // latency heuristic: expect meta.durationMs in response or request
+  const durations = logs
+    .map((l) => {
+      const src: any = l.res || l.req || {};
+      const ms = Number((src._meta && (src._meta.durationMs ?? src._meta.duration_ms)) ?? (src.durationMs ?? src.duration_ms));
+      return Number.isFinite(ms) ? ms : undefined;
+    })
+    .filter((x): x is number => typeof x === 'number');
+
+  const sorted = [...durations].sort((a, b) => a - b);
+  const p95 = sorted.length ? sorted[Math.floor(0.95 * (sorted.length - 1))] : undefined;
+  const latencyScore = p95 != null ? Math.max(0, Math.min(1, 1 - p95 / 2000)) : 0.5; // 2s p95 => 0
+
+  // error heuristic: look for _meta.x402/error or response.error
+  const errors = logs.filter((l) => {
+    const r: any = l.res || {};
+    const meta = (r._meta as any) || {};
+    return !!(r.error || meta['x402/error']);
+  }).length;
+  const errorRate = errors / Math.max(1, total);
+
+  const score = Math.round(
+    100 * (0.6 * successRate + 0.3 * latencyScore + 0.1 * (1 - errorRate))
+  );
+  return Math.max(0, Math.min(100, score));
+}
+
+app.post('/score/recompute', async (c: Context) => {
+  const expected = process.env.MODERATION_SECRET;
+  const provided = c.req.header('authorization')?.startsWith('Bearer ')
+    ? c.req.header('authorization')!.slice(7)
+    : c.req.header('x-api-key') || '';
+  if (expected && provided !== expected) return c.json({ error: 'unauthorized' }, 401);
+
+  const body = await c.req.json().catch(() => ({}));
+  const id = (body?.id as string | undefined) ?? undefined;
+
+  if (id) {
+    const score = await computeQualityScoreForServer(id);
+    await db.update(mcpServers).set({ qualityScore: score, updatedAt: new Date() }).where(eq(mcpServers.id, id));
+    return c.json({ ok: true, updated: 1, score });
+  } else {
+    // recompute for top N recent servers to bound work
+    const servers = await db
+      .select({ id: mcpServers.id })
+      .from(mcpServers)
+      .orderBy(desc(mcpServers.lastSeenAt))
+      .limit(200);
+
+    let updated = 0;
+    for (const s of servers) {
+      const score = await computeQualityScoreForServer(s.id);
+      await db.update(mcpServers).set({ qualityScore: score, updatedAt: new Date() }).where(eq(mcpServers.id, s.id));
+      updated += 1;
+    }
+    return c.json({ ok: true, updated });
+  }
+});
 
 
 const port = 3010;
