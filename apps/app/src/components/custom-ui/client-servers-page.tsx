@@ -13,6 +13,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination"
 import { mcpDataApi, McpServer } from "@/lib/client/utils"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 
@@ -26,6 +27,9 @@ export default function ClientServersPage() {
 
     const pageFromQuery = Number(searchParams.get("page") || "1")
     const [page, setPage] = useState<number>(Number.isFinite(pageFromQuery) && pageFromQuery > 0 ? pageFromQuery : 1)
+    
+    const filterFromQuery = searchParams.get("filter") || "approved"
+    const [filter, setFilter] = useState<'approved' | 'all'>(filterFromQuery as 'approved' | 'all')
 
     const [servers, setServers] = useState<McpServer[]>([])
     const [loading, setLoading] = useState(true)
@@ -44,16 +48,20 @@ export default function ClientServersPage() {
     useEffect(() => {
         const sp = new URLSearchParams(searchParams.toString())
         if (page === 1) sp.delete("page"); else sp.set("page", String(page))
+        if (filter === "approved") sp.delete("filter"); else sp.set("filter", filter)
         router.replace(`?${sp.toString()}`, { scroll: true })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page])
+    }, [page, filter])
 
     useEffect(() => {
         if (page !== pageFromQuery && Number.isFinite(pageFromQuery) && pageFromQuery > 0) {
             setPage(pageFromQuery)
         }
+        if (filter !== filterFromQuery && (filterFromQuery === 'approved' || filterFromQuery === 'all')) {
+            setFilter(filterFromQuery as 'approved' | 'all')
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [pageFromQuery])
+    }, [pageFromQuery, filterFromQuery])
 
     // Fetch servers from MCP2 `/servers` with pagination
     useEffect(() => {
@@ -62,7 +70,7 @@ export default function ClientServersPage() {
             setError(null)
             try {
                 const offset = (page - 1) * PAGE_SIZE
-                const data = await mcpDataApi.getServers(PAGE_SIZE, offset)
+                const data = await mcpDataApi.getServers(PAGE_SIZE, offset, filter)
                 const links = Array.isArray(data.servers) ? data.servers : []
 
                 setServers(links)
@@ -78,7 +86,7 @@ export default function ClientServersPage() {
         }
 
         fetchServers()
-    }, [page])
+    }, [page, filter])
 
     useEffect(() => {
         let mounted = true
@@ -161,7 +169,23 @@ export default function ClientServersPage() {
             <main>
                 <div ref={contentRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
                     <div className="max-w-6xl px-4 md:px-6 mx-auto">
-                        <h2 className="text-3xl font-semibold font-host mb-10">All Servers</h2>
+                        <div className="flex items-center justify-between mb-10">
+                            <h2 className="text-3xl font-semibold font-host">All Servers</h2>
+                            <div className="flex items-center gap-1">
+                                <Select value={filter} onValueChange={(value: 'approved' | 'all') => {
+                                    setFilter(value)
+                                    setPage(1) // Reset to first page when filter changes
+                                }}>
+                                    <SelectTrigger className="h-8 min-w-20 w-auto border-0 bg-transparent text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="approved">Approved</SelectItem>
+                                        <SelectItem value="all">All</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
                     </div>
 
                     <ServersGrid

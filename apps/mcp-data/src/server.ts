@@ -458,12 +458,13 @@ app.get('/explorer', async (c: Context) => {
   // Parse optional ?limit and ?offset query params for pagination
   const limit = Math.max(1, Math.min(100, parseInt(c.req.query('limit') ?? '5', 10))) // default 5, max 100
   const offset = Math.max(0, parseInt(c.req.query('offset') ?? '0', 10))
+  
+  // Filter by moderation status: include=approved|all (default approved)
+  const include = (c.req.query('include') ?? 'approved').toLowerCase();
+  const includeApprovedOnly = include !== 'all';
 
-  // Get total count for pagination metadata
-  const [{ count }] = await db.select({ count: sql`count(*)` }).from(rpcLogs);
-
-  // Fetch paginated results
-  const rows = await db
+  // Base query with join
+  const baseQuery = db
     .select({
       id: rpcLogs.id,
       ts: rpcLogs.ts,
@@ -476,9 +477,25 @@ app.get('/explorer', async (c: Context) => {
       meta: rpcLogs.meta,
       serverData: mcpServers.data,
       serverOrigin: mcpServers.origin,
+      serverModerationStatus: mcpServers.moderationStatus,
     })
     .from(rpcLogs)
-    .leftJoin(mcpServers, eq(rpcLogs.serverId, mcpServers.id))
+    .leftJoin(mcpServers, eq(rpcLogs.serverId, mcpServers.id));
+
+  // Apply moderation filter
+  const filteredQuery = includeApprovedOnly
+    ? baseQuery.where(eq(mcpServers.moderationStatus, 'approved'))
+    : baseQuery;
+
+  // Get total count for pagination metadata
+  const countQuery = db.select({ count: sql`count(*)` }).from(rpcLogs).leftJoin(mcpServers, eq(rpcLogs.serverId, mcpServers.id));
+  const countFilteredQuery = includeApprovedOnly
+    ? countQuery.where(eq(mcpServers.moderationStatus, 'approved'))
+    : countQuery;
+  const [{ count }] = await countFilteredQuery;
+
+  // Fetch paginated results
+  const rows = await filteredQuery
     .orderBy(desc(rpcLogs.ts))
     .limit(limit)
     .offset(offset);
