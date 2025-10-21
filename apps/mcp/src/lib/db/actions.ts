@@ -37,10 +37,10 @@ export const txOperations = {
       .from(schema.userWallets)
       .where(
         and(
-          eq(schema.userWallets.userId as any, userId) as any,
-          eq(schema.userWallets.provider as any, "coinbase-cdp") as any,
-          eq(schema.userWallets.isActive as any, true) as any,
-        ) as any
+          eq(schema.userWallets.userId, userId) ,
+          eq(schema.userWallets.provider, "coinbase-cdp"),
+          eq(schema.userWallets.isActive, true),
+        )
       )
       .limit(1);
     return rows.length > 0;

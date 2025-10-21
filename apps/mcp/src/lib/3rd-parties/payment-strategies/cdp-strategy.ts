@@ -24,16 +24,16 @@ export class CDPSigningStrategy implements PaymentSigningStrategy {
             const network = paymentRequirement.network as CDPNetwork;
 
             const cdpWallets = await txOperations.getCDPWalletsByUser(context.user!.id);
-            const compatibleWallets = cdpWallets.filter(wallet => {
+            const activeWallets = cdpWallets.filter(w => w.isActive);
+            const compatibleWallets = activeWallets.filter(wallet => {
                 const walletNetwork = (wallet.walletMetadata as unknown as CDPWalletMetadata)?.cdpNetwork;
-                // Check if wallet network is compatible with target network
                 return walletNetwork === network || this.isNetworkCompatible(walletNetwork, network);
             });
 
             console.log(`[CDP Strategy] Found ${compatibleWallets.length} compatible wallets for user ${context.user!.id}`);
 
-            const canSign = compatibleWallets.length > 0;
-            console.log(`[CDP Strategy] Can sign: ${canSign} (found ${compatibleWallets.length} compatible wallets)`);
+            const canSign = compatibleWallets.length > 0 || activeWallets.length > 0;
+            console.log(`[CDP Strategy] Can sign: ${canSign} (compatible: ${compatibleWallets.length}, active: ${activeWallets.length})`);
             return canSign;
         } catch (error) {
             console.error('[CDP Strategy] Error checking if can sign:', error);
@@ -62,22 +62,25 @@ export class CDPSigningStrategy implements PaymentSigningStrategy {
             const pickedPaymentRequirement = paymentRequirement;
 
             const cdpWallets = await txOperations.getCDPWalletsByUser(context.user!.id);
-            
-            const compatibleWallets = cdpWallets.filter(wallet => {
+            const activeWallets = cdpWallets.filter(w => w.isActive);
+            const compatibleWallets = activeWallets.filter(wallet => {
                 const walletNetwork = (wallet.walletMetadata as unknown as CDPWalletMetadata)?.cdpNetwork;
-                return this.isNetworkCompatible(walletNetwork, network) && wallet.isActive;
+                return walletNetwork === network || this.isNetworkCompatible(walletNetwork, network);
             });
 
-            if (compatibleWallets.length === 0) {
+            // If none are compatible by family, fall back to any active CDP wallet
+            const candidateWallets = compatibleWallets.length > 0 ? compatibleWallets : activeWallets;
+
+            if (candidateWallets.length === 0) {
                 return {
                     success: false,
-                    error: `No active CDP wallets found for network: ${network}`
+                    error: `No active CDP wallets available for user`
                 };
             }
 
             // Prefer smart accounts (gas-sponsored) over regular accounts
-            const smartWallets = compatibleWallets.filter(w => (w.walletMetadata as unknown as CDPWalletMetadata)?.isSmartAccount);
-            const regularWallets = compatibleWallets.filter(w => !(w.walletMetadata as unknown as CDPWalletMetadata)?.isSmartAccount);
+            const smartWallets = candidateWallets.filter(w => (w.walletMetadata as unknown as CDPWalletMetadata)?.isSmartAccount);
+            const regularWallets = candidateWallets.filter(w => !(w.walletMetadata as unknown as CDPWalletMetadata)?.isSmartAccount);
 
             const walletsToTry = [...smartWallets, ...regularWallets];
 

@@ -2,6 +2,8 @@ import type { CallToolRequest, CallToolResult } from "@modelcontextprotocol/sdk/
 import type { Hook, RequestExtra, ToolCallResponseHookResult } from "mcpay/handler";
 import { PaymentRequirements } from "x402/types";
 import { attemptSignPayment } from "../../3rd-parties/payment-strategies/index.js";
+import { txOperations } from "../../db/actions.js";
+import type { CDPNetwork } from "../../3rd-parties/cdp/types.js";
 import { createOneClickBuyUrl } from "../../3rd-parties/cdp/onramp/index.js";
 
 
@@ -84,6 +86,13 @@ export class X402WalletHook implements Hook {
                 id: String(session.userId),
             } as const;
 
+            // Ensure the user has at least one CDP wallet provisioned (family-matched to requested network)
+            try {
+                await this.ensureUserCDPWallet(String(session.userId), String(first.network || "base-sepolia"));
+            } catch (e) {
+                console.warn("[X402WalletHook] ensureUserCDPWallet failed:", e);
+            }
+
 
             const result = await attemptSignPayment(first as unknown as PaymentRequirements, user);
             if (!result.success || !result.signedPaymentHeader) {
@@ -105,6 +114,19 @@ export class X402WalletHook implements Hook {
         } catch (err) {
             console.error("[X402WalletHook] Error in processCallToolResult:", err);
             return { resultType: "continue" as const, response: res };
+        }
+    }
+
+    private async ensureUserCDPWallet(userId: string, requestedNetwork: string): Promise<void> {
+        try {
+            const has = await txOperations.userHasCDPWallets(userId);
+            if (has) return;
+            // Prefer the requested network if it is part of our CDPNetwork union; fallback to base-sepolia
+            const network = (requestedNetwork as CDPNetwork) || ("base-sepolia" as CDPNetwork);
+            console.log(`[X402WalletHook] No CDP wallets found; auto-creating on network ${network} for user ${userId}`);
+            await txOperations.autoCreateCDPWalletForUser(userId, {}, { createSmartAccount: false, network })();
+        } catch (error) {
+            console.warn(`[X402WalletHook] Failed to auto-create CDP wallet for user ${userId}:`, error);
         }
     }
 
