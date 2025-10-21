@@ -2,32 +2,24 @@
 
 import { AboutSection } from "@/components/custom-ui/about-section"
 import { ConnectPanel } from "@/components/custom-ui/connect-panel"
+import { RecentPaymentsCard } from "@/components/custom-ui/recent-payments-card"
 import { ServerDetailsCard } from "@/components/custom-ui/server-details-card"
 import { ServerHeader } from "@/components/custom-ui/server-header"
-import { TokenIcon } from "@/components/custom-ui/token-icon"
 import { ToolExecutionModal, type ToolFromMcpServerWithStats } from "@/components/custom-ui/tool-execution-modal"
 import { ToolsAccordion } from "@/components/custom-ui/tools-accordion"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { getExplorerUrl } from "@/lib/client/blockscout"
 import { mcpDataApi, urlUtils } from "@/lib/client/utils"
 import { isNetworkSupported, type UnifiedNetwork } from "@/lib/commons"
 import {
   AlertCircle,
-  ArrowUpRight,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
-  Clock,
-  Copy,
   Loader2,
-  Pause,
-  Play,
-  RefreshCcw,
-  XCircle
+  RefreshCcw
 } from "lucide-react"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
@@ -123,8 +115,7 @@ export default function ServerPage() {
   const [selectedTool, setSelectedTool] = useState<ToolFromMcpServerWithStats | null>(null)
   const [isToolsCardExpanded, setIsToolsCardExpanded] = useState(true)
   const [showAllTools, setShowAllTools] = useState(false)
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
+  // Removed payments-specific state; handled inside RecentPaymentsCard
 
   useEffect(() => {
     let mounted = true
@@ -135,7 +126,7 @@ export default function ServerPage() {
         const res = await mcpDataApi.getServerById(serverId)
         if (!mounted) return
         setData(res as ServerDetail)
-        setLastRefreshTime(new Date())
+        // lastRefresh handled in RecentPaymentsCard
       } catch (e) {
         if (!mounted) return
         setError(e instanceof Error ? e.message : 'Failed to load server')
@@ -148,23 +139,7 @@ export default function ServerPage() {
     return () => { mounted = false }
   }, [serverId])
 
-  // Auto-refresh effect
-  useEffect(() => {
-    if (!autoRefreshEnabled || !serverId) return
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await mcpDataApi.getServerById(serverId)
-        setData(res as ServerDetail)
-        setLastRefreshTime(new Date())
-      } catch (e) {
-        console.error('Auto-refresh failed:', e)
-        // Don't show error toast for auto-refresh failures to avoid spam
-      }
-    }, 10000) // 10 seconds
-
-    return () => clearInterval(interval)
-  }, [autoRefreshEnabled, serverId])
+  // Removed page-level auto-refresh; RecentPaymentsCard manages its own refresh
 
   const handleRefresh = async () => {
     if (!data?.origin) {
@@ -429,289 +404,7 @@ export default function ServerPage() {
               </div>
             </div>
 
-            <Card className={`${isDark ? "bg-gray-800 border-gray-700" : ""} mt-6 overflow-hidden`}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-teal-500"></div>
-                      Recent Payments
-                      {data.recentPayments && data.recentPayments.length > 0 && (
-                        <span className="ml-2 px-2 py-1 text-xs font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full">
-                          {data.recentPayments.length}
-                        </span>
-                      )}
-                    </CardTitle>
-                    <CardDescription className="text-sm text-muted-foreground">
-                      Latest payment transactions from tool usage with verified token information
-                    </CardDescription>
-                    {(lastRefreshTime || autoRefreshEnabled) && (
-                      <div className="flex items-center gap-3 mt-2">
-                        {lastRefreshTime && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            <span>Last updated {formatRelative(lastRefreshTime.toISOString())}</span>
-                          </div>
-                        )}
-                        {autoRefreshEnabled && (
-                          <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
-                            <div className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse"></div>
-                            <span>Auto-refresh every 10s</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                            className={`h-6 w-6 p-0 ${
-                              autoRefreshEnabled 
-                                ? "text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70" 
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            } transition-all duration-300`}
-                          >
-                            {autoRefreshEnabled ? (
-                              <Pause className="h-3 w-3" />
-                            ) : (
-                              <Play className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {autoRefreshEnabled 
-                            ? "Pause auto-refresh (every 10s)" 
-                            : "Enable auto-refresh every 10 seconds"
-                          }
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={async () => {
-                              try {
-                                const res = await mcpDataApi.getServerById(serverId)
-                                setData(res as ServerDetail)
-                                setLastRefreshTime(new Date())
-                                toast.success('Data refreshed')
-                              } catch (e) {
-                                toast.error('Failed to refresh data')
-                              }
-                            }}
-                            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-300"
-                          >
-                            <RefreshCcw className="h-3 w-3" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Refresh data</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                {loading ? (
-                  <div className="overflow-x-auto">
-                    <div className="min-w-[900px]">
-                      <Table>
-                        <TableHeader>
-                          <TableRow className="border-0">
-                            <TableHead className="w-[50px] pl-6 pr-2">Status</TableHead>
-                            <TableHead className="px-4 sm:px-6 py-4 text-xs font-medium uppercase tracking-wide text-muted-foreground text-left whitespace-nowrap bg-muted/30">Date</TableHead>
-                            <TableHead className="px-4 sm:px-6 py-4 text-xs font-medium uppercase tracking-wide text-muted-foreground text-left whitespace-nowrap bg-muted/30">Amount</TableHead>
-                            <TableHead className="px-4 sm:px-6 py-4 text-xs font-medium uppercase tracking-wide text-muted-foreground text-left whitespace-nowrap bg-muted/30">Network</TableHead>
-                            <TableHead className="px-4 sm:px-6 py-4 text-xs font-medium uppercase tracking-wide text-muted-foreground text-right whitespace-nowrap bg-muted/30 pr-6">Transaction</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {Array.from({ length: 3 }).map((_, i) => (
-                            <TableRow key={i} className="hover:bg-muted/30 transition-all duration-200">
-                              <TableCell className="px-4 sm:px-6 py-4 border-b border-border/50 align-middle">
-                                <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
-                              </TableCell>
-                              <TableCell className="px-4 sm:px-6 py-4 border-b border-border/50 align-middle">
-                                <div className="space-y-2">
-                                  <div className="h-4 w-16 bg-muted animate-pulse rounded"></div>
-                                  <div className="h-3 w-20 bg-muted animate-pulse rounded"></div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="px-4 sm:px-6 py-4 border-b border-border/50 align-middle">
-                                <div className="flex items-center gap-3">
-                                  <div className="h-5 w-5 rounded-full bg-muted animate-pulse"></div>
-                                  <div className="space-y-1">
-                                    <div className="h-4 w-12 bg-muted animate-pulse rounded"></div>
-                                    <div className="h-3 w-8 bg-muted animate-pulse rounded"></div>
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="px-4 sm:px-6 py-4 border-b border-border/50 align-middle">
-                                <div className="flex items-center gap-2">
-                                  <div className="h-2 w-2 rounded-full bg-muted animate-pulse"></div>
-                                  <div className="h-6 w-16 bg-muted animate-pulse rounded-full"></div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="px-4 sm:px-6 py-4 border-b border-border/50 align-middle text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  <div className="h-6 w-20 bg-muted animate-pulse rounded"></div>
-                                  <div className="h-8 w-8 rounded-full bg-muted animate-pulse"></div>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                ) : (() => {
-                  // Aligned with minimal-explorer.tsx
-                  const th = "px-1 sm:px-2 py-3 text-[12px] uppercase tracking-widest text-muted-foreground text-left whitespace-nowrap"
-                  const td = "px-1 sm:px-2 py-3.5 border-t border-border align-middle"
-
-                  const onCopy = async (text?: string, message = "Copied") => {
-                    if (!text) return
-                    try {
-                      await navigator.clipboard.writeText(text)
-                      toast.success(message)
-                    } catch {
-                      toast.error("Could not copy")
-                    }
-                  }
-
-                  return (
-                    <div className="overflow-x-auto">
-                      <div className="min-w-[800px]">
-                        <Table>
-                          {(data.recentPayments && data.recentPayments.length > 0) && (
-                            <TableHeader>
-                              <TableRow className="border-b border-border">
-                                <TableHead className="w-[40px] pr-1 sr-only">Status</TableHead>
-                                <TableHead className={`${th} font-mono`}>Method</TableHead>
-                                <TableHead className={`${th} font-mono`}>Amount</TableHead>
-                                <TableHead className={`${th} font-mono`}>Network</TableHead>
-                                <TableHead className={`${th} font-mono`}>Date</TableHead>
-                                <TableHead className={`${th} font-mono text-right`}></TableHead>
-                              </TableRow>
-                            </TableHeader>
-                          )}
-                          <TableBody>
-                            {(data.recentPayments || []).map((p) => {
-                              const txUrl = safeTxUrl(p.network, p.transactionHash)
-                              const fullDate = formatDate(p.createdAt)
-                              const rel = formatRelativeShort(p.createdAt)
-
-                              return (
-                                <TableRow key={p.id} className="hover:bg-muted/40">
-                                  {/* Status indicator */}
-                                  <TableCell className={`${td} w-[40px] pr-1`}>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <div
-                                            className="inline-flex h-6 w-6 items-center justify-center rounded-sm text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70 transition-all duration-300"
-                                            aria-label={p.status}
-                                          >
-                                            <CheckCircle2 className="h-4 w-4" />
-                                          </div>
-                                        </TooltipTrigger>
-                                        <TooltipContent>{p.status === 'completed' ? 'Success' : p.status === 'failed' ? 'Failed' : 'Pending'}</TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </TableCell>
-
-                                  {/* Method */}
-                                  <TableCell className={`${td}`}>
-                                    <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded text-foreground">
-                                      tool_call
-                                    </span>
-                                  </TableCell>
-
-                                  {/* Amount */}
-                                  <TableCell className={`${td} font-mono`}>
-                                    <div className="flex items-center gap-2 text-xs sm:text-sm">
-                                      {p.currency && <TokenIcon currencyOrAddress={p.currency} network={p.network} size={16} />}
-                                      <span className="text-foreground">{p.amountFormatted || '—'}</span>
-                                    </div>
-                                  </TableCell>
-
-                                  {/* Network */}
-                                  <TableCell className={`${td} font-mono text-xs sm:text-sm text-muted-foreground`}>
-                                    <span className="font-mono text-sm border border-foreground-muted px-2 py-0.5 rounded text-foreground-muted">
-                                      {p.network || 'Unknown'}
-                                    </span>
-                                  </TableCell>
-
-                                  {/* Date */}
-                                  <TableCell className={`${td} text-[0.95rem] sm:text-sm text-muted-foreground pr-1`}>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger className="cursor-default">
-                                          {rel}
-                                        </TooltipTrigger>
-                                        <TooltipContent>{fullDate}</TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </TableCell>
-
-                                  {/* Transaction */}
-                                  <TableCell className={`${td} text-right`}>
-                                    {p.transactionHash ? (
-                                      <TooltipProvider>
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              asChild
-                                              size="icon"
-                                              variant="ghost"
-                                              className="group h-7 w-7 rounded-sm"
-                                            >
-                                              <a
-                                                href={txUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                onClick={(e) => e.stopPropagation()}
-                                              >
-                                                <ArrowUpRight className="size-5 stroke-[2] text-muted-foreground/80 group-hover:text-foreground transition-all duration-300" />
-                                              </a>
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent>View Transaction</TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-                                    ) : (
-                                      <span className="text-xs text-muted-foreground">—</span>
-                                    )}
-                                  </TableCell>
-                                </TableRow>
-                              )
-                            })}
-
-                            {(!data.recentPayments || data.recentPayments.length === 0) && (
-                              <TableRow>
-                                <TableCell colSpan={7} className="px-6 py-12 text-center">
-                                  <div className={`${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                                    <p className="text-sm">No recent payments</p>
-                                    <p className="text-xs mt-1">Payments will appear here once tools are used with monetization enabled</p>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )
-                })()}
-              </CardContent>
-            </Card>
+            <RecentPaymentsCard serverId={serverId} initialPayments={data.recentPayments} />
 
           </div>
         </div>
