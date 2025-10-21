@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { urlUtils } from "@/lib/client/utils"
-import { Check, Copy, Hammer } from "lucide-react"
+import { Check, CheckCircle2, Copy, Hammer } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -52,7 +52,19 @@ function ServerCard({ server }: { server: McpServer }) {
     <Link href={`/servers/${server.id}`} className="group">
       <Card className="border border-border bg-background hover:shadow-lg rounded-lg transition-all cursor-pointer group-hover:border-foreground gap-0">
         <CardHeader className="mb-4">
-          <CardTitle className="text-lg">{server?.server?.info?.name || "Unknown Server"}</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">{server?.server?.info?.name || "Unknown Server"}</CardTitle>
+            {server.moderation_status === 'approved' && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                  </TooltipTrigger>
+                  <TooltipContent>Verified server</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <p className="text-sm text-muted-foreground line-clamp-2">
             {server?.server?.info?.description || "No description available"}
           </p>
