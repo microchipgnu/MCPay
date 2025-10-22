@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Github } from "lucide-react";
 import {
   motion,
   AnimatePresence,
@@ -118,24 +119,30 @@ export default function Hero({
             variants={fadeUp}
           >
             <h1 className="text-4xl font-semibold font-host mb-6">
-            Open MCP & x402 infra
+              Payments for MCPs
             </h1>
-            
-            <p className="text-balance font-medium text-md text-muted-foreground sm:text-lg mb-4">
-            Add micropayments to MCP servers or APIs without rewriting infrastructure.
+
+            <p className="text-balance font-medium text-md text-muted-foreground sm:text-lg mb-6 leading-relaxed">
+              Open infrastructure for MCP and x402. Add micropayments to any server without rewriting your stack.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start">
+            <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
               <Link href="/register" className="w-full sm:w-auto">
-                <Button size="lg" variant="ghostCustom" className="w-full sm:min-w-[10rem]">
+                <Button size="lg" variant="ghostCustom" className="w-full sm:w-auto">
                   Monetize Server
                 </Button>
               </Link>
               <Link href="https://docs.mcpay.tech" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
-                <Button size="lg" variant="ghostCustomSecondary" className="w-full sm:min-w-[10rem]">
+                <Button size="lg" variant="ghostCustomSecondary" className="w-full sm:w-auto">
                   Documentation
                 </Button>
               </Link>
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+                <Button size="lg" variant="ghostCustomSecondary" className="w-full sm:w-auto">
+                  <Github className="h-4 w-4 mr-2" />
+                  Contribute
+                </Button>
+              </a>
             </div>
           </motion.div>
         </div>
