@@ -9,22 +9,45 @@ function truncate(text: string, max = 180): string {
   return text.length > max ? text.slice(0, max - 1).trimEnd() + "…" : text;
 }
 
+function formatNumber(num: number): string {
+  if (num === 0) return "0";
+  
+  const absNum = Math.abs(num);
+  
+  if (absNum >= 1_000_000_000) {
+    return (num / 1_000_000_000).toFixed(1).replace(/\.0$/, '') + 'B';
+  }
+  if (absNum >= 1_000_000) {
+    return (num / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  }
+  if (absNum >= 1_000) {
+    return (num / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+  }
+  
+  return num.toLocaleString();
+}
+
 function metric(label: string, value: string | number) {
+  const valueStr = String(value);
+  
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        padding: "16px 20px",
-        borderRadius: 8,
-        background: "rgba(255,255,255,0.08)",
-        border: "1px solid rgba(255,255,255,0.15)",
-        minWidth: 120,
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "28px 32px",
+        borderRadius: 12,
+        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        minWidth: 150,
         textAlign: "center",
+        gap: 10,
       }}
     >
-      <div style={{ fontSize: 28, fontWeight: 600, lineHeight: 1, fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" }}>{String(value)}</div>
-      <div style={{ fontSize: 14, opacity: 0.7, fontWeight: 500 }}>{label}</div>
+      <div style={{ fontSize: 42, fontWeight: 600, lineHeight: 1.1, fontFamily: "ui-monospace, SFMono-Regular, 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace", letterSpacing: "-0.5px" }}>{valueStr}</div>
+      <div style={{ fontSize: 15, opacity: 0.65, fontWeight: 500, letterSpacing: "0.5px", textTransform: "uppercase" }}>{label}</div>
     </div>
   );
 }
@@ -39,10 +62,14 @@ export async function GET(
 
     const name = (data?.info?.name || data?.origin || id || "Server").toString();
     const description = truncate((data?.info?.description || "").toString());
-    const totalRequests = Number(data?.summary?.totalRequests || 0).toLocaleString();
-    const totalTools = Number(data?.summary?.totalTools || 0).toLocaleString();
-    const totalPayments = Number(data?.summary?.totalPayments || 0).toLocaleString();
-    const quality = Number(data?.qualityScore || 0).toLocaleString();
+    const totalRequests = formatNumber(Number(data?.summary?.totalRequests || 0));
+    const totalTools = formatNumber(Number(data?.summary?.totalTools || 0));
+    const totalPayments = formatNumber(Number(data?.summary?.totalPayments || 0));
+    const quality = formatNumber(Number(data?.qualityScore || 0));
+
+    // Get the base URL for the public image
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://mcpay.tech';
+    const backgroundImageUrl = `${baseUrl}/mcpay-hero-painting.png`;
 
     return new ImageResponse(
       (
@@ -54,56 +81,61 @@ export async function GET(
             flexDirection: 'column',
             padding: 48,
             color: '#fff',
-            background: '#0a0a0a',
+            background: 'linear-gradient(135deg, #000000 0%, #111827 30%, #0a0a0a 100%)',
             fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            position: 'relative',
           }}
         >
-          {/* Header */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 32 }}>
-            <div style={{ fontSize: 42, fontWeight: 700, lineHeight: 1.1 }}>{name}</div>
-            {description ? (
-              <div style={{ fontSize: 18, opacity: 0.7, maxWidth: 800, lineHeight: 1.4 }}>{description}</div>
-            ) : null}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ fontSize: 48, fontWeight: 700, lineHeight: 1.1, letterSpacing: "-0.5px", display: "block" }}>{name}</div>
+            <div style={{ fontSize: 18, opacity: 0.65, maxWidth: 850, lineHeight: 1.4, display: description ? "block" : "none" }}>{description || ""}</div>
           </div>
-
-          {/* Metrics Grid */}
-          <div style={{ display: "flex", gap: 20, marginBottom: 40 }}>
+          <div style={{ 
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            display: "flex", 
+            gap: 24, 
+            justifyContent: "center",
+          }}>
             {metric("Requests", totalRequests)}
             {metric("Tools", totalTools)}
             {metric("Payments", totalPayments)}
             {metric("Quality", quality)}
           </div>
-
-          {/* Footer */}
           <div style={{ marginTop: "auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ display: "flex", gap: 12, alignItems: "center", opacity: 0.8, fontSize: 16 }}>
-              <div
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  background: "#14b8a6",
-                }}
-              />
-              <div style={{ fontWeight: 500 }}>MCPay — Payments for MCPs</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", opacity: 0.85, fontSize: 17 }}>
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 999,
+                    background: "#14b8a6",
+                    display: "block",
+                  }}
+                />
+                <div style={{ fontWeight: 500, display: "block" }}>MCPay — Payments for MCPs</div>
+              </div>
+              <div style={{ fontSize: 15, opacity: 0.55, paddingLeft: 22, display: "block" }}>mcpay.tech</div>
             </div>
-            
-            {/* MCPay Symbol */}
             <div
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 12,
-                background: "rgba(255,255,255,0.1)",
+                width: 96,
+                height: 96,
+                borderRadius: 16,
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.1)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                opacity: 0.8,
+                opacity: 0.85,
               }}
             >
               <svg
-                width="48"
-                height="48"
+                width="72"
+                height="72"
                 viewBox="0 0 78 78"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
