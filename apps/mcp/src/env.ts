@@ -28,6 +28,12 @@ const envSchema = z.object({
   CDP_API_SECRET: z.string().min(1, "CDP_API_SECRET is required").default(""),
   CDP_WALLET_SECRET: z.string().min(1, "CDP_WALLET_SECRET is required").default(""),
 
+
+  // VLayer Configuration
+  VLAYER_WEB_PROOF_API: z.url("VLAYER_WEB_PROOF_API must be a valid URL").default("https://web-prover.vlayer.xyz/api/v0/prove"),
+  VLAYER_CLIENT_ID: z.string().min(1, "VLAYER_CLIENT_ID is required").default(""),
+  VLAYER_BEARER_TOKEN: z.string().min(1, "VLAYER_BEARER_TOKEN is required").default(""),
+
   // Payment strategy configuration
   PAYMENT_STRATEGY_ENABLED: z.boolean().default(true),
   PAYMENT_STRATEGY_FALLBACK: z.enum(["fail", "continue", "log_only"]).default("continue"),
