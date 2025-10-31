@@ -462,6 +462,18 @@ app.all("/mcp", async (c) => {
     const hasId = !!currentUrl.searchParams.get("id");
     const shouldProxy = hasId || !!targetUrlParam;
     const original = c.req.raw;
+    
+    const isTruthyHeader = (value: string | null) => {
+        if (!value) return false;
+        const v = value.toLowerCase();
+        return v === "1" || v === "true" || v === "yes" || v === "on";
+    };
+    
+    // Control flags via headers:
+    // - x-mcp-disable-auth: when truthy, bypasses withMcpAuth entirely
+    // - x-mcp-disable-x402: when truthy (or auth disabled), omits X402WalletHook
+    const disableMcpAuth = isTruthyHeader(original.headers.get("x-mcp-disable-auth"));
+    const disableX402 = isTruthyHeader(original.headers.get("x-mcp-disable-x402")) || disableMcpAuth;
 
     if (shouldProxy) {
         console.log("[MCP] Proxying request:", {
@@ -474,12 +486,17 @@ app.all("/mcp", async (c) => {
             return new Response("target-url missing", { status: 400 });
         }
 
-        const withMcpProxy = (session: any) => withProxy(targetUrl, [
-            new AnalyticsHook(analyticsSink, targetUrl),
-            new LoggingHook(),
-            new X402WalletHook(session),
-            new SecurityHook(),
-        ]);
+        const withMcpProxy = (session: any) => {
+            const hooks: any[] = [
+                new AnalyticsHook(analyticsSink, targetUrl),
+                new LoggingHook(),
+            ];
+            if (!disableX402 && session) {
+                hooks.push(new X402WalletHook(session));
+            }
+            hooks.push(new SecurityHook());
+            return withProxy(targetUrl, hooks as any);
+        };
         
         // Extract API key from various sources
         const apiKeyFromQuery = currentUrl.searchParams.get("apiKey") || currentUrl.searchParams.get("api_key");
@@ -505,6 +522,11 @@ app.all("/mcp", async (c) => {
         if (session) {
             console.log("[MCP] Authenticated session found, proxying with session:", session.session?.userId || session.session);
             return withMcpProxy(session.session)(original);
+        }
+
+        if (disableMcpAuth) {
+            console.log("[MCP] MCP auth disabled via header; proxying without auth");
+            return withMcpProxy(null)(original);
         }
 
         console.log("[MCP] No authenticated session, using withMcpAuth");
@@ -585,6 +607,11 @@ app.all("/mcp", async (c) => {
         //     }
         // );
     });
+
+    if (disableMcpAuth) {
+        console.log("[MCP] MCP auth disabled via header; serving MCP without auth");
+        return handler(null)(c.req.raw);
+    }
 
     return withMcpAuth(auth, (req, session) => handler(session)(req))(c.req.raw);
 });
