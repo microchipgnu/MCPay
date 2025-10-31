@@ -3,7 +3,7 @@ import { oAuthDiscoveryMetadata, oAuthProtectedResourceMetadata, withMcpAuth } f
 import dotenv from "dotenv";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { LoggingHook, withProxy, createMcpHandler } from "mcpay/handler";
+import { LoggingHook, withProxy, createMcpHandler, Hook } from "mcpay/handler";
 import { AnalyticsHook } from "mcpay/handler";
 import { z } from "zod";
 import { getPort, getTrustedOrigins, isDevelopment } from "./env.js";
@@ -487,7 +487,7 @@ app.all("/mcp", async (c) => {
         }
 
         const withMcpProxy = (session: any) => {
-            const hooks: any[] = [
+            const hooks: Hook[] = [
                 new AnalyticsHook(analyticsSink, targetUrl),
                 new LoggingHook(),
             ];
@@ -495,7 +495,7 @@ app.all("/mcp", async (c) => {
                 hooks.push(new X402WalletHook(session));
             }
             hooks.push(new SecurityHook());
-            return withProxy(targetUrl, hooks as any);
+            return withProxy(targetUrl, hooks);
         };
         
         // Extract API key from various sources
