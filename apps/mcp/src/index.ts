@@ -3,9 +3,9 @@ import { oAuthDiscoveryMetadata, oAuthProtectedResourceMetadata, withMcpAuth } f
 import dotenv from "dotenv";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { LoggingHook, withProxy, createMcpHandler } from "mcpay/handler";
+import { LoggingHook, withProxy, createMcpHandler, withLocalProxy } from "mcpay/handler";
 import { AnalyticsHook } from "mcpay/handler";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { getPort, getTrustedOrigins, isDevelopment } from "./env.js";
 import { auth, db } from "./lib/auth.js";
 import { getBalancesSummary } from "./lib/balance-tracker.js";
@@ -516,12 +516,14 @@ app.all("/mcp", async (c) => {
         return handler(original);
     }
 
-    const handler = (session: any) => createMcpHandler(async (server) => {
+    const handler = (session: any) => createMcpHandler(async (server: any) => {
+
+
         server.tool(
             "ping",
             "Health check that echoes an optional message",
-            { message: z.string().optional() },
-            async ({ message }) => {
+            { message: z.string() },
+            async ({ message }: { message: string }) => {
                 return {
                     content: [
                         { type: "text", text: message ? `pong: ${message}` : "pong" },
@@ -534,18 +536,18 @@ app.all("/mcp", async (c) => {
             "me",
             "Returns the current authenticated user's basic info if available",
             {},
-            async (_args, extra) => {
+            async (_args: any, extra: any) => {
+    
+                const _session = await auth.api.getSession({ headers: c.req.raw.headers });
 
-                console.log(original)
-
-                const session = await auth.api.getSession({ headers: original.headers });
+                console.log(_session)
 
                 if (!session) {
-                    return { content: [{ type: "text", text: "Not authenticated" }] };
+                    return { content: [{ type: "text", text: JSON.stringify(c.req.raw.headers) }] };
                 }
                 return {
                     content: [
-                        { type: "text", text: JSON.stringify({ ...session.user }) },
+                        { type: "text", text: JSON.stringify(c.req.raw.headers) },
                     ],
                 };
             }
@@ -586,7 +588,33 @@ app.all("/mcp", async (c) => {
         // );
     });
 
-    return withMcpAuth(auth, (req, session) => handler(session)(req))(c.req.raw);
+    // Enforce auth: run withMcpAuth first; inject API key if present
+    const urlForAuth = new URL(c.req.url);
+    const apiKeyFromQuery = urlForAuth.searchParams.get("apiKey") || urlForAuth.searchParams.get("api_key");
+    const apiKeyFromXHeader = c.req.raw.headers.get("x-api-key");
+    const presentedApiKey = apiKeyFromQuery || apiKeyFromXHeader || undefined;
+
+    const authed = withMcpAuth(auth, (req, session) => {
+        const run = withLocalProxy(
+            (innerReq: Request) => handler(session)(innerReq),
+            [
+                new AnalyticsHook(analyticsSink, "https://mcp.mcpay.tech/mcp"),
+                new LoggingHook(),
+                new X402WalletHook(session),
+                new SecurityHook(),
+            ]
+        );
+        return run(req);
+    });
+
+    if (presentedApiKey && !c.req.raw.headers.get("authorization")) {
+        const forwardHeaders = new Headers(c.req.raw.headers);
+        forwardHeaders.set("x-api-key", String(presentedApiKey));
+        forwardHeaders.set("authorization", `Bearer ${String(presentedApiKey)}`);
+        const forwarded = new Request(c.req.raw.url, { method: c.req.raw.method, headers: forwardHeaders, body: c.req.raw.body as any });
+        return authed(forwarded);
+    }
+    return authed(c.req.raw);
 });
 
 // app.all("/mcp/*", async (c) => {

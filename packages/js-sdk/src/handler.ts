@@ -6,6 +6,7 @@ export { makePlugins, composePlugins } from "./handler/server/index.js";
 export { createMcpHandler };
 
 export { withProxy } from "./handler/proxy/index.js";
+export { withLocalProxy } from "./handler/local/index.js";
 export { Hook } from "./handler/proxy/hooks.js";
 export { LoggingHook } from "./handler/proxy/hooks/logging-hook.js";
 export { AuthHeadersHook } from "./handler/proxy/hooks/auth-headers-hook.js";

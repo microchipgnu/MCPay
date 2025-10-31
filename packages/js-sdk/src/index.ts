@@ -7,6 +7,9 @@ export {
 
 export { proxyServer } from './server/stdio/proxy-server.js';
 
+// Local/Proxy helpers
+export { withLocalProxy } from './handler/local/index.js';
+
 // Re-export commonly used types from dependencies
 export type { Account } from 'viem';
 export type { Client } from '@modelcontextprotocol/sdk/client/index.js';
