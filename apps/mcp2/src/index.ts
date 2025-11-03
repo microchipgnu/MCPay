@@ -273,7 +273,7 @@ app.all("/mcp", async (c) => {
             recipient: recipient,
             prices,
             facilitator: {
-                url: "https://facilitator.payai.network",
+                url: "https://facilitator.x402.rs",
             },
         })
     ]);
