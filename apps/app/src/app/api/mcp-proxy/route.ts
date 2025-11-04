@@ -72,17 +72,38 @@ export async function POST(request: Request) {
 
   console.log('mcpUrl', mcpUrl)
   
-  // Forward the request to the local MCP server with session cookie
+  // Forward the request to the local MCP server with original headers (preserve MCP session headers)
+  const forwardHeaders = new Headers()
+  // Copy all incoming headers except hop-by-hop ones
+  request.headers.forEach((value, key) => {
+    const lower = key.toLowerCase()
+    if (lower === 'host' || lower === 'connection' || lower === 'content-length' || lower === 'transfer-encoding' || lower === 'content-encoding') {
+      return
+    }
+    forwardHeaders.set(key, value)
+  })
+  // Ensure cookies are forwarded from Next headers API
+  if (h.get('cookie')) {
+    forwardHeaders.set('Cookie', h.get('cookie') || '')
+  }
+  // Ensure Accept header supports streaming
+  if (!forwardHeaders.has('Accept')) {
+    forwardHeaders.set('Accept', 'application/json, text/event-stream')
+  }
+  // Default content-type for JSON-RPC
+  if (!forwardHeaders.has('Content-Type')) {
+    forwardHeaders.set('Content-Type', 'application/json')
+  }
+
+  // Generate new MCP session ID if missing
+  if (!forwardHeaders.has('MCP-Session-Id') && !forwardHeaders.has('mcp-session-id')) {
+    const newSessionId = crypto.randomUUID()
+    forwardHeaders.set('MCP-Session-Id', newSessionId)
+  }
+
   const response = await fetch(mcpUrl, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json, text/event-stream',
-      'Cookie': h.get('cookie') || '', // Forward the session cookie
-      'X-Wallet-Type': h.get('x-wallet-type') || '',
-      'X-Wallet-Address': h.get('x-wallet-address') || '',
-      'X-Wallet-Provider': h.get('x-wallet-provider') || '',
-    },
+    headers: forwardHeaders,
     body: request.body,
     credentials: 'include',
     // @ts-expect-error this is valid and needed
@@ -91,6 +112,7 @@ export async function POST(request: Request) {
 
   // Get the validated origin for CORS
   const validOrigin = getValidOrigin(request)
+  const upstreamSessionId = response.headers.get('MCP-Session-Id') || response.headers.get('mcp-session-id') || ''
   
   return new Response(response.body, {
     status: response.status,
@@ -98,7 +120,9 @@ export async function POST(request: Request) {
       'Content-Type': response.headers.get('Content-Type') || 'application/json',
       'Access-Control-Allow-Origin': validOrigin || '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Wallet-Type, X-Wallet-Address, X-Wallet-Provider',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Wallet-Type, X-Wallet-Address, X-Wallet-Provider, MCP-Session-Id, mcp-session-id, x-api-key, WWW-Authenticate',
+      'Access-Control-Expose-Headers': 'MCP-Session-Id, WWW-Authenticate',
+      ...(upstreamSessionId ? { 'MCP-Session-Id': upstreamSessionId } : {}),
       'Access-Control-Allow-Credentials': validOrigin ? 'true' : 'false',
     },
   })
@@ -130,16 +154,31 @@ export async function GET(request: Request) {
   // Use the local MCP server instead of external proxy
   const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp?target-url=${targetUrl}`
   
-  // Forward the request to the local MCP server with session cookie
+  // Forward the request to the local MCP server with original headers (preserve MCP session headers)
+  const forwardHeaders = new Headers()
+  request.headers.forEach((value, key) => {
+    const lower = key.toLowerCase()
+    if (lower === 'host' || lower === 'connection' || lower === 'content-length' || lower === 'transfer-encoding' || lower === 'content-encoding') {
+      return
+    }
+    forwardHeaders.set(key, value)
+  })
+  if (h.get('cookie')) {
+    forwardHeaders.set('Cookie', h.get('cookie') || '')
+  }
+  if (!forwardHeaders.has('Accept')) {
+    forwardHeaders.set('Accept', 'application/json, text/event-stream')
+  }
+
+  // Generate new MCP session ID if missing
+  if (!forwardHeaders.has('MCP-Session-Id') && !forwardHeaders.has('mcp-session-id')) {
+    const newSessionId = crypto.randomUUID()
+    forwardHeaders.set('MCP-Session-Id', newSessionId)
+  }
+
   const response = await fetch(mcpUrl, {
     method: 'GET',
-    headers: {
-      'Accept': 'application/json, text/event-stream',
-      'Cookie': h.get('cookie') || '', // Forward the session cookie
-      'X-Wallet-Type': h.get('x-wallet-type') || '',
-      'X-Wallet-Address': h.get('x-wallet-address') || '',
-      'X-Wallet-Provider': h.get('x-wallet-provider') || '',
-    },
+    headers: forwardHeaders,
     credentials: 'include',
     // @ts-expect-error this is valid and needed
     duplex: 'half',
@@ -147,6 +186,7 @@ export async function GET(request: Request) {
 
   // Get the validated origin for CORS
   const validOrigin = getValidOrigin(request)
+  const upstreamSessionId = response.headers.get('MCP-Session-Id') || response.headers.get('mcp-session-id') || ''
   
   return new Response(response.body, {
     status: response.status,
@@ -154,7 +194,9 @@ export async function GET(request: Request) {
       'Content-Type': response.headers.get('Content-Type') || 'application/json',
       'Access-Control-Allow-Origin': validOrigin || '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Wallet-Type, X-Wallet-Address, X-Wallet-Provider',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Wallet-Type, X-Wallet-Address, X-Wallet-Provider, MCP-Session-Id, mcp-session-id, x-api-key, WWW-Authenticate',
+      'Access-Control-Expose-Headers': 'MCP-Session-Id, WWW-Authenticate',
+      ...(upstreamSessionId ? { 'MCP-Session-Id': upstreamSessionId } : {}),
       'Access-Control-Allow-Credentials': validOrigin ? 'true' : 'false',
     },
   })
@@ -170,7 +212,7 @@ export async function OPTIONS(request: Request) {
       'Content-Type': 'application/json, text/event-stream',
       'Access-Control-Allow-Origin': validOrigin || '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Wallet-Type, X-Wallet-Address, X-Wallet-Provider',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Wallet-Type, X-Wallet-Address, X-Wallet-Provider, MCP-Session-Id, mcp-session-id, x-api-key, WWW-Authenticate',
       'Access-Control-Allow-Credentials': validOrigin ? 'true' : 'false',
     },
   })
