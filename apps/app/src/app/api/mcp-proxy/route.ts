@@ -95,19 +95,34 @@ export async function POST(request: Request) {
     forwardHeaders.set('Content-Type', 'application/json')
   }
 
-  // Generate new MCP session ID if missing
-  if (!forwardHeaders.has('MCP-Session-Id') && !forwardHeaders.has('mcp-session-id')) {
+  // Read body once to check if it's an initialize request and reuse for forwarding
+  let bodyText: string | null = null
+  let isInitializeRequest = false
+  try {
+    bodyText = await request.text()
+    if (bodyText) {
+      const bodyJson = JSON.parse(bodyText)
+      isInitializeRequest = bodyJson?.method === 'initialize'
+    }
+  } catch {
+    // If parsing fails, assume it's not initialize (will add session ID)
+  }
+
+  // Generate new MCP session ID if missing, but NOT for initialize requests
+  if (!isInitializeRequest && !forwardHeaders.has('MCP-Session-Id') && !forwardHeaders.has('mcp-session-id')) {
     const newSessionId = crypto.randomUUID()
     forwardHeaders.set('MCP-Session-Id', newSessionId)
+  } else if (isInitializeRequest) {
+    // Remove session ID header for initialize requests
+    forwardHeaders.delete('MCP-Session-Id')
+    forwardHeaders.delete('mcp-session-id')
   }
 
   const response = await fetch(mcpUrl, {
     method: 'POST',
     headers: forwardHeaders,
-    body: request.body,
+    body: bodyText ?? '',
     credentials: 'include',
-    // @ts-expect-error this is valid and needed
-    duplex: 'half',
   })
 
   // Get the validated origin for CORS
