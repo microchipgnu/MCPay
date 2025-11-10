@@ -11,12 +11,12 @@ import Logo3D from "./logo-3d"
 const SUPPORTED_BY_LOGOS = [
   {
     name: "coinbase",
-    href: "https://www.coinbase.com/",
+    href: "https://www.coinbase.com/developer-platform/discover/launches/summer-builder-grants",
     src: "/logos/coinbase-logo.svg",
   },
   {
     name: "polygon",
-    href: "https://polygon.technology/",
+    href: "https://x.com/0xPolygonEco/status/1981060080058716289",
     src: "/logos/polygon-logo.svg",
   },
   {
@@ -68,10 +68,10 @@ export default function Hero3D({
         {/* Stats */}
         <div className="flex flex-wrap gap-3 order-1 lg:hidden">
           <HighlighterText>
-            TRANSACTIONS: <span className="!text-foreground">+ 100K</span>
+            TRANSACTIONS: <span className="!text-foreground">+ 100,000</span>
           </HighlighterText>
           <HighlighterText>
-            VOLUME: <span className="!text-foreground">+ 100K</span>
+            VOLUME: <span className="!text-foreground">+ $30,000</span>
           </HighlighterText>
         </div>
 
@@ -153,10 +153,10 @@ export default function Hero3D({
           {/* Stats */}
           <div className="flex flex-wrap gap-3">
             <HighlighterText>
-              TRANSACTIONS: <span className="text-foreground">+ 100K</span>
+              TRANSACTIONS: <span className="text-foreground">+ 100,000</span>
             </HighlighterText>
             <HighlighterText>
-              VOLUME: <span className="text-foreground">+ 100K</span>
+              VOLUME: <span className="text-foreground">+ $30,000</span>
             </HighlighterText>
           </div>
 

@@ -23,7 +23,7 @@ export default function MCPBrowser() {
   const [mcpServers, setMcpServers] = useState<McpServer[]>([])
   const [loading, setLoading] = useState(true)
   const [error] = useState<string | null>(null)
-  
+
   useEffect(() => {
 
     mcpDataApi.getServers().then((servers) => {
@@ -126,36 +126,29 @@ export default function MCPBrowser() {
           <Hero3D />
         </section>
 
-        <section className="mb-20">
+        <section>
           <DeveloperInfo />
         </section>
 
-        <section className="mb-20">
+        <section className="mb-40">
           <Stats />
         </section>
 
-        <section className="mb-20">
+        <section>
           <ConsumerInfo />
         </section>
 
-        <section className="mb-20">
-          <GithubInfo />
-        </section>
-
-        <section className="mb-20">
-          <div className="max-w-6xl px-4 md:px-6 mx-auto">
-            <h2 className="text-3xl font-semibold font-host mb-10">Featured Servers</h2>
+        <section className="mb-60 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-10">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-muted-foreground leading-tight">Featured Servers</h2>
           </div>
           <ServersGrid servers={mcpServers.slice(0, 6)} loading={loading} />
-          <div className="text-center mt-10">
-            <div className="inline-flex gap-4">
-              <Link href="/servers">
-                <Button variant="ghostCustom" className="min-w-[10rem]">Browse Servers</Button>
-              </Link>
-              <Link href="/explorer">
-                <Button variant="ghostCustomSecondary" className="min-w-[10rem]">Explorer</Button>
-              </Link>
-            </div>
+          <div className="flex justify-center mt-10">
+            <Link href="/servers" className="w-full lg:w-auto">
+              <Button variant="customTallPrimary" size="tall" className="w-full lg:min-w-[220px]">
+                Browse Servers
+              </Button>
+            </Link>
           </div>
         </section>
 
@@ -163,9 +156,13 @@ export default function MCPBrowser() {
           <FAQSection />
         </section>
 
+        <section className="mb-20">
+          <GithubInfo />
+        </section>
+
         <section className="mb-2">
           <div className="max-w-6xl px-4 md:px-6 mx-auto text-center">
-            <TypingAnimation 
+            <TypingAnimation
               text="Join the future of agentic payments."
               trigger={hasReachedBottom}
               speed={20}

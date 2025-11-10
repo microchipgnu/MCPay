@@ -18,7 +18,7 @@ export default function Stats({
   return (
     <section
       className={cn(
-        "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-24",
+        "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8",
         className
       )}
       {...props}
@@ -26,7 +26,7 @@ export default function Stats({
       <div className="flex flex-col gap-12">
         {/* Header */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-muted-foreground leading-tight">
             Latest Transactions
           </h2>
         </div>

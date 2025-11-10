@@ -1,8 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import InfoCard from "./info-card"
@@ -53,15 +51,6 @@ export default function ConsumerInfo({
             label="FREE"
             copy="We don't charge any fees, you are paying cents for each tool call."
           />
-        </div>
-
-        {/* Primary CTA */}
-        <div className="flex justify-center">
-          <Link href="/servers" className="w-full lg:w-auto">
-            <Button variant="customTallPrimary" size="tall" className="w-full lg:min-w-[220px]">
-              BROWSE SERVERS
-            </Button>
-          </Link>
         </div>
       </div>
     </section>
