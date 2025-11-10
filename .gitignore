@@ -52,3 +52,4 @@ tests/e2e/artifacts/
 # build output
 packages/*/dist/
 .turbo/
+.env*.local
