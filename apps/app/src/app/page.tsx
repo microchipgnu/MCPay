@@ -11,6 +11,7 @@ import GithubInfo from "@/components/custom-ui/github-info"
 import Hero3D from "@/components/custom-ui/hero-3d"
 import MinimalExplorer from "@/components/custom-ui/minimal-explorer"
 import ServersGrid from "@/components/custom-ui/servers-grid"
+import Stats from "@/components/custom-ui/stats"
 import TypingAnimation from "@/components/custom-ui/typing-animation"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
@@ -137,11 +138,11 @@ export default function MCPBrowser() {
         </section>
 
         <section className="mb-40">
-          <GithubInfo />
+          <Stats />
         </section>
 
         <section className="mb-40">
-          <MinimalExplorer />
+          <GithubInfo />
         </section>
 
         <section className="mb-40">
