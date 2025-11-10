@@ -8,18 +8,50 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
+const getSystemPreference = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+};
+
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("mcp-browser-theme");
-    if (savedTheme === "dark") {
-      setIsDark(true);
+    let initialIsDark: boolean;
+
+    if (savedTheme === "dark" || savedTheme === "light") {
+      // Use saved preference
+      initialIsDark = savedTheme === "dark";
+    } else {
+      // Use system preference if no saved preference
+      initialIsDark = getSystemPreference();
+    }
+
+    setIsDark(initialIsDark);
+    if (initialIsDark) {
       document.documentElement.classList.add('dark');
     } else {
-      setIsDark(false);
       document.documentElement.classList.remove('dark');
     }
+
+    // Listen for system preference changes (only if no manual override)
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleSystemThemeChange = (e: MediaQueryListEvent) => {
+      // Only update if user hasn't manually set a preference
+      if (!localStorage.getItem("mcp-browser-theme")) {
+        const systemIsDark = e.matches;
+        setIsDark(systemIsDark);
+        if (systemIsDark) {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange);
   }, []);
 
   const toggleTheme = () => {

@@ -249,8 +249,6 @@ export default function MinimalExplorer() {
 
   return (
     <div className="max-w-6xl px-4 md:px-6 mx-auto">
-      <h2 className="text-3xl font-semibold font-host mb-10">Stats & Latest Transactions</h2>
-      
       {/* <motion.div
         className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10"
         variants={container}
@@ -402,14 +400,6 @@ export default function MinimalExplorer() {
             </TableBody>
           </Table>
         </div>
-      </div>
-      
-      <div className="text-center mt-6">
-        <Link href="/explorer">
-          <Button variant="ghostCustom" className="min-w-[240px]">
-            EXPLORER
-          </Button>
-        </Link>
       </div>
     </div>
   )
