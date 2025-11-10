@@ -23,7 +23,7 @@ export default function HighlighterText({
             "size-6 rounded-[2px]"
           )}
         >
-          <Icon className="size-3" />
+          <Icon className="size-4" />
         </div>
         <div
           className={cn(

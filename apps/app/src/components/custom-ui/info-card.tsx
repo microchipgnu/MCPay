@@ -8,9 +8,9 @@ import { LucideIcon } from "lucide-react"
 interface InfoCardProps extends React.HTMLAttributes<HTMLDivElement> {
   icon?: LucideIcon
   label: string
-  copy: string
-  ctaText: string
-  ctaHref: string
+  copy: React.ReactNode
+  ctaText?: string
+  ctaHref?: string
 }
 
 export default function InfoCard({
@@ -31,14 +31,20 @@ export default function InfoCard({
       {...props}
     >
       <div className="inline-flex">
-        <HighlighterText icon={icon}>{label}</HighlighterText>
+        <HighlighterText icon={icon} className="!text-foreground">{label}</HighlighterText>
       </div>
       <p className="font-host text-foreground leading-relaxed text-lg">{copy}</p>
-      <Link href={ctaHref} className="mt-auto">
-        <Button variant="customTallSecondary" size="tall" className="w-full">
-          {ctaText}
-        </Button>
-      </Link>
+      {ctaText && ctaHref ? (
+        <div className="mt-auto pt-12">
+          <Link href={ctaHref}>
+            <Button variant="customTallSecondary" size="tall" className="w-full">
+              {ctaText}
+            </Button>
+          </Link>
+        </div>
+      ) : (
+        <div className="mt-auto pt-12" />
+      )}
     </div>
   )
 }

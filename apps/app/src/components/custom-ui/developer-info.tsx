@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import InfoCard from "./info-card"
-import { BookOpen } from "lucide-react"
+import { PackageOpen, ShieldCheck, Earth } from "lucide-react"
 
 interface DeveloperInfoProps extends React.HTMLAttributes<HTMLElement> {
   className?: string
@@ -39,25 +39,26 @@ export default function DeveloperInfo({
         {/* Info Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <InfoCard
-            icon={BookOpen}
+            icon={PackageOpen}
             label="OPEN SOURCE"
-            copy="Built in public, forever auditable. Developers can self-host, extend, or fork, no hidden middle layer."
+            copy="Forever free. No fees. Developers can audit the entire code."
             ctaText="SOURCE CODE"
             ctaHref="https://github.com"
           />
           <InfoCard
-            icon={BookOpen}
-            label="OPEN SOURCE"
-            copy="Built in public, forever auditable. Developers can self-host, extend, or fork, no hidden middle layer."
-            ctaText="SOURCE CODE"
-            ctaHref="https://github.com"
+            icon={ShieldCheck}
+            label="NON INTRUSIVE"
+            copy="Wraps around your MCP/API so you can start charging with no refactor."
           />
           <InfoCard
-            icon={BookOpen}
-            label="OPEN SOURCE"
-            copy="Built in public, forever auditable. Developers can self-host, extend, or fork, no hidden middle layer."
-            ctaText="SOURCE CODE"
-            ctaHref="https://github.com"
+            icon={Earth}
+            label="MULTICHAIN"
+            copy={
+              <>
+                Works across all major EVM networks{" "}
+                <span className="text-muted-foreground">(Base, Avalanche, Polygon, Iotex and Sei)</span> and Solana.
+              </>
+            }
           />
         </div>
 
