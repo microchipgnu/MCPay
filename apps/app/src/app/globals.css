@@ -29,6 +29,7 @@
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -50,18 +51,19 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(0.96 0 0 / 0.3);
-  --card-foreground: oklch(0.145 0 0);
+  --background: white;
+  --foreground: black;
+  --card: #F2F5F6;
+  --card-foreground: black;
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.55 0.04 257);
+  --muted: #D8DDDF;
+  --muted-foreground: #4D5353;
+  --muted-2: #E2E7E9;
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -89,18 +91,19 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
+  --background: black;
+  --foreground: white;
+  --card: #0D1416;
+  --card-foreground: white;
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --muted: #1C2123;
+  --muted-foreground: #8A8F8F;
+  --muted-2: #13181A;
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -182,6 +185,21 @@
   .dark ::selection {
     background-color: rgb(20 184 166 / 0.1); /* teal-500 with 10% opacity for dark mode */
     color: rgb(153 246 228); /* teal-200 for better contrast */
+  }
+
+  /* Visual proxy carousel animations */
+  @keyframes scroll-carousel {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll-carousel {
+    animation: scroll-carousel linear infinite;
+    animation-duration: 30s;
   }
 
 }

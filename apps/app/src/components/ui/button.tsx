@@ -23,13 +23,20 @@ const buttonVariants = cva(
         ghostCustom:
           "text-teal-700 font-mono tracking-wider uppercase text-[13px] bg-teal-500/10 hover:bg-teal-500/20 rounded-sm dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70 transition-all duration-300",
         ghostCustomSecondary:
-          "text-foreground font-mono tracking-wider uppercase text-[13px] bg-muted-foreground/10 dark:bg-muted-foreground/20 dark:hover:bg-muted-foreground/30 hover:bg-muted-foreground/20 rounded-sm transition-all duration-300"
+          "text-foreground font-mono tracking-wider uppercase text-[13px] bg-muted-foreground/10 dark:bg-muted-foreground/20 dark:hover:bg-muted-foreground/30 hover:bg-muted-foreground/20 rounded-sm transition-all duration-300",
+        customTallPrimary:
+          "bg-foreground text-background font-mono tracking-wider uppercase text-sm rounded-[2px] hover:bg-foreground/90 shadow-xs",
+        customTallSecondary:
+          "bg-muted text-foreground font-mono tracking-wider uppercase text-sm rounded-[2px] hover:bg-muted/90 shadow-xs",
+        customTallAccent:
+          "text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70 font-mono tracking-wider uppercase text-sm rounded-[2px] shadow-xs transition-all duration-300"
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
         xs: "h-7 text-xs rounded-sm px-2 gap-1 has-[>svg]:px-1.5",
         sm: "h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
         lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
+        tall: "h-14 px-6 py-4 has-[>svg]:px-4",
         icon: "size-9",
       },
     },

@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { urlUtils } from "@/lib/client/utils"
-import { Check, CheckCircle2, Copy, Hammer } from "lucide-react"
+import { Check, CheckCircle2, Copy } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
+import HighlighterText from "./highlighter-text"
 
 export default function ServersGrid({
   servers,
@@ -24,7 +25,7 @@ export default function ServersGrid({
 
   return (
     <div
-      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl px-4 md:px-6 mx-auto ${className}`}
+      className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto ${className}`}
     >
       <TooltipProvider>
         {loading
@@ -50,50 +51,31 @@ function ServerCard({ server }: { server: McpServer }) {
 
   return (
     <Link href={`/servers/${server.id}`} className="group">
-      <Card className="border border-border bg-background hover:shadow-lg rounded-lg transition-all cursor-pointer group-hover:border-foreground gap-0">
-        <CardHeader className="mb-4">
+      <Card className="p-6 rounded-lg bg-card hover:shadow-lg hover:border-teal-700 dark:hover:border-teal-200 border border-transparent transition-all duration-300 cursor-pointer">
+        <CardHeader className="p-0 mb-0">
           <div className="flex items-center gap-2">
             <CardTitle className="text-lg">{server?.server?.info?.name || "Unknown Server"}</CardTitle>
             {server.moderation_status === 'approved' && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    <CheckCircle2 className="h-4 w-4 text-teal-700 dark:text-teal-200" />
                   </TooltipTrigger>
                   <TooltipContent>Verified server</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             )}
           </div>
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {server?.server?.info?.description || "No description available"}
-          </p>
         </CardHeader>
 
-        <CardContent>
-          {/* Pills with icons */}
+        <CardContent className="p-0">
+          {/* Tools with HighlighterText */}
           <div className="flex items-center gap-2 mb-4">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-sm border font-mono text-muted-foreground transition-colors bg-transparent hover:border-blue-400 border-foreground/20">
-                  <Hammer className="text-blue-400 h-3 w-3 stroke-[2.5]" />
-                  <span className="text-foreground font-semibold">{server.tools.length}</span> Tools
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Number of tools</TooltipContent>
-            </Tooltip>
-
-            {/* 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center gap-1 px-2 py-0.5 text-xs rounded-sm border font-mono text-muted-foreground transition-colors bg-transparent hover:border-red-400 border-foreground/20">
-                  <Activity className="text-red-400 h-3 w-3 stroke-[2.5]" />
-                  <span className="text-foreground font-semibold">3M</span> Runs
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>Hardcoded run count</TooltipContent>
-            </Tooltip>
-            */}
+            <div className="inline-flex">
+              <HighlighterText>
+                TOOLS: <span className="!text-foreground">{server.tools.length}</span>
+              </HighlighterText>
+            </div>
           </div>
 
           {/* URL with label + copy */}
@@ -114,7 +96,7 @@ function ServerCard({ server }: { server: McpServer }) {
                 {copied ? <Check className="size-3 stroke-[2.5]" /> : <Copy className="size-3 stroke-[2.5]" />}
               </Button>
             </div>
-            <div className="p-2 px-3 rounded-md bg-muted/40 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
+            <div className="p-2 px-3 rounded-md bg-muted-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
               <code className="text-xs font-mono whitespace-nowrap block">
                 {url}
               </code>
@@ -128,15 +110,13 @@ function ServerCard({ server }: { server: McpServer }) {
 
 function ServerSkeletonCard() {
   return (
-    <Card className="border border-border bg-background rounded-lg p-4 space-y-4">
+    <Card className="p-6 rounded-lg bg-card space-y-4">
       <div>
-        <Skeleton className="h-5 w-3/4 mb-2" />
-        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-5 w-3/4 mb-4" />
       </div>
 
       <div className="flex items-center gap-2">
-        <Skeleton className="h-5 w-16 rounded-sm" />
-        <Skeleton className="h-5 w-16 rounded-sm" />
+        <Skeleton className="h-5 w-20 rounded-[2px]" />
       </div>
 
       <div>

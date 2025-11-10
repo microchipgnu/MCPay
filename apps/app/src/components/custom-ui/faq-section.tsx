@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { HelpCircle } from "lucide-react"
 import Link from "next/link"
 import {
   Accordion,
@@ -9,6 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { cn } from "@/lib/utils"
 
 interface FAQItem {
   question: string
@@ -49,46 +49,44 @@ const faqData: FAQItem[] = [
         A machine-readable catalog of MCP servers and their priced tools (analytics, recent payments, integration snippets). Browse the Registry at <Link href="/servers" className="text-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300 font-semibold">Servers</Link>.
       </>
     )
-  },
-  {
-    question: "What is MCPay Build?",
-    answer: (
-      <>
-        A v0/Lovable-style builder that lets you <strong>describe tools, preview them live, read the generated code, price tools, and one-click deploy</strong> to GitHub + Vercel. Under the hood it uses an <strong>MCP server</strong> to orchestrate scaffolding, edits, previews, pricing, and deploy.
-        <br /><br />
-        <a href="https://mcpay.tech/build" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300 font-semibold">Builder</a>
-        <br />
-        <a href="https://mcpay.tech/servers/23e2ab26-7808-4984-855c-ec6a7dc97c3a" target="_blank" rel="noopener noreferrer" className="text-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300 font-semibold">Build server page</a>
-      </>
-    )
   }
 ]
 
 export default function FAQSection() {
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 md:px-6">
+    <section className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
       <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-start">
         {/* Left side - Title */}
         <div className="space-y-4">
-          <HelpCircle className="h-6 w-6 text-foreground" />
-          <h2 className="text-3xl font-semibold font-host">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">
             Frequently Asked<br />
             Questions
           </h2>
         </div>
 
         {/* Right side - FAQ Items */}
-        <div className="max-w-md">
+        <div>
           <Accordion type="single" collapsible className="w-full">
             {faqData.map((item, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border-b border-border">
-                <AccordionTrigger className="text-left hover:no-underline group cursor-pointer">
-                  <span className="text-sm sm:text-[15px] leading-relaxed font-semibold text-foreground group-hover:text-teal-600 transition-all duration-300">
+              <AccordionItem 
+                key={index} 
+                value={`item-${index}`} 
+                className={cn(
+                  "border border-transparent rounded-[2px] bg-card mb-4 last:mb-0",
+                  "hover:shadow-lg hover:border-teal-700 dark:hover:border-teal-200",
+                  "transition-all duration-300 cursor-pointer"
+                )}
+              >
+                <AccordionTrigger className={cn(
+                  "text-left hover:no-underline group cursor-pointer px-4",
+                  "data-[state=closed]:py-3 data-[state=open]:py-4"
+                )}>
+                  <span className="text-sm sm:text-[15px] leading-relaxed font-mono uppercase text-foreground group-hover:text-teal-700 dark:group-hover:text-teal-200 transition-all duration-300">
                     {item.question}
                   </span>
                 </AccordionTrigger>
                 <AccordionContent>
-                  <div className="text-sm sm:text-[15px] leading-relaxed text-foreground">
+                  <div className="text-sm sm:text-[15px] leading-relaxed text-foreground px-4 pb-4">
                     {item.answer}
                   </div>
                 </AccordionContent>
