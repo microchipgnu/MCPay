@@ -2,8 +2,11 @@
 
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Button } from "@/components/ui/button"
+import HighlighterText from "./highlighter-text"
 
 export interface AppIcon {
   name: string
@@ -126,42 +129,43 @@ export default function VisualProxy({
   return (
     <div
       className={cn(
-        "relative rounded-lg bg-card p-6 overflow-hidden",
+        "flex flex-col gap-12 rounded-lg bg-card p-6",
         className
       )}
       {...props}
     >
-      <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-        <div className="relative flex items-center justify-center" style={{ width: "120px", height: "120px" }}>
-          <div
-            className={cn(
-              "absolute inset-0 rounded-lg",
-              "bg-foreground/80 backdrop-blur-md"
-            )}
-          />
-          <div 
-            className="relative z-10"
-            style={{
-              width: "60px",
-              height: "60px",
-              maskImage: "url(/MCPay-icon.svg)",
-              maskSize: "contain",
-              maskRepeat: "no-repeat",
-              maskPosition: "center",
-              WebkitMaskImage: "url(/MCPay-icon.svg)",
-              WebkitMaskSize: "contain",
-              WebkitMaskRepeat: "no-repeat",
-              WebkitMaskPosition: "center",
-              backgroundColor: "var(--background)",
-            }}
-          />
-        </div>
+      <div className="inline-flex">
+        <HighlighterText className="!text-foreground">MCPAY PROXY</HighlighterText>
       </div>
+      
+      <div className="relative flex items-center justify-center overflow-hidden group mb-6" style={{ height: "120px" }}>
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+          <div className="relative flex items-center justify-center" style={{ width: "120px", height: "120px" }}>
+            <div
+              className={cn(
+                "absolute inset-0 rounded-lg",
+                "bg-foreground/80 backdrop-blur-md"
+              )}
+            />
+            <div 
+              className="relative z-10"
+              style={{
+                width: "60px",
+                height: "60px",
+                maskImage: "url(/MCPay-icon.svg)",
+                maskSize: "contain",
+                maskRepeat: "no-repeat",
+                maskPosition: "center",
+                WebkitMaskImage: "url(/MCPay-icon.svg)",
+                WebkitMaskSize: "contain",
+                WebkitMaskRepeat: "no-repeat",
+                WebkitMaskPosition: "center",
+                backgroundColor: "var(--background)",
+              }}
+            />
+          </div>
+        </div>
 
-      <div
-        className="relative overflow-hidden flex items-center group"
-        style={{ height: "120px" }}
-      >
         <div
           className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none bg-card w-20 md:w-40"
           style={{
@@ -229,6 +233,25 @@ export default function VisualProxy({
               </Tooltip>
             </TooltipProvider>
           ))}
+        </div>
+      </div>
+      
+      <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12">
+        <p className="font-inter font-medium leading-relaxed text-lg text-left lg:max-w-[50%]">
+          <span className="text-foreground">Register your API/MCP and any AI client can consume it.</span>{" "}
+          <span className="text-muted-foreground">We handle payments and authentication: you just get paid.</span>
+        </p>
+        <div className="flex flex-col lg:flex-row gap-4 lg:max-w-[50%] lg:flex-1">
+          <Link href="/register" className="w-full lg:w-auto lg:flex-1">
+            <Button variant="customTallPrimary" size="tall" className="w-full lg:min-w-[200px]">
+              Register (No Code)
+            </Button>
+          </Link>
+          <Link href="https://docs.mcpay.tech/" target="_blank" rel="noopener noreferrer" className="w-full lg:w-auto lg:flex-1">
+            <Button variant="customTallSecondary" size="tall" className="w-full lg:min-w-[200px]">
+              SDK (code)
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
