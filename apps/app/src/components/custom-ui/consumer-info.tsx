@@ -8,14 +8,14 @@ import HighlighterText from "./highlighter-text"
 import InfoCard from "./info-card"
 import { BookOpen } from "lucide-react"
 
-interface DeveloperInfoProps extends React.HTMLAttributes<HTMLElement> {
+interface ConsumerInfoProps extends React.HTMLAttributes<HTMLElement> {
   className?: string
 }
 
-export default function DeveloperInfo({
+export default function ConsumerInfo({
   className,
   ...props
-}: DeveloperInfoProps) {
+}: ConsumerInfoProps) {
   return (
     <section
       className={cn(

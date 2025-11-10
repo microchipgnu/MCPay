@@ -3,9 +3,11 @@
 import BuiltWithSection from "@/components/custom-ui/built-with-section"
 import ContentCards from "@/components/custom-ui/content-cards"
 import ContentCardsSmall from "@/components/custom-ui/content-cards-small"
+import ConsumerInfo from "@/components/custom-ui/consumer-info"
 import DeveloperInfo from "@/components/custom-ui/developer-info"
 import FAQSection from "@/components/custom-ui/faq-section"
 import Footer from "@/components/custom-ui/footer"
+import GithubInfo from "@/components/custom-ui/github-info"
 import Hero3D from "@/components/custom-ui/hero-3d"
 import MinimalExplorer from "@/components/custom-ui/minimal-explorer"
 import ServersGrid from "@/components/custom-ui/servers-grid"
@@ -128,6 +130,14 @@ export default function MCPBrowser() {
 
         <section className="mb-40">
           <DeveloperInfo />
+        </section>
+
+        <section className="mb-40">
+          <ConsumerInfo />
+        </section>
+
+        <section className="mb-40">
+          <GithubInfo />
         </section>
 
         <section className="mb-40">
