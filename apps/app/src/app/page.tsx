@@ -2,7 +2,6 @@
 
 import BuiltWithSection from "@/components/custom-ui/built-with-section"
 import ContentCards from "@/components/custom-ui/content-cards"
-import ContentCardsSmall from "@/components/custom-ui/content-cards-small"
 import ConsumerInfo from "@/components/custom-ui/consumer-info"
 import DeveloperInfo from "@/components/custom-ui/developer-info"
 import FAQSection from "@/components/custom-ui/faq-section"
@@ -143,10 +142,6 @@ export default function MCPBrowser() {
 
         <section className="mb-40">
           <GithubInfo />
-        </section>
-
-        <section className="mb-40">
-          <ContentCardsSmall />
         </section>
 
         <section className="mb-40">
