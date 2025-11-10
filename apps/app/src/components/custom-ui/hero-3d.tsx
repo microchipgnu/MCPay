@@ -24,7 +24,32 @@ const SUPPORTED_BY_LOGOS = [
     href: "https://vlayer.com/",
     src: "/logos/vlayer-logo.svg",
   },
-]
+] as const
+
+// Helper functions for logo sizing
+const getLogoSize = (name: string) => {
+  switch (name) {
+    case "coinbase":
+      return { className: "h-7 w-[70px]", width: 70, height: 28 }
+    case "polygon":
+      return { className: "h-8 w-[80px]", width: 80, height: 32 }
+    case "vlayer":
+      return { className: "h-6 w-[60px]", width: 60, height: 24 }
+    default:
+      return { className: "h-12 w-[160px]", width: 160, height: 64 }
+  }
+}
+
+const getMaskStyle = (src: string): React.CSSProperties => ({
+  maskImage: `url(${src})`,
+  maskSize: "contain",
+  maskRepeat: "no-repeat",
+  maskPosition: "center",
+  WebkitMaskImage: `url(${src})`,
+  WebkitMaskSize: "contain",
+  WebkitMaskRepeat: "no-repeat",
+  WebkitMaskPosition: "center",
+})
 
 export default function Hero3D({
   className,
@@ -83,49 +108,43 @@ export default function Hero3D({
         <div className="space-y-4 order-6 lg:hidden">
           <HighlighterText>SUPPORTED BY</HighlighterText>
           <div className="flex flex-wrap gap-3">
-            {SUPPORTED_BY_LOGOS.map((logo) => (
-              <Link
-                key={logo.name}
-                href={logo.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group"
-              >
-                <div
-                  className={cn(
-                    "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300",
-                    "bg-muted/50",
-                    "group-hover:bg-muted"
-                  )}
+            {SUPPORTED_BY_LOGOS.map((logo) => {
+              const logoSize = getLogoSize(logo.name)
+              return (
+                <Link
+                  key={logo.name}
+                  href={logo.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group"
                 >
                   <div
                     className={cn(
-                      "transition-all duration-300",
-                      logo.name === "coinbase" ? "h-7 w-[70px]" : logo.name === "polygon" ? "h-8 w-[80px]" : logo.name === "vlayer" ? "h-6 w-[60px]" : "h-12 w-[160px]",
-                      "opacity-70 group-hover:opacity-100",
-                      "[background-color:var(--foreground)]"
+                      "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300",
+                      "bg-muted/50",
+                      "group-hover:bg-muted"
                     )}
-                    style={{
-                      maskImage: `url(${logo.src})`,
-                      maskSize: "contain",
-                      maskRepeat: "no-repeat",
-                      maskPosition: "center",
-                      WebkitMaskImage: `url(${logo.src})`,
-                      WebkitMaskSize: "contain",
-                      WebkitMaskRepeat: "no-repeat",
-                      WebkitMaskPosition: "center"
-                    }}
-                  />
-                  <Image
-                    src={logo.src}
-                    alt={`${logo.name} logo`}
-                    width={logo.name === "coinbase" ? 70 : logo.name === "polygon" ? 80 : logo.name === "vlayer" ? 60 : 160}
-                    height={logo.name === "coinbase" ? 28 : logo.name === "polygon" ? 32 : logo.name === "vlayer" ? 24 : 64}
-                    className="sr-only"
-                  />
-                </div>
-              </Link>
-            ))}
+                  >
+                    <div
+                      className={cn(
+                        "transition-all duration-300",
+                        logoSize.className,
+                        "opacity-70 group-hover:opacity-100",
+                        "[background-color:var(--foreground)]"
+                      )}
+                      style={getMaskStyle(logo.src)}
+                    />
+                    <Image
+                      src={logo.src}
+                      alt={`${logo.name} logo`}
+                      width={logoSize.width}
+                      height={logoSize.height}
+                      className="sr-only"
+                    />
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
 
