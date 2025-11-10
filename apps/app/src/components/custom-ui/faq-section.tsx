@@ -72,7 +72,7 @@ export default function FAQSection() {
                 key={index} 
                 value={`item-${index}`} 
                 className={cn(
-                  "border border-transparent rounded-lg bg-card mb-4 last:mb-0",
+                  "border border-transparent rounded-[2px] bg-card mb-4 last:mb-0",
                   "hover:shadow-lg hover:border-teal-700 dark:hover:border-teal-200",
                   "transition-all duration-300 cursor-pointer"
                 )}

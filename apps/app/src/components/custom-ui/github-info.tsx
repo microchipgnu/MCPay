@@ -63,7 +63,7 @@ export default function GithubInfo({
               </div>
             </div>
 
-            <Link href="https://github.com/microchipgnu/MCPay" target="_blank" rel="noopener noreferrer" className="w-full lg:w-auto lg:max-w-[280px]">
+            <Link href="https://github.com/microchipgnu/mcpay" target="_blank" rel="noopener noreferrer" className="w-full lg:w-auto lg:max-w-[280px]">
               <Button variant="customTallPrimary" size="tall" className="w-full lg:min-w-[220px]">
                 STAR ON GITHUB
               </Button>

@@ -92,7 +92,7 @@ export default function Hero3D({
 
         {/* CTAs - Mobile */}
         <div className="flex gap-4 pt-2 order-5 lg:hidden -mx-4 px-4">
-          <Link href="/monetize" className="flex-1 min-w-0">
+          <Link href="/register" className="flex-1 min-w-0">
             <Button variant="customTallPrimary" size="tall" className="w-full px-3 lg:px-6">
               MONETIZE SERVERS
             </Button>
@@ -174,7 +174,7 @@ export default function Hero3D({
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-4 pt-2">
-              <Link href="/monetize" className="flex-1 lg:flex-none">
+              <Link href="/register" className="flex-1 lg:flex-none">
                 <Button variant="customTallPrimary" size="tall" className="w-full min-w-[220px]">
                   MONETIZE SERVERS
                 </Button>

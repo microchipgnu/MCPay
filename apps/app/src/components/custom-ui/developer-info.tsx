@@ -46,7 +46,7 @@ export default function DeveloperInfo({
             label="OPEN SOURCE"
             copy="Forever free. No fees. Developers can audit the entire code."
             ctaText="SOURCE CODE"
-            ctaHref="https://github.com"
+            ctaHref="https://github.com/microchipgnu/mcpay"
           />
           <InfoCard
             icon={ShieldCheck}
