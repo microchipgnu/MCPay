@@ -187,4 +187,19 @@
     color: rgb(153 246 228); /* teal-200 for better contrast */
   }
 
+  /* Visual proxy carousel animations */
+  @keyframes scroll-carousel {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll-carousel {
+    animation: scroll-carousel linear infinite;
+    animation-duration: 30s;
+  }
+
 }

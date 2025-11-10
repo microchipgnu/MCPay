@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import InfoCard from "./info-card"
+import VisualProxy from "./visual-proxy"
 import { PackageOpen, ShieldCheck, Earth } from "lucide-react"
 
 interface DeveloperInfoProps extends React.HTMLAttributes<HTMLElement> {
@@ -35,6 +36,9 @@ export default function DeveloperInfo({
             <span className="font-normal text-muted-foreground">Get discovered and paid by any AI client.</span>
           </h2>
         </div>
+
+        {/* Visual Proxy */}
+        <VisualProxy />
 
         {/* Info Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
