@@ -3,6 +3,7 @@
 import BuiltWithSection from "@/components/custom-ui/built-with-section"
 import ContentCards from "@/components/custom-ui/content-cards"
 import ContentCardsSmall from "@/components/custom-ui/content-cards-small"
+import DeveloperInfo from "@/components/custom-ui/developer-info"
 import FAQSection from "@/components/custom-ui/faq-section"
 import Footer from "@/components/custom-ui/footer"
 import Hero3D from "@/components/custom-ui/hero-3d"
@@ -123,6 +124,10 @@ export default function MCPBrowser() {
 
         <section className="mb-16 md:mb-40">
           <Hero3D />
+        </section>
+
+        <section className="mb-40">
+          <DeveloperInfo />
         </section>
 
         <section className="mb-40">
