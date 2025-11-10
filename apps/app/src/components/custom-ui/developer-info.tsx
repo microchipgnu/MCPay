@@ -36,10 +36,11 @@ export default function DeveloperInfo({
         </div>
 
         {/* Visual Proxy */}
-        <VisualProxy />
+        <div className="flex flex-col gap-6">
+          <VisualProxy />
 
-        {/* Info Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Info Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <InfoCard
             icon={PackageOpen}
             label="OPEN SOURCE"
@@ -62,6 +63,7 @@ export default function DeveloperInfo({
               </>
             }
           />
+          </div>
         </div>
       </div>
     </section>

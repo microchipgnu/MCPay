@@ -243,7 +243,7 @@ export default function VisualProxy({
         </p>
         <div className="flex flex-col lg:flex-row gap-4 lg:max-w-[50%] lg:flex-1">
           <Link href="/register" className="w-full lg:w-auto lg:flex-1">
-            <Button variant="customTallPrimary" size="tall" className="w-full lg:min-w-[200px]">
+            <Button variant="customTallAccent" size="tall" className="w-full lg:min-w-[200px]">
               Register (No Code)
             </Button>
           </Link>

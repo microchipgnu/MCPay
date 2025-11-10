@@ -137,7 +137,7 @@ export default function Hero({
                   Documentation
                 </Button>
               </Link>
-              <a href="https://github.com/microchipgnu/MCPay" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
+              <a href="https://github.com/microchipgnu/mcpay" target="_blank" rel="noopener noreferrer" className="w-full sm:w-auto">
                 <Button size="lg" variant="ghostCustomSecondary" className="w-full sm:w-auto">
                   <Github className="h-4 w-4 mr-2" />
                   Contribute

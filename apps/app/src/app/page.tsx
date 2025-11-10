@@ -1,7 +1,5 @@
 "use client"
 
-import BuiltWithSection from "@/components/custom-ui/built-with-section"
-import ContentCards from "@/components/custom-ui/content-cards"
 import ConsumerInfo from "@/components/custom-ui/consumer-info"
 import DeveloperInfo from "@/components/custom-ui/developer-info"
 import FAQSection from "@/components/custom-ui/faq-section"
@@ -124,27 +122,27 @@ export default function MCPBrowser() {
     <div className="min-h-screen bg-background">
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
 
-        <section className="mb-16 md:mb-40">
+        <section className="mb-16 md:mb-24">
           <Hero3D />
         </section>
 
-        <section className="mb-40">
+        <section className="mb-20">
           <DeveloperInfo />
         </section>
 
-        <section className="mb-40">
-          <ConsumerInfo />
-        </section>
-
-        <section className="mb-40">
+        <section className="mb-20">
           <Stats />
         </section>
 
-        <section className="mb-40">
+        <section className="mb-20">
+          <ConsumerInfo />
+        </section>
+
+        <section className="mb-20">
           <GithubInfo />
         </section>
 
-        <section className="mb-40">
+        <section className="mb-20">
           <div className="max-w-6xl px-4 md:px-6 mx-auto">
             <h2 className="text-3xl font-semibold font-host mb-10">Featured Servers</h2>
           </div>
@@ -161,19 +159,7 @@ export default function MCPBrowser() {
           </div>
         </section>
 
-
-        <section className="mb-40">
-          <div className="max-w-6xl px-4 md:px-6 mx-auto">
-            <h2 className="text-3xl font-semibold font-host mb-10">How it works</h2>
-          </div>
-          <ContentCards />
-        </section>
-
-        <section className="mb-40">
-          <BuiltWithSection />
-        </section>
-
-        <section className="mb-40">
+        <section className="mb-20">
           <FAQSection />
         </section>
 

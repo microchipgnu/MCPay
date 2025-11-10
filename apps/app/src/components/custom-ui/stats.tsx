@@ -32,15 +32,17 @@ export default function Stats({
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <StatsCard label="TRANSACTIONS" value="+ 100,000" />
-          <StatsCard label="VOLUME" value="+ $30,000" />
-          <StatsCard label="USERS" value="+ 2,500" />
-        </div>
+        <div className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatsCard label="TRANSACTIONS" value="+ 100,000" />
+            <StatsCard label="VOLUME" value="+ $30,000" />
+            <StatsCard label="USERS" value="+ 2,500" />
+          </div>
 
-        {/* Minimal Explorer Card */}
-        <div className="rounded-lg bg-card py-2">
-          <MinimalExplorer />
+          {/* Minimal Explorer Card */}
+          <div className="rounded-lg bg-card py-2">
+            <MinimalExplorer />
+          </div>
         </div>
 
         {/* Explorer CTA */}
