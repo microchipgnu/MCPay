@@ -5,7 +5,7 @@ import ContentCards from "@/components/custom-ui/content-cards"
 import ContentCardsSmall from "@/components/custom-ui/content-cards-small"
 import FAQSection from "@/components/custom-ui/faq-section"
 import Footer from "@/components/custom-ui/footer"
-import Hero from "@/components/custom-ui/hero"
+import Hero3D from "@/components/custom-ui/hero-3d"
 import MinimalExplorer from "@/components/custom-ui/minimal-explorer"
 import ServersGrid from "@/components/custom-ui/servers-grid"
 import TypingAnimation from "@/components/custom-ui/typing-animation"
@@ -122,7 +122,7 @@ export default function MCPBrowser() {
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         <section className="mb-16 md:mb-40">
-          <Hero />
+          <Hero3D />
         </section>
 
         <section className="mb-40">
