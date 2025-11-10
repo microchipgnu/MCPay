@@ -68,10 +68,10 @@ export default function Hero3D({
         {/* Stats */}
         <div className="flex flex-wrap gap-3 order-1 lg:hidden">
           <HighlighterText>
-            TRANSACTIONS: <span className="text-white">+ 100K</span>
+            TRANSACTIONS: <span className="!text-foreground">+ 100K</span>
           </HighlighterText>
           <HighlighterText>
-            VOLUME: <span className="text-white">+ 100K</span>
+            VOLUME: <span className="!text-foreground">+ 100K</span>
           </HighlighterText>
         </div>
 
@@ -153,10 +153,10 @@ export default function Hero3D({
           {/* Stats */}
           <div className="flex flex-wrap gap-3">
             <HighlighterText>
-              TRANSACTIONS: <span className="text-white">+ 100K</span>
+              TRANSACTIONS: <span className="text-foreground">+ 100K</span>
             </HighlighterText>
             <HighlighterText>
-              VOLUME: <span className="text-white">+ 100K</span>
+              VOLUME: <span className="text-foreground">+ 100K</span>
             </HighlighterText>
           </div>
 
