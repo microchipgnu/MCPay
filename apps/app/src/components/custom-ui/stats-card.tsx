@@ -15,7 +15,7 @@ export default function StatsCard({
 }: StatsCardProps) {
   // Format value: separate "+" for muted color and add tighter tracking around commas
   const parts = value.split(/(\+|\s)/)
-  const formattedValue = parts.map((part, index) => {
+  const formattedValue = parts.flatMap((part, index) => {
     if (part === '+') {
       return <span key={index} className="text-muted-foreground">+</span>
     }

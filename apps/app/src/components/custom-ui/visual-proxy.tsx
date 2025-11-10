@@ -182,15 +182,15 @@ export default function VisualProxy({
           }}
         />
 
-        <div
-          className="flex items-center gap-8 animate-scroll-carousel group-hover:[animation-play-state:paused]"
-          style={{
-            width: "max-content",
-          }}
-        >
-          {duplicatedApps.map((app, index) => (
-            <TooltipProvider key={`${app.name}-${index}`}>
-              <Tooltip>
+        <TooltipProvider>
+          <div
+            className="flex items-center gap-8 animate-scroll-carousel group-hover:[animation-play-state:paused]"
+            style={{
+              width: "max-content",
+            }}
+          >
+            {duplicatedApps.map((app, index) => (
+              <Tooltip key={`${app.name}-${index}`}>
                 <TooltipTrigger asChild>
                   <div
                     className="flex items-center justify-center rounded-lg shrink-0 transition-transform hover:scale-105"
@@ -231,9 +231,9 @@ export default function VisualProxy({
                   <p>{app.name}</p>
                 </TooltipContent>
               </Tooltip>
-            </TooltipProvider>
-          ))}
-        </div>
+            ))}
+          </div>
+        </TooltipProvider>
       </div>
       
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12">
