@@ -38,28 +38,28 @@ export default function GithubInfo({
                 <div className="w-6 h-6 bg-teal-500/10 rounded flex items-center justify-center">
                   <Check className="w-3 h-3 text-teal-400" strokeWidth={2.5} />
                 </div>
-                <span className="font-host text-foreground text-base">Support for EVM and Solana</span>
+                <span className="font-host text-foreground text-lg">Support for EVM and Solana</span>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-teal-500/10 rounded flex items-center justify-center">
                   <Check className="w-3 h-3 text-teal-400" strokeWidth={2.5} />
                 </div>
-                <span className="font-host text-foreground text-base">Extendable with plugins</span>
+                <span className="font-host text-foreground text-lg">Extendable with plugins</span>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-teal-500/10 rounded flex items-center justify-center">
                   <Check className="w-3 h-3 text-teal-400" strokeWidth={2.5} />
                 </div>
-                <span className="font-host text-foreground text-base">Simple X402 setup</span>
+                <span className="font-host text-foreground text-lg">Simple X402 setup</span>
               </div>
 
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-teal-500/10 rounded flex items-center justify-center">
                   <Check className="w-3 h-3 text-teal-400" strokeWidth={2.5} />
                 </div>
-                <span className="font-host text-foreground text-base">Open source</span>
+                <span className="font-host text-foreground text-lg">Open source</span>
               </div>
             </div>
 

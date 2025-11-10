@@ -25,7 +25,7 @@ export default function InfoCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 p-6 rounded-lg bg-card",
+        "flex flex-col gap-8 p-6 rounded-lg bg-card",
         className
       )}
       {...props}
@@ -33,7 +33,7 @@ export default function InfoCard({
       <div className="inline-flex">
         <HighlighterText icon={icon}>{label}</HighlighterText>
       </div>
-      <p className="font-host text-foreground leading-relaxed text-base">{copy}</p>
+      <p className="font-host text-foreground leading-relaxed text-lg">{copy}</p>
       <Link href={ctaHref} className="mt-auto">
         <Button variant="customTallSecondary" size="tall" className="w-full">
           {ctaText}
