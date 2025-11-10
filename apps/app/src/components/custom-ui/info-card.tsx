@@ -33,7 +33,7 @@ export default function InfoCard({
       <div className="inline-flex">
         <HighlighterText icon={icon} className="!text-foreground">{label}</HighlighterText>
       </div>
-      <p className="font-host text-foreground leading-relaxed text-lg">{copy}</p>
+      <p className="font-inter font-medium text-foreground leading-relaxed text-lg">{copy}</p>
       {ctaText && ctaHref ? (
         <div className="mt-auto pt-12">
           <Link href={ctaHref}>
