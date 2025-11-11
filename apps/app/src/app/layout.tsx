@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Host_Grotesk, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-context";
 import { UserProvider } from "@/components/providers/user";
@@ -82,12 +81,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} antialiased`}
-      >
-        <Script
-          id="theme-init"
-          strategy="beforeInteractive"
+      <head>
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
@@ -111,6 +106,10 @@ export default function RootLayout({
             `,
           }}
         />
+      </head>
+      <body
+        className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} antialiased`}
+      >
         <ThemeProvider>
           <WagmiProvider config={wagmiConfig}>
             <AppReactQueryProvider>

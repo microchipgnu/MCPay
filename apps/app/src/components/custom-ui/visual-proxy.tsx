@@ -1,130 +1,103 @@
 "use client"
 
 import * as React from "react"
+import { forwardRef, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Button } from "@/components/ui/button"
 import HighlighterText from "./highlighter-text"
+import { AnimatedBeam } from "@/components/ui/animated-beam"
 
-export interface AppIcon {
-  name: string
-  icon: string
-  color: string
-  iconWidth?: number
-  iconHeight?: number
-  logoColor?: "white" | "default"
-}
+interface VisualProxyProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-interface VisualProxyProps extends React.HTMLAttributes<HTMLDivElement> {
-  apps?: AppIcon[]
-}
+const Circle = forwardRef<
+  HTMLDivElement,
+  { className?: string; children?: React.ReactNode; backgroundColor?: string; padding?: string }
+>(({ className, children, backgroundColor = "white", padding = "p-3" }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "z-10 flex size-12 items-center justify-center rounded-full",
+        padding,
+        className
+      )}
+      style={{ backgroundColor }}
+    >
+      {children}
+    </div>
+  )
+})
+Circle.displayName = "Circle"
 
-const DEFAULT_APPS: AppIcon[] = [
+const Square = forwardRef<
+  HTMLDivElement,
+  { className?: string; children?: React.ReactNode }
+>(({ className, children }, ref) => {
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "z-10 flex size-24 items-center justify-center rounded-lg bg-black dark:bg-white p-3",
+        className
+      )}
+    >
+      {children}
+    </div>
+  )
+})
+Square.displayName = "Square"
+
+const AI_CLIENTS_CONFIG = [
   {
-    name: "OpenAI",
+    name: "ChatGPT",
     icon: "/logos/mcp-clients/OpenAI-black-monoblossom.svg",
-    color: "#FFFFFF",
-    iconWidth: 60,
-    iconHeight: 60,
-  },
-  {
-    name: "Claude",
-    icon: "/logos/mcp-clients/claude.svg",
-    color: "#D97757",
-    iconWidth: 45,
-    iconHeight: 45,
-  },
-  {
-    name: "Google Gemini",
-    icon: "/logos/mcp-clients/Google_Gemini_icon_2025.svg",
-    color: "#FFFFFF",
-    iconWidth: 50,
-    iconHeight: 50,
+    backgroundColor: "#FFFFFF",
+    logoColor: "default",
+    iconSize: 32,
+    padding: "p-2",
   },
   {
     name: "Cursor",
     icon: "/logos/mcp-clients/cursor-cube.svg",
-    color: "#F6F6F2",
-    iconWidth: 45,
-    iconHeight: 45,
+    backgroundColor: "#F6F6F2",
+    logoColor: "default",
   },
   {
-    name: "Hugging Face",
-    icon: "/logos/mcp-clients/hf-logo.svg",
-    color: "#FFD21E",
-    iconWidth: 50,
-    iconHeight: 50,
-  },
-  {
-    name: "Zed",
-    icon: "/logos/mcp-clients/zed-logo.svg",
-    color: "#000000",
-    iconWidth: 45,
-    iconHeight: 45,
-    logoColor: "white",
-  },
-  {
-    name: "DeepSeek",
-    icon: "/logos/mcp-clients/DeepSeek-icon.svg",
-    color: "#4D6BFE",
-    iconWidth: 55,
-    iconHeight: 55,
-    logoColor: "white",
-  },
-  {
-    name: "Ollama",
-    icon: "/logos/mcp-clients/ollama.svg",
-    color: "#FFFFFF",
-    iconWidth: 45,
-    iconHeight: 45,
-  },
-  {
-    name: "Perplexity",
-    icon: "/logos/mcp-clients/perplexity.svg",
-    color: "#13343B",
-    iconWidth: 40,
-    iconHeight: 40,
-  },
-  {
-    name: "Qwen",
-    icon: "/logos/mcp-clients/qwen.svg",
-    color: "#6060E5",
-    iconWidth: 45,
-    iconHeight: 45,
-    logoColor: "white",
+    name: "Claude",
+    icon: "/logos/mcp-clients/claude.svg",
+    backgroundColor: "#D97757",
+    logoColor: "default",
   },
   {
     name: "Replicate",
     icon: "/logos/mcp-clients/replicate.svg",
-    color: "#D83D23",
-    iconWidth: 45,
-    iconHeight: 45,
+    backgroundColor: "#D83D23",
     logoColor: "white",
   },
   {
     name: "Grok",
     icon: "/logos/mcp-clients/Grok_Logomark_Light.svg",
-    color: "#000000",
-    iconWidth: 45,
-    iconHeight: 45,
-  },
-  {
-    name: "Mistral",
-    icon: "/logos/mcp-clients/m-rainbow.png",
-    color: "#0F0F0F",
-    iconWidth: 50,
-    iconHeight: 50,
+    backgroundColor: "#000000",
+    logoColor: "default",
   },
 ]
 
 export default function VisualProxy({
-  apps = DEFAULT_APPS,
   className,
   ...props
 }: VisualProxyProps) {
-  const duplicatedApps = [...apps, ...apps]
+  const containerRef = useRef<HTMLDivElement>(null)
+  const userRef = useRef<HTMLDivElement>(null)
+  const mcpayRef = useRef<HTMLDivElement>(null)
+  const chatgptRef = useRef<HTMLDivElement>(null)
+  const cursorRef = useRef<HTMLDivElement>(null)
+  const claudeRef = useRef<HTMLDivElement>(null)
+  const replicateRef = useRef<HTMLDivElement>(null)
+  const grokRef = useRef<HTMLDivElement>(null)
+
+  const clientRefs = [chatgptRef, cursorRef, claudeRef, replicateRef, grokRef]
 
   return (
     <div
@@ -138,102 +111,168 @@ export default function VisualProxy({
         <HighlighterText className="!text-foreground">MCPAY PROXY</HighlighterText>
       </div>
       
-      <div className="relative flex items-center justify-center overflow-hidden group mb-6" style={{ height: "120px" }}>
-        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-          <div className="relative flex items-center justify-center" style={{ width: "120px", height: "120px" }}>
-            <div
-              className={cn(
-                "absolute inset-0 rounded-lg",
-                "bg-foreground/80 backdrop-blur-md"
-              )}
-            />
-            <div 
-              className="relative z-10"
-              style={{
-                width: "60px",
-                height: "60px",
-                maskImage: "url(/MCPay-icon.svg)",
-                maskSize: "contain",
-                maskRepeat: "no-repeat",
-                maskPosition: "center",
-                WebkitMaskImage: "url(/MCPay-icon.svg)",
-                WebkitMaskSize: "contain",
-                WebkitMaskRepeat: "no-repeat",
-                WebkitMaskPosition: "center",
-                backgroundColor: "var(--background)",
-              }}
-            />
+      <div
+        ref={containerRef}
+        className="relative flex h-[400px] w-full items-center justify-center overflow-hidden px-4 sm:px-10 mb-6"
+      >
+        <div className="flex max-w-4xl w-full h-full flex-row items-stretch justify-between gap-4 sm:gap-10 mx-auto">
+          <div className="flex flex-col justify-center">
+            <Circle ref={userRef}>
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#000000"
+                strokeWidth="2"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </Circle>
+          </div>
+
+          <div className="flex flex-col justify-center">
+            <Square ref={mcpayRef}>
+              <div
+                className="bg-white dark:bg-black"
+                style={{
+                  width: "52px",
+                  height: "52px",
+                  maskImage: "url(/MCPay-icon.svg)",
+                  maskSize: "contain",
+                  maskRepeat: "no-repeat",
+                  maskPosition: "center",
+                  WebkitMaskImage: "url(/MCPay-icon.svg)",
+                  WebkitMaskSize: "contain",
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskPosition: "center",
+                }}
+              />
+            </Square>
+          </div>
+
+          <div className="flex flex-col justify-center gap-4">
+            {AI_CLIENTS_CONFIG.map((client, index) => {
+              const iconSize = client.iconSize || 24
+              return (
+                <Circle key={client.name} ref={clientRefs[index]} backgroundColor={client.backgroundColor} padding={client.padding}>
+                  {client.logoColor === "white" ? (
+                    <div
+                      style={{
+                        width: `${iconSize}px`,
+                        height: `${iconSize}px`,
+                        maskImage: `url(${client.icon})`,
+                        maskSize: "contain",
+                        maskRepeat: "no-repeat",
+                        maskPosition: "center",
+                        WebkitMaskImage: `url(${client.icon})`,
+                        WebkitMaskSize: "contain",
+                        WebkitMaskRepeat: "no-repeat",
+                        WebkitMaskPosition: "center",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  ) : (
+                    <Image
+                      src={client.icon}
+                      alt={client.name}
+                      width={iconSize}
+                      height={iconSize}
+                      className="object-contain"
+                    />
+                  )}
+                </Circle>
+              )
+            })}
           </div>
         </div>
 
-        <div
-          className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none bg-card w-20 md:w-40"
-          style={{
-            maskImage: "linear-gradient(to right, black, transparent)",
-            WebkitMaskImage: "linear-gradient(to right, black, transparent)",
-          }}
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={userRef}
+          toRef={mcpayRef}
+          startYOffset={-8}
+          endYOffset={-8}
+          gradientStartColor="#34d399"
+          gradientStopColor="#047857"
         />
-        
-        <div
-          className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none bg-card w-20 md:w-40"
-          style={{
-            maskImage: "linear-gradient(to left, black, transparent)",
-            WebkitMaskImage: "linear-gradient(to left, black, transparent)",
-          }}
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={userRef}
+          toRef={mcpayRef}
+          startYOffset={-8}
+          endYOffset={-8}
+          delay={1.5}
+          gradientStartColor="#34d399"
+          gradientStopColor="#047857"
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={userRef}
+          toRef={mcpayRef}
+          startYOffset={-8}
+          endYOffset={-8}
+          delay={3}
+          gradientStartColor="#34d399"
+          gradientStopColor="#047857"
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={userRef}
+          toRef={mcpayRef}
+          reverse
+          delay={2.5}
+          startYOffset={8}
+          endYOffset={8}
+          gradientStartColor="#34d399"
+          gradientStopColor="#047857"
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={userRef}
+          toRef={mcpayRef}
+          reverse
+          delay={4}
+          startYOffset={8}
+          endYOffset={8}
+          gradientStartColor="#34d399"
+          gradientStopColor="#047857"
+        />
+        <AnimatedBeam
+          containerRef={containerRef}
+          fromRef={userRef}
+          toRef={mcpayRef}
+          reverse
+          delay={5.5}
+          startYOffset={8}
+          endYOffset={8}
+          gradientStartColor="#34d399"
+          gradientStopColor="#047857"
         />
 
-        <TooltipProvider>
-          <div
-            className="flex items-center gap-8 animate-scroll-carousel group-hover:[animation-play-state:paused]"
-            style={{
-              width: "max-content",
-            }}
-          >
-            {duplicatedApps.map((app, index) => (
-              <Tooltip key={`${app.name}-${index}`}>
-                <TooltipTrigger asChild>
-                  <div
-                    className="flex items-center justify-center rounded-lg shrink-0 transition-transform hover:scale-105"
-                    style={{
-                      width: "80px",
-                      height: "80px",
-                      backgroundColor: app.color,
-                    }}
-                  >
-                    {app.logoColor === "white" ? (
-                      <div
-                        style={{
-                          width: app.iconWidth || 40,
-                          height: app.iconHeight || 40,
-                          maskImage: `url(${app.icon})`,
-                          maskSize: "contain",
-                          maskRepeat: "no-repeat",
-                          maskPosition: "center",
-                          WebkitMaskImage: `url(${app.icon})`,
-                          WebkitMaskSize: "contain",
-                          WebkitMaskRepeat: "no-repeat",
-                          WebkitMaskPosition: "center",
-                          backgroundColor: "white",
-                        }}
-                      />
-                    ) : (
-                      <Image
-                        src={app.icon}
-                        alt={app.name}
-                        width={app.iconWidth || 40}
-                        height={app.iconHeight || 40}
-                        className="object-contain"
-                      />
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{app.name}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-        </TooltipProvider>
+        {AI_CLIENTS_CONFIG.map((client, index) => (
+          <React.Fragment key={client.name}>
+            <AnimatedBeam
+              containerRef={containerRef}
+              fromRef={clientRefs[index]}
+              toRef={mcpayRef}
+              delay={Math.random() * 0.5}
+              gradientStartColor="#34d399"
+              gradientStopColor="#047857"
+            />
+            <AnimatedBeam
+              containerRef={containerRef}
+              fromRef={clientRefs[index]}
+              toRef={mcpayRef}
+              reverse
+              delay={Math.random() * 0.5 + 2.5}
+              gradientStartColor="#34d399"
+              gradientStopColor="#047857"
+            />
+          </React.Fragment>
+        ))}
       </div>
       
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12">
