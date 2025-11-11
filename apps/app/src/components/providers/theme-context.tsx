@@ -14,9 +14,14 @@ const getSystemPreference = (): boolean => {
 };
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [isDark, setIsDark] = useState(false);
+  // Initialize state based on what the blocking script set
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return document.documentElement.classList.contains('dark');
+  });
 
   useEffect(() => {
+    // Sync state with what was set by the blocking script
     const savedTheme = localStorage.getItem("mcp-browser-theme");
     let initialIsDark: boolean;
 
@@ -28,7 +33,12 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       initialIsDark = getSystemPreference();
     }
 
-    setIsDark(initialIsDark);
+    // Only update if different (to avoid unnecessary re-renders)
+    if (initialIsDark !== isDark) {
+      setIsDark(initialIsDark);
+    }
+    
+    // Ensure class is set (should already be set by blocking script, but ensure consistency)
     if (initialIsDark) {
       document.documentElement.classList.add('dark');
     } else {

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Host_Grotesk, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-context";
 import { UserProvider } from "@/components/providers/user";
@@ -80,10 +81,36 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedTheme = localStorage.getItem("mcp-browser-theme");
+                  let isDark = false;
+                  
+                  if (savedTheme === "dark" || savedTheme === "light") {
+                    isDark = savedTheme === "dark";
+                  } else {
+                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  }
+                  
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
         <ThemeProvider>
           <WagmiProvider config={wagmiConfig}>
             <AppReactQueryProvider>
