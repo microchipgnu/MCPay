@@ -1,7 +1,6 @@
 import type { CallToolRequest, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import type { Hook, RequestExtra, ToolCallResponseHookResult } from "mcpay/handler";
-import { VLayer, WebProofResponse, VLayerConfig } from "../../3rd-parties/vlayer/index.js";
-import { extractWebProofData, parseWebProofHex } from "../../3rd-parties/vlayer/webproof-parser.js";
+import { VLayer, WebProofResponse, VLayerConfig, ExecutedRequestWithProof } from "../../3rd-parties/vlayer/index.js";
 
 export interface VLayerHookConfig {
   enabled?: boolean;
@@ -28,6 +27,7 @@ export class VLayerHook implements Hook {
     originalRequest: CallToolRequest;
     extra: RequestExtra;
     targetUrl: string;
+    generatedProof?: WebProofResponse;
   };
 
   constructor(config: VLayerHookConfig) {
@@ -81,14 +81,55 @@ export class VLayerHook implements Hook {
         return { resultType: "continue" as const, request: req };
       }
 
-      // Store request context for later use
+      // Check if payment is present in the request - if so, generate proof BEFORE making the request
+      const params = req.params && typeof req.params === 'object' ? req.params as Record<string, unknown> : null;
+      const meta = params?._meta && typeof params._meta === 'object' ? params._meta as Record<string, unknown> : null;
+      const hasPayment = meta && 'x402/payment' in meta;
+
+      // Debug logging
+      console.log("[VLayerHook] Checking for payment in request:", {
+        hasParams: !!params,
+        hasMeta: !!meta,
+        metaKeys: meta ? Object.keys(meta) : [],
+        hasPayment,
+      });
+
+      // Store request context
       this.requestContext = {
         originalRequest: req,
         extra,
         targetUrl,
       };
 
-      console.log("[VLayerHook] Stored request context for web proof generation. RequestContext:", this.requestContext);
+      // If payment is present, execute request through VLayer which returns both proof and response
+      if (hasPayment) {
+        console.log("[VLayerHook] Payment detected in request, executing through VLayer (single request)");
+        try {
+          const executed = await this.executeWithProofWithRetry(req, targetUrl, extra);
+          if (executed) {
+            // Validate proof if configured
+            if (this.config.validateProofs && !VLayer.validateWebProof(executed.proof)) {
+              console.warn("[VLayerHook] Generated web proof failed validation");
+              // Still return the response even if proof validation fails
+            }
+
+            // Convert HTTP response from VLayer to CallToolResult format
+            const callToolResult = this.convertHttpResponseToCallToolResult(executed.httpResponse);
+            
+            // Attach proof to the response
+            const responseWithProof = this.attachProofToMeta(callToolResult, executed.proof);
+            
+            console.log("[VLayerHook] Request executed through VLayer, returning response with proof");
+            return { resultType: "respond" as const, response: responseWithProof };
+          }
+        } catch (error) {
+          console.error("[VLayerHook] Error executing request through VLayer:", error);
+          // Fall through to continue with normal flow if VLayer execution fails
+        }
+      } else {
+        console.log("[VLayerHook] No payment in request, will check response for payment requirement");
+      }
+
       return { resultType: "continue" as const, request: req };
     } catch (error) {
       console.error("[VLayerHook] Error in processCallToolRequest:", error);
@@ -102,79 +143,102 @@ export class VLayerHook implements Hook {
     }
 
     try {
-      // Generate web proof for the actual external request that was made
-      console.log("[VLayerHook] Attempting to generate web proof with context:", this.requestContext);
+      // Check if the original request had payment but proof wasn't generated
+      // This handles the retry case where request hooks weren't called again
+      const params = req.params && typeof req.params === 'object' ? req.params as Record<string, unknown> : null;
+      const meta = params?._meta && typeof params._meta === 'object' ? params._meta as Record<string, unknown> : null;
+      const hasPaymentInRequest = meta && 'x402/payment' in meta;
+      
+      const responseMeta = res._meta && typeof res._meta === 'object' ? res._meta as Record<string, unknown> : null;
+      const hasProof = responseMeta && 'vlayer/proof' in responseMeta;
+      const hasPaymentResponse = responseMeta && 'x402/payment-response' in responseMeta;
 
-      const webProof = await this.generateWebProofWithRetry(
-        req,
-        this.config.targetUrl!,
-        extra
-      );
+      // If request had payment but response doesn't have proof, this was likely a retry
+      // that bypassed processCallToolRequest. Execute through VLayer now.
+      if (hasPaymentInRequest && !hasProof && hasPaymentResponse) {
+        console.log("[VLayerHook] Payment detected in request but no proof found - likely retry. Executing through VLayer now.");
+        const targetUrl = this.config.targetUrl || extra.targetUrl;
+        if (targetUrl && this.shouldProcessDomain(targetUrl)) {
+          try {
+            const executed = await this.executeWithProofWithRetry(req, targetUrl, extra);
+            if (executed) {
+              // Validate proof if configured
+              if (this.config.validateProofs && !VLayer.validateWebProof(executed.proof)) {
+                console.warn("[VLayerHook] Generated web proof failed validation");
+              }
 
-      if (webProof) {
-        console.log("[VLayerHook] Web proof generated:", webProof);
-
-        // Validate proof if configured
-        if (this.config.validateProofs && !VLayer.validateWebProof(webProof)) {
-          console.warn("[VLayerHook] Generated web proof failed validation");
-          return { resultType: "continue" as const, response: res };
+              // Merge the VLayer response with the existing response (preserve payment-response)
+              const vlayerResult = this.convertHttpResponseToCallToolResult(executed.httpResponse);
+              const mergedResponse: CallToolResult = {
+                ...vlayerResult,
+                _meta: {
+                  ...(vlayerResult._meta || {}),
+                  ...(res._meta || {}), // Preserve existing meta including payment-response
+                }
+              };
+              
+              // Attach proof to the merged response
+              const responseWithProof = this.attachProofToMeta(mergedResponse, executed.proof);
+              
+              console.log("[VLayerHook] Request executed through VLayer on retry, returning response with proof");
+              this.requestContext = undefined;
+              return { resultType: "continue" as const, response: responseWithProof };
+            }
+          } catch (error) {
+            console.error("[VLayerHook] Error executing request through VLayer in processCallToolResult:", error);
+            // Fall through to continue with normal flow
+          }
         }
-
-        if (this.config.logProofs) {
-          console.log("[VLayerHook] Generated web proof details:", {
-            presentationLength: webProof.presentation?.length || 0,
-            isValid: VLayer.validateWebProof(webProof),
-          });
-        }
-
-        // Parse the proof to extract useful data
-        const parsedProof = this.parseWebProof(webProof);
-
-        if (parsedProof) {
-          console.log("[VLayerHook] Parsed proof data:", {
-            url: parsedProof.url,
-            requestMethod: parsedProof.request?.method,
-            responseStatus: parsedProof.response?.statusCode,
-            hasResponseBody: !!parsedProof.response?.bodyJson,
-            requestHeaders: parsedProof.request?.headers,
-            responseHeaders: parsedProof.response?.headers,
-          });
-        } else {
-          console.warn("[VLayerHook] Unable to parse proof data from webProof");
-        }
-
-        // Attach proof to response if configured
-        if (this.config.attachToResponse) {
-          console.log("[VLayerHook] Attaching proof to response.");
-          const enhancedResponse = this.attachProofToResponse(res, webProof, parsedProof);
-          this.requestContext = undefined;
-          return { resultType: "continue" as const, response: enhancedResponse };
-        }
-      } else {
-        console.warn("[VLayerHook] No webProof generated.");
       }
 
-      // Clear request context
+      // Check if there's a payment requirement (but no payment response)
+      // This handles the case where payment requirement comes from upstream
+      const hasPaymentError = responseMeta && 'x402/error' in responseMeta;
+      const paymentError = hasPaymentError ? responseMeta['x402/error'] as { error?: string } | undefined : null;
+      const isPaymentRequired = paymentError?.error?.toLowerCase() === 'payment_required';
+
+      // If there's a payment requirement but no response, we'll generate proof on the retry (when payment is added)
+      if (isPaymentRequired && !hasPaymentResponse) {
+        console.log("[VLayerHook] Payment requirement detected, proof will be generated on retry with payment");
+        this.requestContext = undefined;
+        return { resultType: "continue" as const, response: res };
+      }
+
+      // If payment was already processed and proof exists, we're good
+      if (hasPaymentResponse && hasProof) {
+        console.log("[VLayerHook] Payment processed and proof already attached");
+        this.requestContext = undefined;
+        return { resultType: "continue" as const, response: res };
+      }
+
+      // If payment was already processed but no proof, try to generate it (retry case)
+      if (hasPaymentResponse && !hasProof) {
+        console.log("[VLayerHook] Payment processed but no proof found - attempting to generate proof");
+        // This case is handled above, so we'll just continue
+      }
+
+      // No payment requirement, no proof needed
+      console.log("[VLayerHook] No payment requirement found, skipping web proof generation");
       this.requestContext = undefined;
       return { resultType: "continue" as const, response: res };
     } catch (error) {
-      console.error("[VLayerHook] Error generating web proof:", error);
+      console.error("[VLayerHook] Error in processCallToolResult:", error);
       this.requestContext = undefined;
       return { resultType: "continue" as const, response: res };
     }
   }
 
-  private async generateWebProofWithRetry(req: CallToolRequest, targetUrl: string, extra: RequestExtra): Promise<WebProofResponse | null> {
+  private async executeWithProofWithRetry(req: CallToolRequest, targetUrl: string, extra: RequestExtra): Promise<ExecutedRequestWithProof | null> {
     let lastError: Error | null = null;
     for (let attempt = 0; attempt <= this.config.retryAttempts!; attempt++) {
       try {
-        console.log(`[VLayerHook] generateWebProofWithRetry attempt ${attempt + 1} for targetUrl ${targetUrl}`);
-        const webProof = await this.generateWebProof(req, targetUrl, extra);
-        if (webProof) {
-          console.log("[VLayerHook] Web proof generated successfully on attempt", attempt + 1);
-          return webProof;
+        console.log(`[VLayerHook] executeWithProofWithRetry attempt ${attempt + 1} for targetUrl ${targetUrl}`);
+        const executed = await this.executeWithProof(req, targetUrl, extra);
+        if (executed) {
+          console.log("[VLayerHook] Request executed through VLayer successfully on attempt", attempt + 1);
+          return executed;
         } else {
-          console.warn(`[VLayerHook] Web proof generation returned null on attempt ${attempt + 1}`);
+          console.warn(`[VLayerHook] VLayer execution returned null on attempt ${attempt + 1}`);
         }
       } catch (error) {
         lastError = error as Error;
@@ -193,24 +257,34 @@ export class VLayerHook implements Hook {
     return null;
   }
 
-  private async generateWebProof(req: CallToolRequest, targetUrl: string, extra: RequestExtra): Promise<WebProofResponse | null> {
+  private async executeWithProof(req: CallToolRequest, targetUrl: string, extra: RequestExtra): Promise<ExecutedRequestWithProof | null> {
     if (!this.vlayer) {
-      console.warn("[VLayerHook] VLayer instance not available, skipping web proof generation");
+      console.warn("[VLayerHook] VLayer instance not available, skipping request execution");
       return null;
     }
 
     try {
       // Use headers from config
       const headers = this.config.headers || [];
-      console.log("[VLayerHook] Generating web proof with headers:", headers, "targetUrl:", targetUrl);
+      console.log("[VLayerHook] Executing request through VLayer with headers:", headers, "targetUrl:", targetUrl);
 
-      // Extract request body
+      // Extract request body - reconstruct JSON-RPC 2.0 format
+      // The endpoint expects JSON-RPC 2.0, not raw MCP params
       let body: string | undefined;
       if (req.params && typeof req.params === 'object') {
         try {
-          body = JSON.stringify(req.params);
+          // Reconstruct JSON-RPC 2.0 format that the endpoint expects
+          // Use toolCallId as the JSON-RPC id, or generate one if not available
+          const rpcId = (req.params as any)?.toolCallId || crypto.randomUUID();
+          const jsonRpcBody = {
+            jsonrpc: "2.0",
+            method: "tools/call",
+            id: rpcId,
+            params: req.params
+          };
+          body = JSON.stringify(jsonRpcBody);
         } catch (jsonErr) {
-          console.warn("[VLayerHook] Could not stringify request params for web proof request body. Error:", jsonErr);
+          console.warn("[VLayerHook] Could not stringify request params for VLayer request body. Error:", jsonErr);
         }
       }
 
@@ -220,7 +294,7 @@ export class VLayerHook implements Hook {
         body = body.substring(0, this.config.maxProofSize!);
       }
 
-      // Generate web proof with timeout
+      // Execute request through VLayer with timeout
       const webProofRequest = {
         url: targetUrl,
         method: 'POST' as const,
@@ -228,23 +302,74 @@ export class VLayerHook implements Hook {
         body,
       };
 
-      console.log("[VLayerHook] Calling vlayer.generateWebProof with request:", webProofRequest);
+      console.log("[VLayerHook] Calling vlayer.executeWithProof with request:", webProofRequest);
 
-      const proofPromise = this.vlayer.generateWebProof(webProofRequest);
+      const executePromise = this.vlayer.executeWithProof(webProofRequest);
+      let timeoutId: NodeJS.Timeout;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          console.error("[VLayerHook] Web proof generation timed out after", this.config.timeoutMs, "ms");
-          reject(new Error('Web proof generation timeout'))
+        timeoutId = setTimeout(() => {
+          console.error("[VLayerHook] VLayer execution timed out after", this.config.timeoutMs, "ms");
+          reject(new Error('VLayer execution timeout'))
         }, this.config.timeoutMs);
       });
 
-      const result = await Promise.race([proofPromise, timeoutPromise]);
-      console.log("[VLayerHook] Web proof result:", result);
-      return result;
+      try {
+        const result = await Promise.race([executePromise, timeoutPromise]);
+        clearTimeout(timeoutId!);
+        console.log("[VLayerHook] VLayer execution result received");
+        return result;
+      } catch (error) {
+        clearTimeout(timeoutId!);
+        throw error;
+      }
     } catch (error) {
-      console.error("[VLayerHook] Failed to generate web proof:", error);
+      console.error("[VLayerHook] Failed to execute request through VLayer:", error);
       return null;
     }
+  }
+
+  private convertHttpResponseToCallToolResult(httpResponse: {
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    body: string;
+  }): CallToolResult {
+    // Parse the HTTP response body - it should be a JSON-RPC response
+    let parsedBody: unknown;
+    try {
+      parsedBody = JSON.parse(httpResponse.body);
+    } catch (error) {
+      console.warn("[VLayerHook] Failed to parse HTTP response body as JSON:", error);
+      // Return error result if body is not valid JSON
+      return {
+        content: [
+          { type: "text", text: `Invalid response format: ${httpResponse.body}` }
+        ],
+        isError: true,
+      };
+    }
+
+    // Check if it's a JSON-RPC response with a result field
+    if (parsedBody && typeof parsedBody === 'object' && 'result' in parsedBody) {
+      const rpcResponse = parsedBody as { result?: unknown };
+      // The result should be a CallToolResult
+      if (rpcResponse.result && typeof rpcResponse.result === 'object') {
+        return rpcResponse.result as CallToolResult;
+      }
+    }
+
+    // If it's already a CallToolResult-like structure, return it
+    if (parsedBody && typeof parsedBody === 'object' && ('content' in parsedBody || 'isError' in parsedBody)) {
+      return parsedBody as CallToolResult;
+    }
+
+    // Fallback: wrap the response body as text content
+    return {
+      content: [
+        { type: "text", text: httpResponse.body }
+      ],
+      isError: httpResponse.status >= 400,
+    };
   }
   
   private shouldProcessDomain(targetUrl: string): boolean {
@@ -283,75 +408,25 @@ export class VLayerHook implements Hook {
     }
   }
 
-  private parseWebProof(webProof: WebProofResponse) {
-    try {
-      // Try to extract hex proof from presentation
-      const presentation = JSON.parse(webProof.presentation);
-      const hexProof = presentation.presentationJson || presentation;
-
-      if (typeof hexProof === 'string' && /^[0-9a-fA-F]+$/.test(hexProof)) {
-        console.log("[VLayerHook] Parsing web proof as hex string.");
-        return parseWebProofHex(hexProof);
+  private attachProofToMeta(res: CallToolResult, webProof: WebProofResponse): CallToolResult {
+    // Attach proof to _meta field instead of polluting content
+    const enhancedMeta = {
+      ...(res._meta || {}),
+      'vlayer/proof': {
+        success: webProof.success,
+        data: webProof.data,
+        version: webProof.version,
+        meta: webProof.meta,
+        generatedAt: new Date().toISOString(),
+        valid: VLayer.validateWebProof(webProof),
       }
-
-      // Fallback to extractWebProofData
-      console.log("[VLayerHook] Fallback to extractWebProofData for presentation.");
-      return extractWebProofData(new Response(), webProof.presentation);
-    } catch (error) {
-      console.warn("[VLayerHook] Failed to parse web proof:", error);
-      return null;
-    }
-  }
-
-  private attachProofToResponse(res: CallToolResult, webProof: WebProofResponse, parsedProof?: any): CallToolResult {
-    // Add proof metadata to the response
-    const enhancedContent = Array.isArray(res.content) ? [...res.content] : [];
-
-    // Build proof information text
-    let proofText = `\n\n---\n**🔒 Web Proof Generated**\n\nA cryptographic web proof has been generated for this request.\n\n`;
-
-    if (this.config.includeRequestDetails && parsedProof?.request) {
-      proofText += `**Request Details:**\n`;
-      proofText += `- URL: ${parsedProof.request.url}\n`;
-      proofText += `- Method: ${parsedProof.request.method}\n`;
-      if (parsedProof.request.headers && Object.keys(parsedProof.request.headers).length > 0) {
-        proofText += `- Headers: ${Object.keys(parsedProof.request.headers).length} headers\n`;
-      }
-      proofText += `\n`;
-    }
-
-    if (this.config.includeResponseDetails && parsedProof?.response) {
-      proofText += `**Response Details:**\n`;
-      proofText += `- Status: ${parsedProof.response.statusCode} ${parsedProof.response.statusText}\n`;
-      if (parsedProof.response.headers && Object.keys(parsedProof.response.headers).length > 0) {
-        proofText += `- Headers: ${Object.keys(parsedProof.response.headers).length} headers\n`;
-      }
-      if (parsedProof.response.bodyJson) {
-        proofText += `- Body: JSON response (${JSON.stringify(parsedProof.response.bodyJson).length} chars)\n`;
-      }
-      proofText += `\n`;
-    }
-
-    proofText += `**Proof Information:**\n`;
-    proofText += `- Presentation Length: ${webProof.presentation?.length || 0} characters\n`;
-    proofText += `- Valid: ${VLayer.validateWebProof(webProof) ? '✅' : '❌'}\n`;
-    proofText += `- Generated: ${new Date().toISOString()}\n\n`;
-
-    proofText += `This proof can be used to verify the authenticity and integrity of the request and response.`;
-
-    // Add proof information as a text element
-    const proofInfo = {
-      type: "text" as const,
-      text: proofText
     };
 
-    enhancedContent.push(proofInfo);
-
-    console.log("[VLayerHook] Proof text attached to response:", proofText);
+    console.log("[VLayerHook] Proof attached to _meta['vlayer/proof']");
 
     return {
       ...res,
-      content: enhancedContent,
+      _meta: enhancedMeta,
     };
   }
 }

@@ -47,7 +47,8 @@ app.use("*", cors({
         "x-api-key",
         "X-Wallet-Type",
         "X-Wallet-Address", 
-        "X-Wallet-Provider"
+        "X-Wallet-Provider",
+        "x-vlayer-enabled"
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
@@ -471,13 +472,20 @@ app.all("/mcp", async (c) => {
             return new Response("target-url missing", { status: 400 });
         }
         
+        // Check if vlayer hook should be enabled via header
+        const vlayerEnabledHeader = original.headers.get("x-vlayer-enabled");
+        const isVlayerEnabled = vlayerEnabledHeader !== null && 
+            (vlayerEnabledHeader.toLowerCase() === "true" || 
+             vlayerEnabledHeader === "1" || 
+             vlayerEnabledHeader.toLowerCase() === "yes");
+        
         const withMcpProxy = (session: any) => withProxy(targetUrl, [
             new AnalyticsHook(analyticsSink, targetUrl),
             new LoggingHook(),
             new X402WalletHook(session),
             new SecurityHook(),
             new VLayerHook({ 
-                enabled: true, 
+                enabled: isVlayerEnabled, 
                 targetUrl: targetUrl,
                 logProofs: true, 
                 attachToResponse: true,
@@ -485,10 +493,13 @@ app.all("/mcp", async (c) => {
                 includeRequestDetails: true,
                 includeResponseDetails: true,
                 maxProofSize: 4 * 1024 * 1024, // 4MB
-                timeoutMs: 30000, // 30 seconds
+                timeoutMs: 300000, // 5 minutes
                 retryAttempts: 2,
                 excludeDomains: undefined,//['localhost', '127.0.0.1'],
-                headers: [],
+                headers: [
+                    "Accept: application/json, text/event-stream",
+                    "Content-Type: application/json"
+                ],
                 vlayerConfig: {
                     apiEndpoint: env.VLAYER_WEB_PROOF_API,
                     clientId: env.VLAYER_CLIENT_ID,

@@ -5,6 +5,8 @@
  * using the VLayer web prover service.
  */
 
+import { parseWebProofHex } from "./webproof-parser.js";
+
 export interface WebProofRequest {
   url: string;
   method: 'GET' | 'POST';
@@ -13,7 +15,14 @@ export interface WebProofRequest {
 }
 
 export interface WebProofResponse {
-  presentation: string;
+  success: boolean;
+  data: string;
+  version: string;
+  meta: {
+    notaryUrl: string;
+  };
+  // Legacy format support - presentation field (deprecated)
+  presentation?: string;
 }
 
 export interface ProofedRequest {
@@ -24,6 +33,16 @@ export interface ProofedRequest {
 export interface ProofedResponse {
   response: Response;
   proof?: WebProofResponse;
+}
+
+export interface ExecutedRequestWithProof {
+  proof: WebProofResponse;
+  httpResponse: {
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    body: string;
+  };
 }
   
 export interface VLayerConfig {
@@ -62,14 +81,116 @@ export class VLayer {
         throw new Error(`Web proof generation failed: ${response.status} ${response.statusText}`);
       }
 
-      const data = await response.json() as WebProofResponse;
-      return data;
+      const apiResponse = await response.json() as {
+        success: boolean;
+        data?: string;
+        version?: string;
+        meta?: { notaryUrl: string };
+        error?: { code: string; message: string };
+      };
+
+      if (!apiResponse.success || !apiResponse.data) {
+        throw new Error(`Web proof generation failed: ${apiResponse.error?.message || 'Unknown error'}`);
+      }
+
+      // Transform API response to WebProofResponse format
+      const webProof: WebProofResponse = {
+        success: apiResponse.success,
+        data: apiResponse.data,
+        version: apiResponse.version || '0.1.0-alpha.12',
+        meta: apiResponse.meta || { notaryUrl: '' },
+        // For backward compatibility, create presentation field
+        presentation: JSON.stringify({
+          presentationJson: apiResponse.data,
+          version: apiResponse.version,
+          meta: apiResponse.meta
+        })
+      };
+
+      return webProof;
     } catch (error) {
       console.error('Error generating web proof:', error);
       throw error;
     }
   }
 
+
+  /**
+   * Executes a request through VLayer API and returns both proof and HTTP response
+   * This method makes a single request to VLayer which executes the target request
+   * and returns both the cryptographic proof and the HTTP response.
+   */
+  async executeWithProof(request: WebProofRequest): Promise<ExecutedRequestWithProof> {
+    try {
+      const response = await fetch(this.apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-client-id': this.clientId,
+          'Authorization': `Bearer ${this.bearerToken}`,
+        },
+        body: JSON.stringify(request),
+      });
+
+      if (!response.ok) {
+        throw new Error(`VLayer execution failed: ${response.status} ${response.statusText}`);
+      }
+
+      const apiResponse = await response.json() as {
+        success: boolean;
+        data?: string;
+        version?: string;
+        meta?: { notaryUrl: string };
+        error?: { code: string; message: string };
+      };
+
+      if (!apiResponse.success || !apiResponse.data) {
+        throw new Error(`VLayer execution failed: ${apiResponse.error?.message || 'Unknown error'}`);
+      }
+
+      // Parse the proof hex data to extract HTTP response
+      let parsedProof: ReturnType<typeof parseWebProofHex>;
+      try {
+        parsedProof = parseWebProofHex(apiResponse.data);
+      } catch (parseError) {
+        throw new Error(`Failed to parse VLayer proof data: ${(parseError as Error).message}`);
+      }
+
+      // Extract HTTP response from parsed proof
+      if (!parsedProof.response) {
+        throw new Error('VLayer proof data does not contain HTTP response');
+      }
+
+      const httpResponse = {
+        status: parsedProof.response.statusCode,
+        statusText: parsedProof.response.statusText,
+        headers: parsedProof.response.headers,
+        body: parsedProof.response.bodyText || (parsedProof.response.bodyJson ? JSON.stringify(parsedProof.response.bodyJson) : ''),
+      };
+
+      // Transform API response to ExecutedRequestWithProof format
+      const webProof: WebProofResponse = {
+        success: apiResponse.success,
+        data: apiResponse.data,
+        version: apiResponse.version || '0.1.0-alpha.12',
+        meta: apiResponse.meta || { notaryUrl: '' },
+        // For backward compatibility, create presentation field
+        presentation: JSON.stringify({
+          presentationJson: apiResponse.data,
+          version: apiResponse.version,
+          meta: apiResponse.meta
+        })
+      };
+
+      return {
+        proof: webProof,
+        httpResponse,
+      };
+    } catch (error) {
+      console.error('Error executing request with proof:', error);
+      throw error;
+    }
+  }
 
   /**
    * Creates a fetch wrapper that generates web proofs for requests and responses
@@ -126,15 +247,25 @@ export class VLayer {
    */
   static validateWebProof(webProof: WebProofResponse): boolean {
     try {
-      if (!webProof.presentation || typeof webProof.presentation !== 'string') {
-        return false;
+      // New format: check for data, version, and meta fields
+      if (webProof.success && webProof.data && webProof.version && webProof.meta) {
+        // Validate data is a hex string
+        if (typeof webProof.data === 'string' && /^[0-9a-fA-F]+$/.test(webProof.data)) {
+          return true;
+        }
       }
       
-      // Parse the presentation to ensure it's valid JSON
-      const parsed = JSON.parse(webProof.presentation);
+      // Legacy format: check presentation field
+      if (webProof.presentation && typeof webProof.presentation === 'string') {
+        try {
+          const parsed = JSON.parse(webProof.presentation);
+          return !!(parsed.presentationJson && parsed.meta && parsed.version);
+        } catch {
+          return false;
+        }
+      }
       
-      // Basic validation - check for required fields
-      return !!(parsed.presentationJson && parsed.meta && parsed.version);
+      return false;
     } catch (error) {
       console.error('Error validating web proof:', error);
       return false;

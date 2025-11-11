@@ -255,26 +255,55 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                 // Specialized tools/call handler with retry support
                 let currentReq = originalRpc as CallToolRequest;
 
-                // request hooks
-                for (const h of hooks) {
-                    if (!h.processCallToolRequest) continue;
-                    const r = await h.processCallToolRequest(currentReq, extra);
-                    if (r.resultType === "continue") { currentReq = r.request; continue; }
-                    if (r.resultType === "continueAsync") {
-                        const id = (originalRpc?.id as string | number | undefined) ?? 0;
-                        const envelope = { jsonrpc: "2.0", id, result: r.response } as const;
-                        return jsonResponse(envelope, 200);
-                    }
-                    if (r.resultType === "respond") {
-                        const id = (originalRpc?.id as string | number | undefined) ?? 0;
-                        const envelope = { jsonrpc: "2.0", id, result: r.response } as const;
-                        return jsonResponse(envelope, 200);
-                    }
-                }
-
                 let attempts = 0;
                 const maxRetries = 1;
                 while (true) {
+                    // Call request hooks on each iteration (including retries)
+                    // This allows hooks to intercept retries before the fetch happens
+                    let hookResponse: CallToolResult | null = null;
+                    for (const h of hooks) {
+                        if (!h.processCallToolRequest) continue;
+                        const r = await h.processCallToolRequest(currentReq, extra);
+                        if (r.resultType === "continue") { currentReq = r.request; continue; }
+                        if (r.resultType === "continueAsync") {
+                            const id = (originalRpc?.id as string | number | undefined) ?? 0;
+                            const envelope = { jsonrpc: "2.0", id, result: r.response } as const;
+                            return jsonResponse(envelope, 200);
+                        }
+                        if (r.resultType === "respond") {
+                            hookResponse = r.response;
+                            break; // Stop processing request hooks, but we'll process response hooks below
+                        }
+                    }
+
+                    // If a hook returned a response, process it through response hooks before returning
+                    if (hookResponse) {
+                        let currentRes = hookResponse;
+                        for (const h of hooks.slice().reverse()) {
+                            if (!h.processCallToolResult) continue;
+                            const r = await h.processCallToolResult(currentRes, currentReq, extra);
+                            if (r.resultType === "continue") { currentRes = r.response; continue; }
+                            if ((r as { resultType: string } | null)?.resultType === "retry") {
+                                // If a response hook requests retry, continue the loop with the new request
+                                currentReq = (r as { request: CallToolRequest } as any).request;
+                                hookResponse = null; // Clear hookResponse to continue normal flow
+                                break;
+                            }
+                            if ((r as { resultType: string } | null)?.resultType === "abort") {
+                                const rr = r as unknown as { reason: string; body?: unknown };
+                                return jsonResponse({ error: rr.reason, body: rr.body }, 400);
+                            }
+                        }
+                        // If hookResponse is still set (no retry), return it
+                        if (hookResponse) {
+                            const id = (originalRpc?.id as string | number | undefined) ?? 0;
+                            const envelope = { jsonrpc: "2.0", id, result: currentRes };
+                            return jsonResponse(envelope, 200);
+                        }
+                        // If retry was requested, continue the loop
+                        continue;
+                    }
+
                     const forwardHeaders = new Headers(req.headers);
                     for (const h of hooks) {
                         if (h.prepareUpstreamHeaders) {
