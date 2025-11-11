@@ -279,14 +279,14 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                     // If a hook returned a response, process it through response hooks before returning
                     if (hookResponse) {
                         let currentRes = hookResponse;
+                        let requestedRetry: { request: CallToolRequest } | null = null;
                         for (const h of hooks.slice().reverse()) {
                             if (!h.processCallToolResult) continue;
                             const r = await h.processCallToolResult(currentRes, currentReq, extra);
                             if (r.resultType === "continue") { currentRes = r.response; continue; }
                             if ((r as { resultType: string } | null)?.resultType === "retry") {
-                                // If a response hook requests retry, continue the loop with the new request
-                                currentReq = (r as { request: CallToolRequest } as any).request;
-                                hookResponse = null; // Clear hookResponse to continue normal flow
+                                // If a response hook requests retry, track it and check retry limit
+                                requestedRetry = { request: (r as { request: CallToolRequest } as any).request };
                                 break;
                             }
                             if ((r as { resultType: string } | null)?.resultType === "abort") {
@@ -294,14 +294,19 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                                 return jsonResponse({ error: rr.reason, body: rr.body }, 400);
                             }
                         }
-                        // If hookResponse is still set (no retry), return it
-                        if (hookResponse) {
-                            const id = (originalRpc?.id as string | number | undefined) ?? 0;
-                            const envelope = { jsonrpc: "2.0", id, result: currentRes };
-                            return jsonResponse(envelope, 200);
+                        // If retry was requested, check retry limit before continuing
+                        if (requestedRetry) {
+                            if (attempts < maxRetries) {
+                                attempts++;
+                                currentReq = requestedRetry.request;
+                                continue; // Retry the request
+                            }
+                            // Max retries exceeded, return the current response (fall through)
                         }
-                        // If retry was requested, continue the loop
-                        continue;
+                        // Return the response (either no retry requested, or retry limit exceeded)
+                        const id = (originalRpc?.id as string | number | undefined) ?? 0;
+                        const envelope = { jsonrpc: "2.0", id, result: currentRes };
+                        return jsonResponse(envelope, 200);
                     }
 
                     const forwardHeaders = new Headers(req.headers);

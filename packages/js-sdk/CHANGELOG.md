@@ -1,5 +1,11 @@
 # mcpay
 
+## 0.1.14
+
+### Patch Changes
+
+- fix(proxy): enhance retry logic in withProxy function
+
 ## 0.1.13
 
 ### Patch Changes
