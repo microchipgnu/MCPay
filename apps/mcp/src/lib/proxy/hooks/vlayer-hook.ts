@@ -288,10 +288,11 @@ export class VLayerHook implements Hook {
         }
       }
 
-      // Check body size limit
+      // Check body size limit - skip proof generation if body is too large
+      // Truncating JSON would produce invalid JSON and cause the VLayer API to fail
       if (body && body.length > this.config.maxProofSize!) {
-        console.warn(`[VLayerHook] Request body too large (${body.length} bytes), truncating`);
-        body = body.substring(0, this.config.maxProofSize!);
+        console.warn(`[VLayerHook] Request body too large (${body.length} bytes, max: ${this.config.maxProofSize} bytes), skipping web proof generation`);
+        return null;
       }
 
       // Execute request through VLayer with timeout
