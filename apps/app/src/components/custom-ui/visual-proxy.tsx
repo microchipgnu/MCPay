@@ -11,7 +11,7 @@ import { AnimatedBeam } from "@/components/ui/animated-beam"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Smile } from "lucide-react"
 
-interface VisualProxyProps extends React.HTMLAttributes<HTMLDivElement> {}
+type VisualProxyProps = React.HTMLAttributes<HTMLDivElement>
 
 const Circle = forwardRef<
   HTMLDivElement,

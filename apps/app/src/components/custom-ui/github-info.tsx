@@ -38,7 +38,7 @@ export default function GithubInfo({
                 <div className="w-6 h-6 bg-teal-500/10 rounded flex items-center justify-center flex-shrink-0">
                   <Check className="w-3 h-3 text-teal-700 dark:text-teal-400" strokeWidth={2.5} />
                 </div>
-                <span className="font-inter font-medium text-foreground text-lg"><span className="font-bold">Forever free:</span> don't let people charge you fees for microtransactions</span>
+                <span className="font-inter font-medium text-foreground text-lg"><span className="font-bold">Forever free:</span> don&apos;t let people charge you fees for microtransactions</span>
               </div>
 
               <div className="flex items-center gap-3">
