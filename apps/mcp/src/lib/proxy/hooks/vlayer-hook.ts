@@ -68,7 +68,7 @@ export class VLayerHook implements Hook {
 
     try {
       // Extract target URL from extra context
-      const targetUrl = this.config.targetUrl;
+      const targetUrl = this.config.targetUrl || extra.targetUrl;
       console.log("[VLayerHook] Extracted targetUrl:", targetUrl);
       if (!targetUrl) {
         console.log("[VLayerHook] No target URL found, skipping web proof generation");
