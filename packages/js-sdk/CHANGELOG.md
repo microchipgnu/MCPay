@@ -1,5 +1,30 @@
 # mcpay
 
+## 0.1.15
+
+### Patch Changes
+
+- implement separate retry logic for hook responses to prevent infinite loops
+
+## 0.1.14
+
+### Patch Changes
+
+- fix(proxy): enhance retry logic in withProxy function
+
+## 0.1.13
+
+### Patch Changes
+
+- yup
+- Release mcpay js-sdk
+
+## 0.1.13-beta.0
+
+### Patch Changes
+
+- Release mcpay js-sdk
+
 ## 0.1.9
 
 ### Patch Changes

@@ -6,12 +6,13 @@ import { cors } from "hono/cors";
 import { LoggingHook, withProxy, createMcpHandler, Hook } from "mcpay/handler";
 import { AnalyticsHook } from "mcpay/handler";
 import { z } from "zod";
-import { getPort, getTrustedOrigins, isDevelopment } from "./env.js";
+import env, { getPort, getTrustedOrigins, isDevelopment } from "./env.js";
 import { auth, db } from "./lib/auth.js";
 import { getBalancesSummary } from "./lib/balance-tracker.js";
 import { isNetworkSupported, type UnifiedNetwork } from "./lib/3rd-parties/cdp/wallet/networks.js";
 import { SecurityHook } from "./lib/proxy/hooks/security-hook.js";
 import { X402WalletHook } from "./lib/proxy/hooks/x402-wallet-hook.js";
+import { VLayerHook } from "./lib/proxy/hooks/vlayer-hook.js";
 import { CONNECT_HTML } from "./ui/connect.js";
 import { USER_HTML } from "./ui/user.js";
 import { createOneClickBuyUrl } from "./lib/3rd-parties/cdp/onramp/index.js";
@@ -35,11 +36,7 @@ const ALLOWED_ORIGINS = new Set([
     ...TRUSTED_ORIGINS,
 ]);
 
-
 const app = new Hono();
-
-
-
 
 app.use("*", cors({
     allowHeaders: [
@@ -50,7 +47,8 @@ app.use("*", cors({
         "x-api-key",
         "X-Wallet-Type",
         "X-Wallet-Address", 
-        "X-Wallet-Provider"
+        "X-Wallet-Provider",
+        "x-vlayer-enabled"
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
@@ -485,7 +483,14 @@ app.all("/mcp", async (c) => {
         if (!targetUrl) {
             return new Response("target-url missing", { status: 400 });
         }
-
+        
+        // Check if vlayer hook should be enabled via header
+        const vlayerEnabledHeader = original.headers.get("x-vlayer-enabled");
+        const isVlayerEnabled = vlayerEnabledHeader !== null && 
+            (vlayerEnabledHeader.toLowerCase() === "true" || 
+             vlayerEnabledHeader === "1" || 
+             vlayerEnabledHeader.toLowerCase() === "yes");
+        
         const withMcpProxy = (session: any) => {
             const hooks: Hook[] = [
                 new AnalyticsHook(analyticsSink, targetUrl),
@@ -495,6 +500,30 @@ app.all("/mcp", async (c) => {
                 hooks.push(new X402WalletHook(session));
             }
             hooks.push(new SecurityHook());
+            if (isVlayerEnabled) {
+                hooks.push(new VLayerHook({ 
+                    enabled: isVlayerEnabled, 
+                    targetUrl: targetUrl,
+                    logProofs: true, 
+                    attachToResponse: true,
+                    validateProofs: true,
+                    includeRequestDetails: true,
+                    includeResponseDetails: true,
+                    maxProofSize: 4 * 1024 * 1024, // 4MB
+                    timeoutMs: 300000, // 5 minutes
+                    retryAttempts: 2,
+                    excludeDomains: undefined,//['localhost', '127.0.0.1'],
+                    headers: [
+                        "Accept: application/json, text/event-stream",
+                        "Content-Type: application/json"
+                    ],
+                    vlayerConfig: {
+                        apiEndpoint: env.VLAYER_WEB_PROOF_API,
+                        clientId: env.VLAYER_CLIENT_ID,
+                        bearerToken: env.VLAYER_BEARER_TOKEN,
+                    },
+                }));
+            }
             return withProxy(targetUrl, hooks);
         };
         
