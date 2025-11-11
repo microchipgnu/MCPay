@@ -106,6 +106,18 @@ export default function RootLayout({
             `,
           }}
         />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html:not(.dark) body {
+                background-color: white;
+              }
+              html.dark body {
+                background-color: black;
+              }
+            `,
+          }}
+        />
       </head>
       <body
         className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} antialiased`}

@@ -36,8 +36,15 @@ export default function Navbar() {
     }
   }, []) // Empty dependency array - only run on mount
 
-  const logoSrc = isDark ? "/MCPay-logo-dark.svg" : "/MCPay-logo-light.svg"
-  const symbolSrc = isDark ? "/MCPay-symbol-dark.svg" : "/MCPay-symbol-light.svg"
+  // Read theme directly from DOM on mount to prevent flash (set by blocking script)
+  const [initialIsDark] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return document.documentElement.classList.contains('dark');
+  });
+  
+  // Use initial theme for logos to prevent flash, then sync with hook
+  const logoSrc = (initialIsDark || isDark) ? "/MCPay-logo-dark.svg" : "/MCPay-logo-light.svg"
+  const symbolSrc = (initialIsDark || isDark) ? "/MCPay-symbol-dark.svg" : "/MCPay-symbol-light.svg"
 
   const linkClasses =
     "h-8 px-2 font-mono text-[13px] tracking-wider text-muted-foreground hover:text-foreground hover:underline hover:decoration-dotted underline-offset-2"
@@ -45,10 +52,7 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`sticky top-0 z-40 w-full border-b transition-colors duration-200 ${isDark
-        ? "bg-black/95 backdrop-blur border-gray-800"
-        : "bg-white/95 backdrop-blur border-gray-200"
-        }`}
+      className="sticky top-0 z-40 w-full border-b transition-colors duration-200 bg-white/95 dark:bg-black/95 backdrop-blur border-gray-200 dark:border-gray-800"
     >
       <div className="w-full px-2">
         {/* Mobile: logo left, actions right. Desktop: 3-col grid to center middle links */}
@@ -104,8 +108,7 @@ export default function Navbar() {
               {session?.user ? (
                 <>
                   <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center ${isDark ? "bg-gray-700" : "bg-gray-200"
-                      }`}
+                    className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700"
                   >
                     {session.user.image ? (
                       <Image
