@@ -139,8 +139,8 @@ export default function MCPBrowser() {
         </section>
 
         <section className="mb-60 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-muted-foreground leading-tight">Featured Servers</h2>
+          <div className="mb-5">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-medium font-host text-muted-foreground leading-tight">Featured Servers</h2>
           </div>
           <ServersGrid servers={mcpServers.slice(0, 6)} loading={loading} />
           <div className="flex justify-center mt-10">

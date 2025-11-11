@@ -34,7 +34,7 @@ export default function StatsCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 p-6 rounded-lg bg-card",
+        "flex flex-col gap-4 p-6 rounded-lg bg-card",
         className
       )}
       {...props}

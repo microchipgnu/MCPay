@@ -1,13 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { forwardRef, useRef } from "react"
+import { forwardRef, useRef, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import HighlighterText from "./highlighter-text"
 import { AnimatedBeam } from "@/components/ui/animated-beam"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Smile } from "lucide-react"
 
 interface VisualProxyProps extends React.HTMLAttributes<HTMLDivElement> {}
 
@@ -19,7 +21,7 @@ const Circle = forwardRef<
     <div
       ref={ref}
       className={cn(
-        "z-10 flex size-12 items-center justify-center rounded-full",
+        "relative z-20 flex size-12 items-center justify-center rounded-full",
         padding,
         className
       )}
@@ -39,7 +41,8 @@ const Square = forwardRef<
     <div
       ref={ref}
       className={cn(
-        "z-10 flex size-24 items-center justify-center rounded-lg bg-black dark:bg-white p-3",
+        "relative z-20 flex size-24 items-center justify-center rounded-lg p-3",
+        "bg-[#E1EEEE] dark:bg-[#1A3938]",
         className
       )}
     >
@@ -99,6 +102,13 @@ export default function VisualProxy({
 
   const clientRefs = [chatgptRef, cursorRef, claudeRef, replicateRef, grokRef]
 
+  const clientDelays = useMemo(() => {
+    return AI_CLIENTS_CONFIG.map(() => ({
+      forward: Math.random() * 0.5,
+      reverse: Math.random() * 0.5 + 2.5,
+    }))
+  }, [])
+
   return (
     <div
       className={cn(
@@ -116,42 +126,51 @@ export default function VisualProxy({
         className="relative flex h-[400px] w-full items-center justify-center overflow-hidden px-4 sm:px-10 mb-6"
       >
         <div className="flex max-w-4xl w-full h-full flex-row items-stretch justify-between gap-4 sm:gap-10 mx-auto">
-          <div className="flex flex-col justify-center">
-            <Circle ref={userRef}>
-              <svg
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#000000"
-                strokeWidth="2"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </Circle>
-          </div>
+          <TooltipProvider>
+            <div className="flex flex-col justify-center relative z-20">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="relative z-20">
+                    <Circle ref={userRef}>
+                      <Smile className="w-6 h-6 text-black" />
+                    </Circle>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Your app</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-          <div className="flex flex-col justify-center">
-            <Square ref={mcpayRef}>
-              <div
-                className="bg-white dark:bg-black"
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  maskImage: "url(/MCPay-icon.svg)",
-                  maskSize: "contain",
-                  maskRepeat: "no-repeat",
-                  maskPosition: "center",
-                  WebkitMaskImage: "url(/MCPay-icon.svg)",
-                  WebkitMaskSize: "contain",
-                  WebkitMaskRepeat: "no-repeat",
-                  WebkitMaskPosition: "center",
-                }}
-              />
-            </Square>
-          </div>
+            <div className="flex flex-col justify-center relative z-20">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="relative z-20">
+                    <Square ref={mcpayRef}>
+                      <div
+                        className="bg-teal-700 dark:bg-teal-200"
+                        style={{
+                          width: "52px",
+                          height: "52px",
+                          maskImage: "url(/MCPay-icon.svg)",
+                          maskSize: "contain",
+                          maskRepeat: "no-repeat",
+                          maskPosition: "center",
+                          WebkitMaskImage: "url(/MCPay-icon.svg)",
+                          WebkitMaskSize: "contain",
+                          WebkitMaskRepeat: "no-repeat",
+                          WebkitMaskPosition: "center",
+                        }}
+                      />
+                    </Square>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>MCPay Proxy: we handle x402 payments and discoverability, you just get paid.</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
 
           <div className="flex flex-col justify-center gap-4">
             {AI_CLIENTS_CONFIG.map((client, index) => {
@@ -258,7 +277,7 @@ export default function VisualProxy({
               containerRef={containerRef}
               fromRef={clientRefs[index]}
               toRef={mcpayRef}
-              delay={Math.random() * 0.5}
+              delay={clientDelays[index].forward}
               gradientStartColor="#34d399"
               gradientStopColor="#047857"
             />
@@ -267,7 +286,7 @@ export default function VisualProxy({
               fromRef={clientRefs[index]}
               toRef={mcpayRef}
               reverse
-              delay={Math.random() * 0.5 + 2.5}
+              delay={clientDelays[index].reverse}
               gradientStartColor="#34d399"
               gradientStopColor="#047857"
             />
@@ -278,7 +297,7 @@ export default function VisualProxy({
       <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12">
         <p className="font-inter font-medium leading-relaxed text-lg text-left lg:max-w-[50%]">
           <span className="text-foreground">Register your API/MCP and any AI client can consume it.</span>{" "}
-          <span className="text-muted-foreground">We handle payments and authentication: you just get paid.</span>
+          <span className="text-muted-foreground">We handle x402 payments and authentication: you just get paid.</span>
         </p>
         <div className="flex flex-col lg:flex-row gap-4 lg:max-w-[50%] lg:flex-1">
           <Link href="/register" className="w-full lg:w-auto lg:flex-1">
