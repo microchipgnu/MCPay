@@ -1,0 +1,155 @@
+---
+title: "VLayer Web Proofs (zkTLS)"
+description: "Generate cryptographic proofs of tool calls using VLayer's zkTLS technology"
+---
+
+VLayer provides **zero-knowledge TLS (zkTLS) proofs** for web requests, enabling you to generate cryptographic proofs of tool calls made through MCPay. This allows you to verify that specific API calls were made without revealing sensitive data, creating a trustless verification layer for your MCP server interactions.
+
+## What are Web Proofs?
+
+Web proofs are cryptographic attestations that prove a specific HTTP request was made and received a specific response, without revealing the full contents of the communication. VLayer uses zkTLS technology to generate these proofs, which can be verified independently by anyone.
+
+## How It Works
+
+When you enable VLayer for your MCP requests:
+
+1. **Request Execution**: Your tool call is executed through VLayer's notary service
+2. **Proof Generation**: VLayer generates a cryptographic proof of the request/response
+3. **Proof Return**: The proof is returned alongside the response data
+4. **Verification**: Anyone can verify the proof independently to confirm the request was made
+
+## Enabling VLayer in Your Client
+
+To enable VLayer web proofs for your MCP tool calls, add the `x-vlayer-enabled` header to your requests:
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { withX402Client } from "mcpay/client";
+import { createSigner, isEvmSignerWallet, SupportedEVMNetworks } from "x402/types";
+
+const client = new Client({
+  name: "vlayer-client-example",
+  version: "1.0.0",
+});
+
+const transport = new StreamableHTTPClientTransport(new URL(MCP_SERVER_URL), {
+  requestInit: {
+    headers: {
+      'x-mcp-disable-auth': 'true',
+      'x-vlayer-enabled': 'true', // Enable VLayer web proofs
+    },
+  },
+});
+
+await client.connect(transport);
+```
+
+## Example: Generating a Proof of a Tool Call
+
+The [`vlayer-client-example`](https://github.com/mcpay-tech/mcpay.fun/tree/main/examples/vlayer-client-example) demonstrates how to generate a proof for an MCP tool call:
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { withX402Client } from "mcpay/client";
+import { createSigner, isEvmSignerWallet, SupportedEVMNetworks } from "x402/types";
+import { config } from 'dotenv';
+config();
+
+export const getClient = async () => {
+  const client = new Client({
+    name: "vlayer-client-example",
+    version: "1.0.0",
+  });
+
+  const EVM_PRIVATE_KEY = process.env.EVM_PRIVATE_KEY as string;
+  const MCP_SERVER_URL = "http://localhost:3005/mcp?target-url=aHR0cHM6Ly9tY3AyLm1jcGF5LnRlY2gvbWNwP2lkPXNydl8ycGZmaHZuaQ%3D%3D"
+
+  const transport = new StreamableHTTPClientTransport(new URL(MCP_SERVER_URL), {
+    requestInit: {
+      headers: {
+        'x-mcp-disable-auth': 'true',
+        'x-vlayer-enabled': 'true', // Enable VLayer web proofs
+      },
+    },
+  });
+
+  // ✅ Wait for the connection
+  await client.connect(transport);
+
+  const evmSigner = await createSigner("base-sepolia", EVM_PRIVATE_KEY);
+  if (!isEvmSignerWallet(evmSigner)) {
+    throw new Error("Failed to create EVM signer");
+  }
+
+  return withX402Client(client, {
+    wallet: {
+      evm: evmSigner,
+    },
+    confirmationCallback: async (payment) => {
+      // Payment confirmation logic
+      // ...
+    }
+  });
+};
+
+export const getClientResponse = async () => {
+  const client = await getClient();
+  // ✅ Call tool with VLayer proof enabled
+  const res = await client.callTool({
+    name: "getUserInfo",
+    arguments: {
+      userName: "microchipgnu"
+    },
+  });
+  return res;
+};
+```
+
+## Key Features
+
+- **Zero-Knowledge**: Proofs don't reveal sensitive request/response data
+- **Verifiable**: Anyone can independently verify proofs
+- **Transparent**: Works seamlessly with existing MCP tool calls
+- **Trustless**: No need to trust a third party - proofs are cryptographic
+
+## Use Cases
+
+- **Audit Trails**: Generate verifiable proofs of API calls for compliance
+- **Dispute Resolution**: Prove that specific tool calls were made
+- **Transparency**: Enable users to verify what requests were made on their behalf
+- **Security**: Add an additional layer of cryptographic verification
+
+## Getting Started
+
+1. **Clone the example**:
+   ```bash
+   git clone https://github.com/mcpay-tech/mcpay.fun.git
+   cd examples/vlayer-client-example
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pnpm install
+   ```
+
+3. **Set up environment variables**:
+   ```bash
+   cp env.example .env
+   # Edit .env with your EVM_PRIVATE_KEY
+   ```
+
+4. **Run the example**:
+   ```bash
+   pnpm start
+   ```
+
+The example will make a tool call with VLayer enabled, generating a cryptographic proof that can be verified independently.
+
+## Learn More
+
+- [VLayer Documentation](https://vlayer.io) - Learn more about zkTLS and web proofs
+- [Example Repository](https://github.com/mcpay-tech/mcpay.fun/tree/main/examples/vlayer-client-example) - Full working example
+- [MCPay GitHub](https://github.com/mcpay-tech/mcpay.fun) - Source code and more examples
+

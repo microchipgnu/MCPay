@@ -372,13 +372,40 @@ app.get('/server/:id', async (c: Context) => {
       };
     };
 
+    const detectVLayerProof = (req: unknown, res: unknown, meta: unknown) => {
+      const response = (res && typeof res === 'object') ? (res as Record<string, unknown>) : {};
+      const metaObj = (meta && typeof meta === 'object') ? (meta as Record<string, unknown>) : {};
+
+      const resMeta = (response._meta as Record<string, unknown> | undefined) || undefined;
+      const proofFromResponse = resMeta && (resMeta['vlayer/proof'] as Record<string, unknown> | undefined);
+      const proofFromMeta = metaObj && (metaObj['vlayer/proof'] as Record<string, unknown> | undefined);
+      
+      const proof = proofFromResponse || proofFromMeta;
+      const hasProof = !!proof;
+
+      return {
+        hasProof,
+        proof: proof ? {
+          success: proof.success,
+          version: proof.version,
+          notaryUrl: (proof.meta as Record<string, unknown> | undefined)?.notaryUrl,
+          valid: proof.valid,
+          generatedAt: proof.generatedAt,
+        } : undefined,
+      };
+    };
+
     // Build summary
     const totalRequests = logs.length;
     const lastActivity = logs[0]?.ts ?? server.lastSeenAt;
 
     // Derive recent payments from logs where payment response present
     const payments = logs
-      .map(l => ({ l, p: detectPayment(l.request, l.response, l.meta) }))
+      .map(l => ({ 
+        l, 
+        p: detectPayment(l.request, l.response, l.meta),
+        v: detectVLayerProof(l.request, l.response, l.meta)
+      }))
       .filter(x => !!x.p.hasPayment)
       .slice(0, 50)
       .map(x => {
@@ -397,6 +424,14 @@ app.get('/server/:id', async (c: Context) => {
           });
         })();
         
+        const vlayerProof = x.v.hasProof && x.v.proof ? {
+          success: x.v.proof.success === true,
+          version: x.v.proof.version,
+          notaryUrl: x.v.proof.notaryUrl,
+          valid: x.v.proof.valid === true,
+          generatedAt: x.v.proof.generatedAt,
+        } : undefined;
+        
         return {
           id: x.l.id,
           createdAt: x.l.ts,
@@ -406,8 +441,9 @@ app.get('/server/:id', async (c: Context) => {
           payer: pr?.payer,
           amountFormatted,
           currency: pr ? "USDC" : undefined,
-        };
-      });
+          vlayerProof,
+      };
+    });
 
     // Daily analytics: count by day for recent 30 days based on available logs
     const byDay = new Map<string, number>();

@@ -45,6 +45,13 @@ type ServerDetail = {
     transactionHash?: string;
     amountFormatted?: string;
     currency?: string;
+    vlayerProof?: {
+      success: boolean;
+      version?: string;
+      notaryUrl?: string;
+      valid: boolean;
+      generatedAt?: string;
+    };
   }>
 }
 

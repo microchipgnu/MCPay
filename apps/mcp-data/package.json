@@ -2,7 +2,7 @@
   "name": "@mcpay/mcp-data",
   "private": true,
   "type": "module",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "scripts": {
     "dev": "tsx --watch src/server.ts",
     "start": "tsx src/server.ts",

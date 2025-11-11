@@ -493,6 +493,7 @@ app.all("/mcp", async (c) => {
         
         const withMcpProxy = (session: any) => {
             const hooks: Hook[] = [
+                // AnalyticsHook first so it runs LAST in reverse order (after all hooks modify response)
                 new AnalyticsHook(analyticsSink, targetUrl),
                 new LoggingHook(),
             ];

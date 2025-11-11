@@ -6,11 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TokenIcon } from "@/components/custom-ui/token-icon"
 import { getExplorerUrl } from "@/lib/client/blockscout"
 import { mcpDataApi } from "@/lib/client/utils"
 import { isNetworkSupported, type UnifiedNetwork } from "@/lib/commons"
 import { ArrowUpRight, CheckCircle2, Clock, Pause, Play, RefreshCcw } from "lucide-react"
+import Image from "next/image"
 import { toast } from "sonner"
 
 export type RecentPayment = {
@@ -21,6 +32,13 @@ export type RecentPayment = {
   transactionHash?: string
   amountFormatted?: string
   currency?: string
+  vlayerProof?: {
+    success: boolean
+    version?: string
+    notaryUrl?: string
+    valid: boolean
+    generatedAt?: string
+  }
 }
 
 type RecentPaymentsCardProps = {
@@ -28,6 +46,8 @@ type RecentPaymentsCardProps = {
   initialPayments?: RecentPayment[]
   className?: string
 }
+
+const ITEMS_PER_PAGE = 10
 
 const formatDate = (dateString?: string) => {
   if (!dateString) return ""
@@ -71,8 +91,41 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
   const [error, setError] = useState<string | null>(null)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
+  const [selectedProof, setSelectedProof] = useState<RecentPayment['vlayerProof'] | null>(null)
+  const [isProofModalOpen, setIsProofModalOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    console.log('selectedProof changed:', selectedProof)
+  }, [selectedProof])
 
   const hasVisibleSkeleton = loading && payments.length === 0
+
+  const totalPages = Math.max(1, Math.ceil(payments.length / ITEMS_PER_PAGE))
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const paginatedPayments = payments.slice(startIndex, endIndex)
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)))
+  }
+
+  const goPrev = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const goNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  // Reset to page 1 when payments change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [payments.length])
 
   const fetchPayments = useMemo(() => {
     return async () => {
@@ -127,6 +180,11 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground">
               Latest payment transactions from tool usage with verified token information
+              {payments.length > ITEMS_PER_PAGE && (
+                <span className="ml-2">
+                  (Showing {startIndex + 1}-{Math.min(endIndex, payments.length)} of {payments.length})
+                </span>
+              )}
             </CardDescription>
             {(lastRefreshTime || autoRefreshEnabled) && (
               <div className="flex items-center gap-3 mt-2">
@@ -256,7 +314,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
           <div className="overflow-x-auto">
             <div className="min-w-[800px]">
               <Table>
-                {payments.length > 0 && (
+                {paginatedPayments.length > 0 && (
                   <TableHeader>
                     <TableRow className="border-b border-border">
                       <TableHead className="w-[40px] pr-1 sr-only">Status</TableHead>
@@ -269,7 +327,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
                   </TableHeader>
                 )}
                 <TableBody>
-                  {payments.map((p) => {
+                  {paginatedPayments.map((p) => {
                     const txUrl = safeTxUrl(p.network, p.transactionHash)
                     const fullDate = formatDate(p.createdAt)
                     const rel = formatRelativeShort(p.createdAt)
@@ -314,27 +372,53 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
                           </TooltipProvider>
                         </TableCell>
                         <TableCell className={`${td} text-right`}>
-                          {p.transactionHash ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button asChild size="icon" variant="ghost" className="group h-7 w-7 rounded-sm">
-                                    <a href={txUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-                                      <ArrowUpRight className="size-5 stroke-[2] text-muted-foreground/80 group-hover:text-foreground transition-all duration-300" />
-                                    </a>
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>View Transaction</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
+                          <div className="flex items-center justify-end gap-2">
+                            {p.vlayerProof && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  e.preventDefault()
+                                  console.log('Web Proof button clicked', p.vlayerProof)
+                                  setSelectedProof(p.vlayerProof || null)
+                                  setIsProofModalOpen(true)
+                                }}
+                                className="h-auto px-3 py-2 text-xs font-medium flex items-center gap-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 transition-all rounded-md shadow-sm hover:shadow"
+                              >
+                                <Image
+                                  src="/logos/vlayer_ Signet_Black.svg"
+                                  alt="VLayer Proof"
+                                  width={16}
+                                  height={16}
+                                  className="opacity-90"
+                                />
+                                <span className="font-semibold">Web Proof</span>
+                              </Button>
+                            )}
+                            {p.transactionHash ? (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button asChild size="icon" variant="ghost" className="group h-7 w-7 rounded-sm">
+                                      <a href={txUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
+                                        <ArrowUpRight className="size-5 stroke-[2] text-muted-foreground/80 group-hover:text-foreground transition-all duration-300" />
+                                      </a>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>View Transaction</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     )
                   })}
-                  {payments.length === 0 && !loading && (
+                  {paginatedPayments.length === 0 && !loading && (
                     <TableRow>
                       <TableCell colSpan={7} className="px-6 py-12 text-center">
                         <div className={`${isDark ? "text-gray-400" : "text-gray-500"}`}>
@@ -350,8 +434,160 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
           </div>
         )}
       </CardContent>
+      
+      {payments.length > ITEMS_PER_PAGE && (
+        <div className="px-6 py-4 border-t border-border">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={goPrev}
+                  aria-disabled={currentPage === 1 || loading}
+                  className={currentPage === 1 || loading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {totalPages > 1 && (
+                <>
+                  {currentPage > 2 && (
+                    <>
+                      <PaginationItem>
+                        <PaginationLink onClick={() => goToPage(1)} className="cursor-pointer">1</PaginationLink>
+                      </PaginationItem>
+                      {currentPage > 3 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                    </>
+                  )}
+
+                  {Array.from({ length: 3 })
+                    .map((_, i) => currentPage - 1 + i)
+                    .filter(p => p >= 1 && p <= totalPages)
+                    .map(p => (
+                      <PaginationItem key={p}>
+                        <PaginationLink 
+                          onClick={() => goToPage(p)} 
+                          isActive={p === currentPage}
+                          className="cursor-pointer"
+                        >
+                          {p}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+
+                  {currentPage < totalPages - 1 && (
+                    <>
+                      {currentPage < totalPages - 2 && (
+                        <PaginationItem>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      )}
+                      <PaginationItem>
+                        <PaginationLink onClick={() => goToPage(totalPages)} className="cursor-pointer">
+                          {totalPages}
+                        </PaginationLink>
+                      </PaginationItem>
+                    </>
+                  )}
+                </>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={goNext}
+                  aria-disabled={currentPage === totalPages || loading}
+                  className={currentPage === totalPages || loading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+      
+      <Dialog open={isProofModalOpen} onOpenChange={setIsProofModalOpen}>
+        <DialogContent className={`max-w-2xl ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+          <DialogHeader>
+            <DialogTitle className={`${isDark ? "text-white" : "text-gray-900"}`}>
+              Web Proof Details
+            </DialogTitle>
+            <DialogDescription className={isDark ? "text-gray-400" : "text-gray-600"}>
+              zkTLS proof - Cryptographic proof information for this payment
+            </DialogDescription>
+          </DialogHeader>
+          {selectedProof && (
+            <div className="space-y-4 mt-4">
+              <div className={`p-4 rounded-lg border ${isDark ? "bg-gray-800/50 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Status</span>
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      selectedProof.valid && selectedProof.success
+                        ? isDark ? "bg-green-900/30 text-green-400" : "bg-green-100 text-green-700"
+                        : isDark ? "bg-red-900/30 text-red-400" : "bg-red-100 text-red-700"
+                    }`}>
+                      {selectedProof.valid && selectedProof.success ? "Valid" : "Invalid"}
+                    </span>
+                  </div>
+                  
+                  {selectedProof.version && (
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Version</span>
+                      <span className={`text-sm font-mono ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                        {selectedProof.version}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedProof.generatedAt && (
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Generated At</span>
+                      <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                        {formatDate(selectedProof.generatedAt)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {selectedProof.notaryUrl && (
+                    <div className="flex items-center justify-between pt-2 border-t border-border">
+                      <span className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}>Notary URL</span>
+                      <Button
+                        asChild
+                        variant="outline"
+                        size="sm"
+                        className="h-7"
+                      >
+                        <a href={selectedProof.notaryUrl} target="_blank" rel="noreferrer">
+                          View Notary
+                          <ArrowUpRight className="ml-1 h-3 w-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+          <div className={`mt-6 pt-4 border-t border-border flex items-center justify-center gap-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+            <a 
+              href="https://vlayer.xyz" 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <span className="text-xs">Powered By</span>
+              <Image
+                src="/vlayer-logo.svg"
+                alt="VLayer"
+                width={64}
+                height={64}
+                className="opacity-80"
+              />
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }
-
-

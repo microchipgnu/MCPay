@@ -1,5 +1,12 @@
 # @mcpay/mcp
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies
+  - mcpay@0.1.16
+
 ## 0.0.4
 
 ### Patch Changes

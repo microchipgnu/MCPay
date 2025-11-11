@@ -1,5 +1,5 @@
 {
     "title": "MCPay",
-    "pages": ["index", "quickstart", "examples", "x402", "faq", "more-about"],
+    "pages": ["index", "quickstart", "examples", "x402", "partners", "faq", "more-about"],
     "defaultOpen": true
   }
