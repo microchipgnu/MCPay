@@ -23,10 +23,10 @@ export default function Stats({
       )}
       {...props}
     >
-      <div className="flex flex-col gap-12">
+      <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="flex flex-col gap-4">
-          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-muted-foreground leading-tight">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-medium font-host text-muted-foreground leading-tight">
             Latest Transactions
           </h2>
         </div>

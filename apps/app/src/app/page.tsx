@@ -6,7 +6,6 @@ import FAQSection from "@/components/custom-ui/faq-section"
 import Footer from "@/components/custom-ui/footer"
 import GithubInfo from "@/components/custom-ui/github-info"
 import Hero3D from "@/components/custom-ui/hero-3d"
-import MinimalExplorer from "@/components/custom-ui/minimal-explorer"
 import ServersGrid from "@/components/custom-ui/servers-grid"
 import Stats from "@/components/custom-ui/stats"
 import TypingAnimation from "@/components/custom-ui/typing-animation"
@@ -139,8 +138,8 @@ export default function MCPBrowser() {
         </section>
 
         <section className="mb-60 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-10">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-muted-foreground leading-tight">Featured Servers</h2>
+          <div className="mb-5">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-medium font-host text-muted-foreground leading-tight">Featured Servers</h2>
           </div>
           <ServersGrid servers={mcpServers.slice(0, 6)} loading={loading} />
           <div className="flex justify-center mt-10">

@@ -80,7 +80,45 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedTheme = localStorage.getItem("mcp-browser-theme");
+                  let isDark = false;
+                  
+                  if (savedTheme === "dark" || savedTheme === "light") {
+                    isDark = savedTheme === "dark";
+                  } else {
+                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                  }
+                  
+                  if (isDark) {
+                    document.documentElement.classList.add('dark');
+                  } else {
+                    document.documentElement.classList.remove('dark');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
+              html:not(.dark) body {
+                background-color: white;
+              }
+              html.dark body {
+                background-color: black;
+              }
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${hostGrotesk.variable} ${geistMono.variable} antialiased`}
       >

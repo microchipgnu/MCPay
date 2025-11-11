@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import Logo3D from "./logo-3d"
+import {
+  motion,
+  useReducedMotion,
+  type Variants,
+} from "motion/react"
+import { easeOut } from "motion"
 
 const SUPPORTED_BY_LOGOS = [
   {
@@ -56,6 +62,25 @@ export default function Hero3D({
 }: {
   className?: string
 }) {
+  const prefersReduced = useReducedMotion()
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const fadeUp: Variants = React.useMemo(
+    () => ({
+      hidden: { opacity: 0, y: prefersReduced ? 0 : 8 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: prefersReduced ? 0 : 0.4, ease: easeOut },
+      },
+    }),
+    [prefersReduced]
+  )
+
   return (
     <section
       className={cn(
@@ -66,32 +91,47 @@ export default function Hero3D({
       <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 lg:items-stretch lg:min-h-[600px]">
         {/* Mobile Layout */}
         {/* Stats */}
-        <div className="flex flex-wrap gap-3 order-1 lg:hidden">
+        <motion.div
+          className="flex flex-wrap gap-3 order-1 lg:hidden"
+          initial="hidden"
+          animate={isMounted ? "visible" : "hidden"}
+          variants={fadeUp}
+        >
           <HighlighterText>
             TRANSACTIONS: <span className="!text-foreground">+ 100,000</span>
           </HighlighterText>
           <HighlighterText>
             VOLUME: <span className="!text-foreground">+ $30,000</span>
           </HighlighterText>
-        </div>
+        </motion.div>
 
         {/* Heading and Subheading - Mobile */}
-        <div className="flex flex-col gap-1 order-2 lg:hidden">
+        <motion.div
+          className="flex flex-col gap-1 order-2 lg:hidden"
+          initial="hidden"
+          animate={isMounted ? "visible" : "hidden"}
+          variants={fadeUp}
+        >
           <h1 className="text-3xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
             Payments infrastructure for the agent economy
           </h1>
           <p className="text-sm sm:text-lg text-foreground/80 leading-relaxed max-w-lg">
             In one minute, add our open-source proxy to your APIs or MCPs and get discovered and paid by autonomous agents.
           </p>
-        </div>
+        </motion.div>
 
         {/* 3D Container - Mobile */}
         <div className="order-4 lg:hidden">
-          <Logo3D className="h-[300px] min-h-0" />
+          <Logo3D className="h-[300px] min-h-0" delay={prefersReduced ? 0 : 0.4} duration={prefersReduced ? 0 : 1.2} />
         </div>
 
         {/* CTAs - Mobile */}
-        <div className="flex gap-4 pt-2 order-5 lg:hidden -mx-4 px-4">
+        <motion.div
+          className="flex gap-4 pt-2 order-5 lg:hidden -mx-4 px-4"
+          initial="hidden"
+          animate={isMounted ? "visible" : "hidden"}
+          variants={fadeUp}
+        >
           <Link href="/register" className="flex-1 min-w-0">
             <Button variant="customTallPrimary" size="tall" className="w-full px-3 lg:px-6">
               MONETIZE SERVERS
@@ -102,10 +142,15 @@ export default function Hero3D({
               DOCUMENTATION
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
         {/* Supported By Section - Mobile */}
-        <div className="space-y-4 order-6 lg:hidden">
+        <motion.div
+          className="space-y-4 order-6 lg:hidden"
+          initial="hidden"
+          animate={isMounted ? "visible" : "hidden"}
+          variants={fadeUp}
+        >
           <HighlighterText>SUPPORTED BY</HighlighterText>
           <div className="flex flex-wrap gap-3">
             {SUPPORTED_BY_LOGOS.map((logo) => {
@@ -146,22 +191,32 @@ export default function Hero3D({
               )
             })}
           </div>
-        </div>
+        </motion.div>
 
         {/* Desktop Layout - Left Column */}
         <div className="hidden lg:flex lg:flex-col lg:justify-between lg:gap-24 lg:order-1 lg:col-span-1 lg:h-full">
           {/* Stats */}
-          <div className="flex flex-wrap gap-3">
+          <motion.div
+            className="flex flex-wrap gap-3"
+            initial="hidden"
+            animate={isMounted ? "visible" : "hidden"}
+            variants={fadeUp}
+          >
             <HighlighterText>
               TRANSACTIONS: <span className="text-foreground">+ 100,000</span>
             </HighlighterText>
             <HighlighterText>
               VOLUME: <span className="text-foreground">+ $30,000</span>
             </HighlighterText>
-          </div>
+          </motion.div>
 
           {/* Main Content */}
-          <div className="flex-1 flex flex-col justify-center space-y-3 max-w-lg">
+          <motion.div
+            className="flex-1 flex flex-col justify-center space-y-3 max-w-lg"
+            initial="hidden"
+            animate={isMounted ? "visible" : "hidden"}
+            variants={fadeUp}
+          >
             {/* Heading */}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
               Payments infrastructure for the agent economy
@@ -185,10 +240,15 @@ export default function Hero3D({
                 </Button>
               </Link>
             </div>
-          </div>
+          </motion.div>
 
           {/* Supported By Section */}
-          <div className="space-y-4">
+          <motion.div
+            className="space-y-4"
+            initial="hidden"
+            animate={isMounted ? "visible" : "hidden"}
+            variants={fadeUp}
+          >
             <HighlighterText>SUPPORTED BY</HighlighterText>
             <div className="flex flex-wrap gap-3">
               {SUPPORTED_BY_LOGOS.map((logo) => (
@@ -235,12 +295,12 @@ export default function Hero3D({
                 </Link>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
 
         {/* Desktop Layout - Right Column - 3D Container */}
         <div className="hidden lg:block lg:order-2 lg:col-span-1 lg:h-full">
-          <Logo3D className="h-full" />
+          <Logo3D className="h-full" delay={prefersReduced ? 0 : 0.4} duration={prefersReduced ? 0 : 1.2} />
         </div>
       </div>
     </section>
