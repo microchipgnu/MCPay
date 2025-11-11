@@ -257,6 +257,10 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
 
                 let attempts = 0;
                 const maxRetries = 1;
+                // Track hook response retries separately to prevent infinite loops
+                // This counter is independent of attempts since hook responses don't consume upstream requests
+                let hookResponseRetries = 0;
+                const maxHookResponseRetries = 10; // Prevent infinite loops from hook responses
                 while (true) {
                     // Call request hooks on each iteration (including retries)
                     // This allows hooks to intercept retries before the fetch happens
@@ -295,13 +299,16 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                             }
                         }
                         // If retry was requested, check retry limit before continuing
+                        // Note: We don't increment attempts here because no upstream request was made.
+                        // The attempts counter should only track actual upstream requests, not hook responses.
+                        // We use a separate counter for hook response retries to prevent infinite loops.
                         if (requestedRetry) {
-                            if (attempts < maxRetries) {
-                                attempts++;
+                            if (hookResponseRetries < maxHookResponseRetries) {
+                                hookResponseRetries++;
                                 currentReq = requestedRetry.request;
-                                continue; // Retry the request
+                                continue; // Retry the request (without incrementing attempts)
                             }
-                            // Max retries exceeded, return the current response (fall through)
+                            // Max hook response retries exceeded, return the current response (fall through)
                         }
                         // Return the response (either no retry requested, or retry limit exceeded)
                         const id = (originalRpc?.id as string | number | undefined) ?? 0;

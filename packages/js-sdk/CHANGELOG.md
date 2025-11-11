@@ -1,5 +1,11 @@
 # mcpay
 
+## 0.1.15
+
+### Patch Changes
+
+- implement separate retry logic for hook responses to prevent infinite loops
+
 ## 0.1.14
 
 ### Patch Changes
