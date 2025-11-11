@@ -3,7 +3,7 @@ import { oAuthDiscoveryMetadata, oAuthProtectedResourceMetadata, withMcpAuth } f
 import dotenv from "dotenv";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { LoggingHook, withProxy, createMcpHandler } from "mcpay/handler";
+import { LoggingHook, withProxy, createMcpHandler, Hook } from "mcpay/handler";
 import { AnalyticsHook } from "mcpay/handler";
 import { z } from "zod";
 import env, { getPort, getTrustedOrigins, isDevelopment } from "./env.js";
@@ -460,6 +460,18 @@ app.all("/mcp", async (c) => {
     const hasId = !!currentUrl.searchParams.get("id");
     const shouldProxy = hasId || !!targetUrlParam;
     const original = c.req.raw;
+    
+    const isTruthyHeader = (value: string | null) => {
+        if (!value) return false;
+        const v = value.toLowerCase();
+        return v === "1" || v === "true" || v === "yes" || v === "on";
+    };
+    
+    // Control flags via headers:
+    // - x-mcp-disable-auth: when truthy, bypasses withMcpAuth entirely
+    // - x-mcp-disable-x402: when truthy (or auth disabled), omits X402WalletHook
+    const disableMcpAuth = isTruthyHeader(original.headers.get("x-mcp-disable-auth"));
+    const disableX402 = isTruthyHeader(original.headers.get("x-mcp-disable-x402")) || disableMcpAuth;
 
     if (shouldProxy) {
         console.log("[MCP] Proxying request:", {
@@ -479,34 +491,41 @@ app.all("/mcp", async (c) => {
              vlayerEnabledHeader === "1" || 
              vlayerEnabledHeader.toLowerCase() === "yes");
         
-        const withMcpProxy = (session: any) => withProxy(targetUrl, [
-            new AnalyticsHook(analyticsSink, targetUrl),
-            new LoggingHook(),
-            new X402WalletHook(session),
-            new SecurityHook(),
-            new VLayerHook({ 
-                enabled: isVlayerEnabled, 
-                targetUrl: targetUrl,
-                logProofs: true, 
-                attachToResponse: true,
-                validateProofs: true,
-                includeRequestDetails: true,
-                includeResponseDetails: true,
-                maxProofSize: 4 * 1024 * 1024, // 4MB
-                timeoutMs: 300000, // 5 minutes
-                retryAttempts: 2,
-                excludeDomains: undefined,//['localhost', '127.0.0.1'],
-                headers: [
-                    "Accept: application/json, text/event-stream",
-                    "Content-Type: application/json"
-                ],
-                vlayerConfig: {
-                    apiEndpoint: env.VLAYER_WEB_PROOF_API,
-                    clientId: env.VLAYER_CLIENT_ID,
-                    bearerToken: env.VLAYER_BEARER_TOKEN,
-                },
-            }),
-        ]);
+        const withMcpProxy = (session: any) => {
+            const hooks: Hook[] = [
+                new AnalyticsHook(analyticsSink, targetUrl),
+                new LoggingHook(),
+            ];
+            if (!disableX402 && session) {
+                hooks.push(new X402WalletHook(session));
+            }
+            hooks.push(new SecurityHook());
+            if (isVlayerEnabled) {
+                hooks.push(new VLayerHook({ 
+                    enabled: isVlayerEnabled, 
+                    targetUrl: targetUrl,
+                    logProofs: true, 
+                    attachToResponse: true,
+                    validateProofs: true,
+                    includeRequestDetails: true,
+                    includeResponseDetails: true,
+                    maxProofSize: 4 * 1024 * 1024, // 4MB
+                    timeoutMs: 300000, // 5 minutes
+                    retryAttempts: 2,
+                    excludeDomains: undefined,//['localhost', '127.0.0.1'],
+                    headers: [
+                        "Accept: application/json, text/event-stream",
+                        "Content-Type: application/json"
+                    ],
+                    vlayerConfig: {
+                        apiEndpoint: env.VLAYER_WEB_PROOF_API,
+                        clientId: env.VLAYER_CLIENT_ID,
+                        bearerToken: env.VLAYER_BEARER_TOKEN,
+                    },
+                }));
+            }
+            return withProxy(targetUrl, hooks);
+        };
         
         // Extract API key from various sources
         const apiKeyFromQuery = currentUrl.searchParams.get("apiKey") || currentUrl.searchParams.get("api_key");
@@ -532,6 +551,11 @@ app.all("/mcp", async (c) => {
         if (session) {
             console.log("[MCP] Authenticated session found, proxying with session:", session.session?.userId || session.session);
             return withMcpProxy(session.session)(original);
+        }
+
+        if (disableMcpAuth) {
+            console.log("[MCP] MCP auth disabled via header; proxying without auth");
+            return withMcpProxy(null)(original);
         }
 
         console.log("[MCP] No authenticated session, using withMcpAuth");
@@ -612,6 +636,11 @@ app.all("/mcp", async (c) => {
         //     }
         // );
     });
+
+    if (disableMcpAuth) {
+        console.log("[MCP] MCP auth disabled via header; serving MCP without auth");
+        return handler(null)(c.req.raw);
+    }
 
     return withMcpAuth(auth, (req, session) => handler(session)(req))(c.req.raw);
 });
