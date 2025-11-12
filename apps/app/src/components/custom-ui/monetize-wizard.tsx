@@ -63,6 +63,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   const [bulkHeadersText, setBulkHeadersText] = useState("")
   const [toolsSearch, setToolsSearch] = useState("")
   const [bulkPriceInput, setBulkPriceInput] = useState<string>("")
+  const [priceInputDigits, setPriceInputDigits] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const fn = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
@@ -230,6 +231,28 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
     return num.toFixed(2)
   }
 
+  // Handle currency input as cents (right to left)
+  // Input is treated as cents being typed from right to left
+  const handleCurrencyInput = (inputValue: string, toolName: string | null, setter: (val: number) => void) => {
+    // Remove all non-digits to get raw digits
+    const digitsOnly = inputValue.replace(/\D/g, '')
+    
+    // Track digits for this input
+    if (toolName) {
+      setPriceInputDigits(prev => ({ ...prev, [toolName]: digitsOnly }))
+    }
+    
+    if (digitsOnly === '') {
+      setter(0)
+      return
+    }
+    
+    // Convert cents to dollars (divide by 100)
+    // e.g., "3" -> 0.03, "33" -> 0.33, "333" -> 3.33
+    const dollars = parseInt(digitsOnly, 10) / 100
+    setter(dollars)
+  }
+
   const Content = (
     <div className={`flex ${isMobile ? 'h-full' : ''} flex-col`}>
       <div className="flex-1 min-h-0 flex flex-col space-y-4 overflow-hidden">
@@ -249,19 +272,16 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                   <Input
                     variant="default"
                     type="text"
-                    value={bulkPriceInput}
+                    value={bulkPriceInput ? formatCurrency(parseInt(bulkPriceInput, 10) / 100) : ''}
                     onChange={(e) => {
-                      const cleaned = e.target.value.replace(/[^0-9.]/g, '')
-                      const parts = cleaned.split('.')
-                      let formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned
-                      if (parts.length === 2 && parts[1].length > 2) {
-                        formatted = parts[0] + '.' + parts[1].slice(0, 2)
-                      }
-                      setBulkPriceInput(formatted)
+                      const digitsOnly = e.target.value.replace(/\D/g, '')
+                      setBulkPriceInput(digitsOnly)
                     }}
                     onBlur={(e) => {
-                      const val = parseFloat(e.target.value) || 0
-                      setBulkPriceInput(val > 0 ? formatCurrency(val) : '')
+                      const digitsOnly = e.target.value.replace(/\D/g, '')
+                      if (digitsOnly === '') {
+                        setBulkPriceInput('')
+                      }
                     }}
                     placeholder="0.00"
                     className="w-24 pl-8 pr-3 text-right bg-background border-border font-mono"
@@ -271,8 +291,10 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                   type="button" 
                   variant="secondary" 
                   onClick={() => {
-                    const v = parseFloat(bulkPriceInput)
-                    if (!isFinite(v) || v <= 0) { toast.error('Enter a positive number'); return }
+                    const digitsOnly = bulkPriceInput.replace(/\D/g, '')
+                    if (digitsOnly === '') { toast.error('Enter a positive number'); return }
+                    const v = parseInt(digitsOnly, 10) / 100
+                    if (v <= 0) { toast.error('Enter a positive number'); return }
                     setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, v])))
                     setBulkPriceInput("")
                   }}
@@ -283,8 +305,9 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                   type="button" 
                   variant="outline" 
                   onClick={() => {
-                    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0.01])))
+                    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0])))
                     setBulkPriceInput("")
+                    setPriceInputDigits({})
                   }}
                 >
                   CLEAR
@@ -339,19 +362,22 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                           <Input
                             variant="tall"
                             type="text"
-                            value={priceValue > 0 ? formatCurrency(priceValue) : ''}
+                            value={priceInputDigits[t.name] ? formatCurrency(parseInt(priceInputDigits[t.name], 10) / 100) : (priceValue > 0 ? formatCurrency(priceValue) : '')}
                             onChange={(e) => {
-                              const cleaned = e.target.value.replace(/[^0-9.]/g, '')
-                              const parts = cleaned.split('.')
-                              let formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned
-                              if (parts.length === 2 && parts[1].length > 2) {
-                                formatted = parts[0] + '.' + parts[1].slice(0, 2)
-                              }
-                              setPriceByTool((prev) => ({ ...prev, [t.name]: formatted === '' ? 0 : parseFloat(formatted) || 0 }))
+                              handleCurrencyInput(e.target.value, t.name, (val) => {
+                                setPriceByTool((prev) => ({ ...prev, [t.name]: val }))
+                              })
                             }}
                             onBlur={(e) => {
-                              const val = parseFloat(e.target.value) || 0
-                              setPriceByTool((prev) => ({ ...prev, [t.name]: val }))
+                              const digitsOnly = e.target.value.replace(/\D/g, '')
+                              if (digitsOnly === '') {
+                                setPriceByTool((prev) => ({ ...prev, [t.name]: 0 }))
+                                setPriceInputDigits(prev => {
+                                  const next = { ...prev }
+                                  delete next[t.name]
+                                  return next
+                                })
+                              }
                             }}
                             placeholder="0.00"
                             className={cn("w-32 pl-8 pr-3 text-right bg-background border-border font-mono", hasPrice && "border-foreground")}
@@ -979,10 +1005,10 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[85vh] flex flex-col">
-          <DrawerHeader>
-            <DrawerTitle className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">{currentLabel}</DrawerTitle>
-            <div className="text-base font-inter text-muted-foreground">{stepDescription}</div>
+        <DrawerContent className="max-h-[85vh] flex flex-col rounded-[2px]">
+          <DrawerHeader className="pb-6">
+            <DrawerTitle className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-foreground leading-tight">{currentLabel}</DrawerTitle>
+            <div className="text-base font-inter text-muted-foreground mt-1">{stepDescription}</div>
           </DrawerHeader>
           <div className="flex-1 min-h-0 overflow-auto px-4">{Content}</div>
           <DrawerFooter>
@@ -1036,10 +1062,10 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-[min(96vw,900px)] min-h-[80vh] max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <div className="space-y-2">
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">{currentLabel}</h2>
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-[min(96vw,900px)] min-h-[80vh] max-h-[80vh] flex flex-col rounded-[2px]">
+        <DialogHeader className="pb-6">
+          <div className="space-y-1">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-foreground leading-tight">{currentLabel}</h2>
             <div className="text-base font-inter text-muted-foreground">{stepDescription}</div>
           </div>
         </DialogHeader>
