@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog"
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
@@ -208,11 +209,11 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   }
 
   const totalSteps = 4
-  const currentLabel = step === 1 ? 'Set Pricing' : step === 2 ? 'Auth' : step === 3 ? 'Networks' : 'Addresses'
+  const currentLabel = step === 1 ? 'Set Pricing' : step === 2 ? 'Auth (Optional)' : step === 3 ? 'Networks' : 'Addresses'
   const stepDescription = useMemo(() => {
     switch (step) {
       case 1: return 'Review each tool and set a specific price. You can edit these later.'
-      case 2: return 'Configure upstream auth headers (optional).'
+      case 2: return 'Configure upstream auth headers. You can edit there later.'
       case 3: return 'Choose networks.'
       case 4: return needsEvm && needsSvm ? 'Enter EVM and SVM recipient addresses.' : needsEvm ? 'Enter EVM recipient address.' : 'Enter SVM recipient address.'
       default: return ''
@@ -348,7 +349,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                                   }
                                   setExpandedDescriptions(newSet)
                                 }}
-                                className="ml-1 font-mono text-muted-foreground underline decoration-dotted hover:text-foreground hover:no-underline"
+                                className="ml-1 font-mono text-muted-foreground underline decoration-dotted hover:text-foreground hover:no-underline cursor-pointer"
                               >
                                 {isExpanded ? 'LESS' : 'MORE'}
                               </button>
@@ -393,157 +394,114 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Checkbox id="require-auth2" checked={requireAuth} onCheckedChange={(v) => setRequireAuth(Boolean(v))} />
-                <Label htmlFor="require-auth2" className="flex items-center gap-1">Require auth headers
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent align="start">Forward these headers to your upstream MCP server.</TooltipContent>
-                  </Tooltip>
+          <div className="space-y-6">
+            {/* Switch - Centered */}
+            <div className="flex justify-center">
+              <div className="flex items-center gap-3">
+                <Switch id="require-auth2" checked={requireAuth} onCheckedChange={(v) => setRequireAuth(Boolean(v))} />
+                <Label htmlFor="require-auth2" className="font-mono uppercase text-sm cursor-pointer">
+                  REQUIRE AUTH HEADERS
                 </Label>
               </div>
-              {requireAuth && (
-                <Button type="button" variant="ghost" size="sm" onClick={() => setShowValues((v) => !v)} className="shrink-0">
-                  {showValues ? (<span className="inline-flex items-center gap-1"><EyeOff className="h-4 w-4" /> Hide values</span>) : (<span className="inline-flex items-center gap-1"><Eye className="h-4 w-4" /> Show values</span>)}
-                </Button>
-              )}
             </div>
-            
-            {!requireAuth && (
-              <div className="border border-border rounded-md bg-muted/30 p-4">
+
+            {/* Card below switch */}
+            <div className="bg-card rounded-[2px] p-4">
+              {!requireAuth && (
                 <div className="flex items-start gap-3">
                   <div className="p-2 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 dark:bg-blue-800/50">
                     <AlertCircle className="h-4 w-4" />
                   </div>
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-foreground">No authentication required</h4>
-                    <p className="text-xs text-muted-foreground">
-                      Your MCP server doesn&apos;t require authentication headers. Our proxy server will forward requests directly to your upstream MCP server without any authentication.
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">By default, no authentication is required.</span> Our proxy server will forward request directly to your upstream MCP Server without any authentication.
                     </p>
-                    <div className="text-xs text-muted-foreground">
-                      <p className="font-medium mb-1">You can enable authentication later if your upstream server requires:</p>
+                    <div className="text-sm text-muted-foreground">
+                      <p className="font-medium mb-1 text-foreground">You can enable authentication later if your server requires:</p>
                       <ul className="list-disc list-inside space-y-1 ml-2">
-                        <li>API key validation</li>
+                        <li>API Key validation</li>
                         <li>Bearer token authentication</li>
                         <li>Custom header forwarding</li>
+                        <li>Others</li>
                       </ul>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+              {requireAuth && (
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 dark:bg-teal-800/50">
+                    <AlertCircle className="h-4 w-4" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium text-foreground">Authentication headers required</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Configure headers that our proxy server will forward to your upstream MCP Server for authentication.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Header Configuration - Outside card when switch is activated */}
             {requireAuth && (
               <div className="space-y-4">
-                <div className="border border-border rounded-md bg-muted/30 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-md bg-teal-500/10 text-teal-600 dark:text-teal-400 dark:bg-teal-800/50">
-                      <AlertCircle className="h-4 w-4" />
-                    </div>
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-foreground">Authentication headers required</h4>
-                      <p className="text-xs text-muted-foreground">
-                        Configure headers that our proxy server will forward to your upstream MCP server for authentication.
-                      </p>
-                    </div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm font-mono uppercase">CONFIGURE HEADERS</Label>
+                    <HighlighterText>{authHeaders.filter(h => h.key && h.value).length}/{authHeaders.length}</HighlighterText>
                   </div>
+                  <Button 
+                    type="button" 
+                    variant="secondary" 
+                    onClick={() => setAuthHeaders((prev) => [...prev, { key: '', value: '' }])}
+                  >
+                    ADD HEADER
+                  </Button>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-muted-foreground">Quick presets:</span>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setAuthHeaders((prev) => [...prev, { key: 'Authorization', value: 'Bearer ' }])} className="text-xs">
-                      Authorization: Bearer
-                    </Button>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setAuthHeaders((prev) => [...prev, { key: 'x-api-key', value: '' }])} className="text-xs">
-                      x-api-key
-                    </Button>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" size="sm" className="text-xs">Paste headers</Button>
-                      </PopoverTrigger>
-                      <PopoverContent align="start" className="w-[360px] max-w-[calc(100vw-6rem)]">
-                        <div className="space-y-3">
-                          <div className="text-xs text-muted-foreground">Paste lines like &quot;Key: Value&quot; or &quot;Key=Value&quot;.</div>
-                          <Textarea 
-                            value={bulkHeadersText} 
-                            onChange={(e) => setBulkHeadersText(e.target.value)} 
-                            placeholder={`Authorization: Bearer sk-xxxx\nx-api-key: abc123`} 
-                            className="bg-background border-border text-xs" 
-                          />
-                          <div className="flex justify-end gap-2">
-                            <Button type="button" variant="outline" size="sm" onClick={() => setBulkHeadersText("")} className="text-xs">Clear</Button>
-                            <Button type="button" size="sm" onClick={() => {
-                              const lines = (bulkHeadersText || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
-                              const parsed: Array<{ key: string; value: string }> = []
-                              for (const line of lines) {
-                                const colon = line.indexOf(':')
-                                const eq = line.indexOf('=')
-                                const idx = colon >= 0 ? colon : eq
-                                if (idx < 0) continue
-                                const k = line.slice(0, idx).trim()
-                                const v = line.slice(idx + 1).trim()
-                                if (k) parsed.push({ key: k, value: v })
-                              }
-                              if (parsed.length > 0) {
-                                setAuthHeaders(parsed)
-                                setBulkHeadersText("")
-                                toast.success('Parsed headers')
-                              } else {
-                                toast.error('No headers detected')
-                              }
-                            }} className="text-xs">Parse</Button>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="text-xs font-medium text-muted-foreground">Configure headers:</div>
-                    <div className="space-y-2">
-                      {authHeaders.map((row, idx) => (
-                        <div key={idx} className="flex items-center gap-2 min-w-0 p-2 rounded-md border border-border bg-background">
-                          <Input
-                            placeholder="Header name (e.g., Authorization)"
-                            value={row.key}
-                            onChange={(e) => setAuthHeaders((prev) => prev.map((r, i) => i === idx ? { ...r, key: e.target.value } : r))}
-                            className="w-48 bg-background border-border text-xs"
-                          />
-                          <Input
-                            placeholder="Header value"
-                            type={showValues ? 'text' : 'password'}
-                            value={row.value}
-                            onChange={(e) => setAuthHeaders((prev) => prev.map((r, i) => i === idx ? { ...r, value: e.target.value } : r))}
-                            className="flex-1 min-w-0 max-w-full bg-background border-border text-xs"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setAuthHeaders((prev) => prev.filter((_, i) => i !== idx))}
-                            aria-label="Remove header"
-                            className="h-8 w-8"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      ))}
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setAuthHeaders((prev) => [...prev, { key: '', value: '' }])}
-                        className="text-xs"
-                      >
-                        Add header
-                      </Button>
+                {authHeaders.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-mono uppercase">HEADER NAME</Label>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-mono uppercase">HEADER VALUE</Label>
+                      </div>
+                      <div className="w-14"></div>
                     </div>
+                    {authHeaders.map((row, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                        <Input
+                          placeholder="Authorization"
+                          value={row.key}
+                          onChange={(e) => setAuthHeaders((prev) => prev.map((r, i) => i === idx ? { ...r, key: e.target.value } : r))}
+                          variant="tall"
+                          className="bg-background border-border font-mono"
+                        />
+                        <Input
+                          placeholder="Bearer token"
+                          type={showValues ? 'text' : 'password'}
+                          value={row.value}
+                          onChange={(e) => setAuthHeaders((prev) => prev.map((r, i) => i === idx ? { ...r, value: e.target.value } : r))}
+                          variant="tall"
+                          className="bg-background border-border font-mono"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="tall"
+                          onClick={() => setAuthHeaders((prev) => prev.filter((_, i) => i !== idx))}
+                          aria-label="Remove header"
+                          className="w-14 h-14 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
