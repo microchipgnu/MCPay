@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { mcpDataApi, api as realApi, urlUtils } from "@/lib/client/utils"
 import { usePrimaryWallet } from "@/components/providers/user"
@@ -541,161 +543,99 @@ function RegisterOptionsPage() {
 
 
   return (
-    <div className="bg-background">
-      <main>
+    <div className="bg-background flex flex-col" style={{ minHeight: 'calc(100vh - 64px)' }}>
+      <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           <div className="max-w-6xl px-4 md:px-6 mx-auto mb-10">
-            <h2 className="text-3xl font-semibold font-host text-foreground">Register</h2>
-            <p className="text-base text-muted-foreground">
-              Connect your MCP server and start accepting payments instantly.
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">Register</h2>
+            <p className="text-base font-inter text-muted-foreground mt-4">
+              Connect your MCP/API and start accepting payments instantly.
             </p>
           </div>
 
-
           <div className="max-w-6xl px-4 md:px-6 mx-auto">
+            {/* Tabs for MCP/API Selection */}
+            <Tabs value={isOpenApiMode ? "api" : "mcp"} onValueChange={(value) => {
+              setIsOpenApiMode(value === "api")
+              setServerUrl('')
+              setUrlValid(false)
+              setUrlError(null)
+              setPreviewTools(null)
+              setAuthRequiredDetected(false)
+            }} className="mb-10">
+              <TabsList size="tall" variant="equal" className="max-w-md">
+                <TabsTrigger value="mcp" size="tall" variant="highlight">MCP SERVER</TabsTrigger>
+                <TabsTrigger value="api" size="tall" variant="highlight">API</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
             {/* URL Input Section */}
-            <Card className="border border-border bg-background mb-10">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex gap-2">
-                    <CardTitle className="text-xl font-host text-foreground">
-                      {isOpenApiMode ? "OpenAPI Specification" : "Server URL"}
-                    </CardTitle>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" aria-label="What is an MCP endpoint?" className="inline-flex items-center text-muted-foreground hover:text-foreground">
-                          <Info className="h-4 w-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {isOpenApiMode 
-                          ? "Provide an OpenAPI/Swagger specification URL to convert to MCP"
-                          : "Provide the HTTP(S) endpoint your MCP server exposes"
-                        }
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  
-                  {/* Mode Selector */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex gap-1 p-1 rounded-lg bg-muted">
-                      <button 
-                        onClick={() => {
-                          setIsOpenApiMode(false)
-                          setServerUrl('')
-                          setUrlValid(false)
-                          setUrlError(null)
-                          setPreviewTools(null)
-                          setAuthRequiredDetected(false)
-                        }}
-                        className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md transition-colors ${
-                          !isOpenApiMode 
-                            ? 'bg-background text-foreground shadow-sm' 
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <Server className="h-3.5 w-3.5 text-teal-600" />
-                        <span>MCP Server</span>
-                      </button>
-                      <button 
-                        onClick={() => {
-                          setIsOpenApiMode(true)
-                          setServerUrl('')
-                          setUrlValid(false)
-                          setUrlError(null)
-                          setPreviewTools(null)
-                          setAuthRequiredDetected(false)
-                        }}
-                        className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-md transition-colors ${
-                          isOpenApiMode 
-                            ? 'bg-background text-foreground shadow-sm' 
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                      >
-                        <FlaskConical className="h-3.5 w-3.5 text-amber-500" />
-                        <span>OpenAPI (Experimental)</span>
-                      </button>
+            <div className="mb-10">
+              <Label htmlFor="server-url" className="mb-2 block">
+                {isOpenApiMode ? "API URL" : "MCP SERVER URL"}
+              </Label>
+              <div className="flex items-center">
+                <div className="relative flex-1">
+                  <Input
+                    id="server-url"
+                    type="url"
+                    variant="tall"
+                    aria-label={isOpenApiMode ? "API URL" : "MCP Server URL"}
+                    aria-describedby="server-url-help"
+                    aria-invalid={Boolean(serverUrl) && !urlValid}
+                    placeholder={isOpenApiMode ? "https://api.example.com/openapi.json" : "https://your-mcp-server.mcp"}
+                    value={serverUrl}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setServerUrl(val)
+                      const { valid, error } = validateServerUrl(val.trim())
+                      setUrlValid(valid)
+                      setUrlError(error || null)
+                      setAuthRequiredDetected(false)
+                    }}
+                    onBlur={() => {
+                      setUrlTouched(true)
+                      try { localStorage.setItem('mcp_register_last_url', serverUrl.trim()) } catch {}
+                    }}
+                    onKeyDown={onKeyDown}
+                    className="flex-1 pr-9 font-mono transition-shadow bg-background border-border text-foreground placeholder:text-muted-foreground focus:bg-background focus:shadow-[0_0_0_2px_rgba(0,82,255,0.25)]"
+                  />
+                  {(serverUrl || urlTouched) && (
+                    <div className="absolute inset-y-0 right-2 flex items-center">
+                      {urlValid ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-teal-600 dark:text-teal-400" aria-label="Valid URL">
+                              <CheckCircle className="h-4 w-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Valid URL</TooltipContent>
+                        </Tooltip>
+                      ) : serverUrl ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-red-600 dark:text-red-400" aria-label="Invalid URL">
+                              <AlertCircle className="h-4 w-4" />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>{urlError || 'Enter a valid URL'}</TooltipContent>
+                        </Tooltip>
+                      ) : null}
                     </div>
-                  </div>
+                  )}
                 </div>
-                <CardDescription className="text-muted-foreground">
-                  {isOpenApiMode 
-                    ? "Enter an OpenAPI/Swagger specification URL to convert to MCP endpoint"
-                    : "Enter your MCP server URL to get started"
-                  }
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex gap-2 items-center">
-                  <div className="relative flex-1">
-                    <Input
-                      id="server-url"
-                      type="url"
-                      aria-label={isOpenApiMode ? "OpenAPI URL" : "Server URL"}
-                      aria-describedby="server-url-help"
-                      aria-invalid={Boolean(serverUrl) && !urlValid}
-                      placeholder={isOpenApiMode ? "https://api.example.com/openapi.json" : "https://your-mcp-server.com/mcp"}
-                      value={serverUrl}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setServerUrl(val)
-                        const { valid, error } = validateServerUrl(val.trim())
-                        setUrlValid(valid)
-                        setUrlError(error || null)
-                        setAuthRequiredDetected(false)
-                      }}
-                      onBlur={() => {
-                        setUrlTouched(true)
-                        try { localStorage.setItem('mcp_register_last_url', serverUrl.trim()) } catch {}
-                      }}
-                      onKeyDown={onKeyDown}
-                      className="flex-1 pr-9 transition-shadow bg-background border-border text-foreground placeholder:text-muted-foreground focus:bg-background focus:shadow-[0_0_0_2px_rgba(0,82,255,0.25)]"
-                    />
-                    {(serverUrl || urlTouched) && (
-                      <div className="absolute inset-y-0 right-2 flex items-center">
-                        {urlValid ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-teal-600 dark:text-teal-400" aria-label="Valid URL">
-                                <CheckCircle className="h-4 w-4" />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>Valid URL</TooltipContent>
-                          </Tooltip>
-                        ) : serverUrl ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-red-600 dark:text-red-400" aria-label="Invalid URL">
-                                <AlertCircle className="h-4 w-4" />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>{urlError || 'Enter a valid URL'}</TooltipContent>
-                          </Tooltip>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Preview removed */}
+                <div className="flex gap-2 items-center ml-4">
+                  <Button type="button" variant="secondary" size="tall" onClick={onPaste} className="shrink-0" aria-label="Paste from clipboard">
+                    PASTE
+                  </Button>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button type="button" variant="outline" size="icon" onClick={onPaste} className="shrink-0 border-border" aria-label="Paste from clipboard">
-                        <Clipboard className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Paste from clipboard</TooltipContent>
-                  </Tooltip>
-
-                  <Button type="button" variant="ghost" size="icon" onClick={onClear} className="shrink-0" aria-label="Clear">
-                    Clear
+                  <Button type="button" variant="outline" size="tall" onClick={onClear} className="shrink-0" aria-label="Clear">
+                    CLEAR
                   </Button>
                 </div>
-                {/* Clipboard suggestion removed */}
-
-                {/* Preview removed */}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Monetize Wizard */}
             <MonetizeWizard
@@ -719,175 +659,68 @@ function RegisterOptionsPage() {
 
 
             {/* Dynamic Options Based on URL Input */}
-            {urlValid ? (
-              /* Server Options - Show when URL is valid */
-              <div className="rounded-md border border-border bg-muted/30 p-4 md:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Option 1: Monetize */}
-                  <Card className="h-full flex flex-col border border-border bg-background transition-all shadow-sm">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl font-host text-foreground">Monetize</CardTitle>
-                      </div>
-                      <CardDescription className="text-sm">
-                        <span className="text-muted-foreground">Wrap your server with zero-code payments.</span>
-                        <span className="text-foreground font-semibold block mt-1">
-                          <span className="text-teal-600 dark:text-teal-400">Perfect for existing servers</span>
-                        </span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 mt-auto">
-                      <Button
-                        onClick={handleMonetize}
-                        disabled={monetizing}
-                        className="w-full transition-all duration-200 font-medium bg-teal-600 hover:bg-teal-700 text-white hover:shadow-lg"
-                      >
-                        {monetizing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {isOpenApiMode ? 'Converting & Creating...' : 'Creating...'}
-                          </>
-                        ) : (
-                          <>
-                            {isOpenApiMode ? 'Convert & Monetize' : 'Get Monetized URL'}
-                          </>
-                        )}
-                      </Button>
-
-                    </CardContent>
-                  </Card>
-
-                  {/* Option 2: Index Server */}
-                  <Card className="h-full flex flex-col border border-border bg-background transition-all shadow-sm">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl font-host text-foreground">Index Server</CardTitle>
-                      </div>
-                      <CardDescription className="text-sm">
-                        <span className="text-muted-foreground">Add to discovery and analytics.</span>
-                        <span className="text-foreground font-semibold block mt-1">
-                          <span className="text-teal-600 dark:text-teal-400">For x402-enabled servers</span>
-                        </span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 mt-auto">
-                      <Button
-                        onClick={handleAddServer}
-                        disabled={indexing || authRequiredDetected}
-                        className="w-full transition-all duration-200 font-medium bg-teal-600 hover:bg-teal-700 text-white hover:shadow-lg"
-                      >
-                        {indexing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {isOpenApiMode ? 'Converting & Indexing...' : 'Indexing...'}
-                          </>
-                        ) : (
-                          <>
-                            {isOpenApiMode ? 'Convert & Index' : 'Index Server'}
-                          </>
-                        )}
-                      </Button>
-                      {indexError && (
-                        <p className="text-sm text-red-600 dark:text-red-400 mt-2">{indexError}</p>
+            {urlValid && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Option 1: Monetize */}
+                <div className="flex flex-col gap-8 p-6 rounded-lg bg-card">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-xl font-bold font-host text-foreground">Monetize</h3>
+                    <p className="font-inter font-medium text-foreground leading-relaxed text-lg">
+                      Wrap your server and set specific prices per tool call.
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-12">
+                    <Button
+                      onClick={handleMonetize}
+                      disabled={monetizing}
+                      variant="customTallPrimary"
+                      size="tall"
+                      className="w-full"
+                    >
+                      {monetizing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {isOpenApiMode ? 'Converting & Creating...' : 'Creating...'}
+                        </>
+                      ) : (
+                        'MONETIZE'
                       )}
-                    </CardContent>
-                  </Card>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              /* SDK Suggestions - Show when no URL or invalid URL */
-              <div className="rounded-md border border-border bg-muted/30 p-4 md:p-6">
-                <div className="text-center mb-6">
-                  <h3 className="text-lg font-medium text-foreground mb-2">Don&apos;t have a server yet?</h3>
-                  <p className="text-sm text-muted-foreground">Build one with our SDK and integrate payments directly</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* SDK Documentation */}
-                  <Card className="h-full flex flex-col border border-border bg-background transition-all">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl font-host text-foreground">Documentation</CardTitle>
-                      </div>
-                      <CardDescription className="text-sm">
-                        <span className="text-muted-foreground">Learn how to build MCP servers with payments.</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 mt-auto">
-                      <Button
-                        asChild
-                        className="w-full transition-all duration-200 bg-teal-600 hover:bg-teal-700 text-white hover:shadow-lg font-medium"
-                      >
-                        <a href="https://docs.mcpay.tech" target="_blank" rel="noopener noreferrer">
-                          View Documentation
-                          <ArrowUpRight className="h-4 w-4 ml-2 text-white" />
-                        </a>
-                      </Button>
-                    </CardContent>
-                  </Card>
 
-                  {/* SDK Examples */}
-                  <Card className="h-full flex flex-col border border-border bg-background transition-all">
-                    <CardHeader className="pb-4">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-xl font-host text-foreground">Examples</CardTitle>
-                      </div>
-                      <CardDescription className="text-sm">
-                        <span className="text-muted-foreground">Ready-to-use code samples and templates.</span>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 mt-auto">
-                      <Button
-                        asChild
-                        className="w-full transition-all duration-200 bg-teal-600 hover:bg-teal-700 text-white hover:shadow-lg font-medium"
-                      >
-                        <a href="https://docs.mcpay.tech/examples" target="_blank" rel="noopener noreferrer">
-                          View Examples
-                          <ArrowUpRight className="h-4 w-4 ml-2 text-white" />
-                        </a>
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {/* Option 2: Index Server */}
+                <div className="flex flex-col gap-8 p-6 rounded-lg bg-card">
+                  <div className="flex flex-col gap-2">
+                    <h3 className="text-xl font-bold font-host text-foreground">Index Server</h3>
+                    <p className="font-inter font-medium text-foreground leading-relaxed text-lg">
+                      For already x402-enabled servers. Index to increase discoverability and analytics.
+                    </p>
+                  </div>
+                  <div className="mt-auto pt-12">
+                    <Button
+                      onClick={handleAddServer}
+                      disabled={indexing || authRequiredDetected}
+                      variant="customTallSecondary"
+                      size="tall"
+                      className="w-full"
+                    >
+                      {indexing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          {isOpenApiMode ? 'Converting & Indexing...' : 'Indexing...'}
+                        </>
+                      ) : (
+                        'INDEX'
+                      )}
+                    </Button>
+                    {indexError && (
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-2">{indexError}</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
-
-            {/* Help Section */}
-            <Card className="border border-border bg-background mt-8">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <p className="text-base inline-flex items-center justify-center gap-2 text-muted-foreground">
-                    <Info className="h-4 w-4" />
-                    Need help choosing? Check out our{" "}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <a
-                          href="https://docs.mcpay.tech/quickstart"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-teal-600 hover:text-teal-700 underline"
-                        >
-                          quickstart guide
-                        </a>
-                      </TooltipTrigger>
-                      <TooltipContent>Read the step-by-step setup guide</TooltipContent>
-                    </Tooltip>
-                    {" "}or{" "}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          href="/servers"
-                          className="text-teal-600 hover:text-teal-700 underline"
-                        >
-                          browse existing servers
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>See indexed MCP servers for inspiration</TooltipContent>
-                    </Tooltip>
-                    .
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
 
           </div>
         </div>
