@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogFooter, DialogHeader } from "@/components/ui/dialog"
 import { Drawer, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
@@ -214,11 +215,19 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
     switch (step) {
       case 1: return 'Review each tool and set a specific price. You can edit these later.'
       case 2: return 'Configure upstream auth headers. You can edit there later.'
-      case 3: return 'Choose networks.'
+      case 3: return 'Activate the networks you wish to support payments on. You can edit these later.'
       case 4: return needsEvm && needsSvm ? 'Enter EVM and SVM recipient addresses.' : needsEvm ? 'Enter EVM recipient address.' : 'Enter SVM recipient address.'
       default: return ''
     }
   }, [step, needsEvm, needsSvm])
+
+  const selectedNetworksCount = useMemo(() => {
+    return selectedNetworks.length
+  }, [selectedNetworks])
+
+  const totalNetworksCount = useMemo(() => {
+    return visibleEvmNetworks.length + visibleSvmNetworks.length
+  }, [visibleEvmNetworks, visibleSvmNetworks])
 
   const pricesSetCount = useMemo(() => {
     return tools.filter(t => (priceByTool[t.name] ?? 0) > 0).length
@@ -509,58 +518,61 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
 
         {step === 3 && (
           <div className="space-y-4">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="inline-flex items-center rounded-md border p-0.5">
-                <Button type="button" size="sm" variant={recipientIsTestnet ? 'ghost' : 'secondary'} onClick={() => setRecipientIsTestnet(false)} aria-pressed={!recipientIsTestnet}>Mainnet</Button>
-                <Button type="button" size="sm" variant={recipientIsTestnet ? 'secondary' : 'ghost'} onClick={() => setRecipientIsTestnet(true)} aria-pressed={recipientIsTestnet} className="inline-flex items-center gap-1"><FlaskConical className="h-4 w-4" /> Testnet</Button>
+            {/* Mainnet/Testnet Tabs */}
+            <Tabs value={recipientIsTestnet ? "testnet" : "mainnet"} onValueChange={(v) => setRecipientIsTestnet(v === "testnet")}>
+              <TabsList variant="equal" className="w-fit">
+                <TabsTrigger value="mainnet" variant="highlight" className="w-32">MAINNET</TabsTrigger>
+                <TabsTrigger value="testnet" variant="highlight" className="w-32">TESTNET</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            {/* SELECT NETWORKS Label with buttons */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-mono uppercase">SELECT NETWORKS</Label>
+                <HighlighterText>{selectedNetworksCount}/{totalNetworksCount}</HighlighterText>
               </div>
-              <div className="ml-auto flex items-center gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={selectAllVisible}>Select all</Button>
-                <Button type="button" variant="ghost" size="sm" onClick={clearNetworks}>Clear</Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="secondary" onClick={selectAllVisible}>
+                  SELECT ALL
+                </Button>
+                <Button type="button" variant="outline" onClick={clearNetworks}>
+                  CLEAR
+                </Button>
               </div>
             </div>
+
+            {/* Network Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="border border-border rounded-md bg-background p-3">
-                <div className="text-xs font-medium text-muted-foreground mb-2">EVM</div>
+              <div className="bg-card rounded-[2px] p-3">
+                <div className="text-lg font-mono font-medium text-foreground mb-2">EVM</div>
                 {visibleEvmNetworks.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">No EVM networks for this selection.</div>
+                  <div className="text-sm text-muted-foreground">No EVM networks for this selection.</div>
                 ) : (
                   <ul className="space-y-2">
                     {visibleEvmNetworks.map((n) => (
-                      <li key={n} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/40 transition-all duration-300">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <li key={n} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/40 transition-all duration-300">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer flex-1">
                           <Checkbox checked={selectedNetworks.includes(n)} onCheckedChange={() => toggleNetwork(n)} />
-                          <span className="truncate text-foreground">{n}</span>
+                          <span className="truncate text-foreground font-mono uppercase">{n}</span>
                         </label>
-                        <span className={`text-xs px-2 py-0.5 rounded font-mono border ${isTestnetNetworkName(n)
-                            ? "text-teal-700 bg-teal-500/10 border-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:border-teal-800/50"
-                            : "text-muted-foreground bg-muted border-border"
-                          }`}>
-                          {isTestnetNetworkName(n) ? "testnet" : "mainnet"}
-                        </span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-              <div className="border border-border rounded-md bg-background p-3">
-                <div className="text-xs font-medium text-muted-foreground mb-2">SVM</div>
+              <div className="bg-card rounded-[2px] p-3">
+                <div className="text-lg font-mono font-medium text-foreground mb-2">SVM</div>
                 {visibleSvmNetworks.length === 0 ? (
-                  <div className="text-xs text-muted-foreground">No SVM networks for this selection.</div>
+                  <div className="text-sm text-muted-foreground">No SVM networks for this selection.</div>
                 ) : (
                   <ul className="space-y-2">
                     {visibleSvmNetworks.map((n) => (
-                      <li key={n} className="flex items-center justify-between gap-2 p-2 rounded-md hover:bg-muted/40 transition-all duration-300">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <li key={n} className="flex items-center gap-2 p-2 rounded-md hover:bg-muted/40 transition-all duration-300">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer flex-1">
                           <Checkbox checked={selectedNetworks.includes(n)} onCheckedChange={() => toggleNetwork(n)} />
-                          <span className="truncate text-foreground">{n}</span>
+                          <span className="truncate text-foreground font-mono uppercase">{n}</span>
                         </label>
-                        <span className={`text-xs px-2 py-0.5 rounded font-mono border ${isTestnetNetworkName(n)
-                            ? "text-teal-700 bg-teal-500/10 border-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:border-teal-800/50"
-                            : "text-muted-foreground bg-muted border-border"
-                          }`}>
-                          {isTestnetNetworkName(n) ? "testnet" : "mainnet"}
-                        </span>
                       </li>
                     ))}
                   </ul>
