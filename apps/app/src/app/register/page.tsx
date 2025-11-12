@@ -393,7 +393,7 @@ function RegisterOptionsPage() {
           ...(includesEvm ? { evm: { address: (data.evmRecipientAddress || selectedWalletAddress), isTestnet: data.testnet } } : {}),
           ...(includesSvm ? { svm: { address: data.svmRecipientAddress, isTestnet: data.testnet } } : {}),
         },
-        tools: monetizeTools.map((t) => ({ name: t.name, pricing: formatPrice(data.prices[t.name] ?? 0.01) })),
+        tools: (monetizeTools || []).map((t) => ({ name: t.name, pricing: formatPrice(data.prices[t.name] ?? 0.01) })),
         requireAuth: data.requireAuth,
         authHeaders: data.requireAuth ? data.authHeaders : {},
         metadata: { 
