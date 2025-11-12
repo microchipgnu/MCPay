@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import HighlighterText from "@/components/custom-ui/highlighter-text"
 import { mcpDataApi, api as realApi, urlUtils } from "@/lib/client/utils"
 import { usePrimaryWallet } from "@/components/providers/user"
 import { SupportedEVMNetworks, SupportedSVMNetworks } from "x402/types"
@@ -158,6 +159,8 @@ function RegisterOptionsPage() {
   const [urlValid, setUrlValid] = useState(false)
   const [urlError, setUrlError] = useState<string | null>(null)
   const [previewTools, setPreviewTools] = useState<RegisterMCPTool[] | null>(null)
+  const [toolCount, setToolCount] = useState<number | null>(null)
+  const [loadingTools, setLoadingTools] = useState(false)
   // Remove clipboard auto-detect related state
   const [authRequiredDetected, setAuthRequiredDetected] = useState(false)
 
@@ -515,6 +518,32 @@ function RegisterOptionsPage() {
     } catch { }
   }, [])
 
+  // Fetch tools when URL becomes valid
+  useEffect(() => {
+    if (urlValid && serverUrl.trim()) {
+      setLoadingTools(true)
+      const urlToInspect = isOpenApiMode 
+        ? `https://api2.mcpay.tech/mcp?url=${encodeURIComponent(serverUrl.trim())}`
+        : serverUrl.trim()
+      
+      api.getMcpTools(urlToInspect)
+        .then((tools) => {
+          setToolCount(tools.length)
+          setPreviewTools(tools)
+        })
+        .catch(() => {
+          setToolCount(0)
+          setPreviewTools([])
+        })
+        .finally(() => {
+          setLoadingTools(false)
+        })
+    } else {
+      setToolCount(null)
+      setPreviewTools(null)
+    }
+  }, [urlValid, serverUrl, isOpenApiMode])
+
   // Preview removed
 
   const onPaste = useCallback(async () => {
@@ -532,6 +561,7 @@ function RegisterOptionsPage() {
     setUrlValid(false)
     setUrlError(null)
     setPreviewTools(null)
+    setToolCount(null)
   }, [])
 
   const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = useCallback((e) => {
@@ -592,6 +622,10 @@ function RegisterOptionsPage() {
                       setUrlValid(valid)
                       setUrlError(error || null)
                       setAuthRequiredDetected(false)
+                      if (!valid || !val.trim()) {
+                        setToolCount(null)
+                        setPreviewTools(null)
+                      }
                     }}
                     onBlur={() => {
                       setUrlTouched(true)
@@ -634,6 +668,24 @@ function RegisterOptionsPage() {
                     CLEAR
                   </Button>
                 </div>
+              </div>
+              
+              {/* Dynamic Text Highlight */}
+              <div className="flex items-center gap-2 mt-2">
+                {!serverUrl.trim() ? (
+                  <HighlighterText>Paste an URL to get started</HighlighterText>
+                ) : !urlValid ? (
+                  <HighlighterText>INVALID URL</HighlighterText>
+                ) : urlValid ? (
+                  <>
+                    <HighlighterText>VALID URL</HighlighterText>
+                    {loadingTools ? (
+                      <HighlighterText>FETCHING TOOLS</HighlighterText>
+                    ) : toolCount !== null ? (
+                      <HighlighterText>{toolCount} TOOLS</HighlighterText>
+                    ) : null}
+                  </>
+                ) : null}
               </div>
             </div>
 
