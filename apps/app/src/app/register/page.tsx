@@ -605,8 +605,8 @@ function RegisterOptionsPage() {
               <Label htmlFor="server-url" className="mb-2 block">
                 {isOpenApiMode ? "API URL" : "MCP SERVER URL"}
               </Label>
-              <div className="flex items-center">
-                <div className="relative flex-1">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-0">
+                <div className="relative flex-1 w-full">
                   <Input
                     id="server-url"
                     type="url"
@@ -663,12 +663,12 @@ function RegisterOptionsPage() {
                   )}
                 </div>
 
-                <div className="flex gap-2 items-center ml-4">
-                  <Button type="button" variant="secondary" size="tall" onClick={onPaste} className="shrink-0" aria-label="Paste from clipboard">
+                <div className="flex gap-2 items-center md:ml-4">
+                  <Button type="button" variant="secondary" size="tall" onClick={onPaste} className="shrink-0 flex-1 md:flex-none" aria-label="Paste from clipboard">
                     PASTE
                   </Button>
 
-                  <Button type="button" variant="outline" size="tall" onClick={onClear} className="shrink-0" aria-label="Clear">
+                  <Button type="button" variant="outline" size="tall" onClick={onClear} className="shrink-0 flex-1 md:flex-none" aria-label="Clear">
                     CLEAR
                   </Button>
                 </div>
