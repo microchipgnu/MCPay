@@ -22,6 +22,7 @@ import { useEffect, useState, useCallback } from "react"
 import dynamic from "next/dynamic"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import Footer from "@/components/custom-ui/footer"
 const MonetizeWizard = dynamic(() => import("@/components/custom-ui/monetize-wizard").then(m => ({ default: m.MonetizeWizard })), { ssr: false })
 
 
@@ -574,8 +575,8 @@ function RegisterOptionsPage() {
 
 
   return (
-    <div className="bg-background flex flex-col" style={{ minHeight: 'calc(100vh - 64px)' }}>
-      <main className="flex-1">
+    <div className="bg-background">
+      <main className="pb-0 sm:pb-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           <div className="max-w-6xl px-4 md:px-6 mx-auto mb-10">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">Register</h2>
@@ -863,6 +864,10 @@ function RegisterOptionsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Footer - Desktop only, fixed to bottom */}
+      <div className="hidden sm:block fixed bottom-0 left-0 right-0 z-10">
+        <Footer />
+      </div>
     </div>
   )
 }
