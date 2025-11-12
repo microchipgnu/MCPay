@@ -13,6 +13,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { AlertCircle, Eye, EyeOff, FlaskConical, Loader2, Trash2, Wallet as WalletIcon, Copy, Check, ChevronDown, Search } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
+import HighlighterText from "@/components/custom-ui/highlighter-text"
+import { cn } from "@/lib/utils"
 import { SupportedEVMNetworks, SupportedSVMNetworks } from "x402/types"
 import { useUserWallets, usePrimaryWallet } from "@/components/providers/user"
 import { getBlockchainArchitecture } from "@/lib/commons/networks"
@@ -39,7 +41,8 @@ export type MonetizeWizardProps = {
 }
 
 export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAuthHeaders, initialRequireAuth, onCreate }: MonetizeWizardProps) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set())
   const [isMobile, setIsMobile] = useState(false)
   const [loading, setLoading] = useState(false)
   
@@ -203,106 +206,167 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
     }
   }
 
-  const totalSteps = 5
-  const currentLabel = step === 1 ? 'Tools' : step === 2 ? 'Pricing' : step === 3 ? 'Auth' : step === 4 ? 'Networks' : 'Addresses'
-  const progressPercent = Math.round(((Number(step) - 1) / (totalSteps - 1)) * 100)
+  const totalSteps = 4
+  const currentLabel = step === 1 ? 'Set Pricing' : step === 2 ? 'Auth' : step === 3 ? 'Networks' : 'Addresses'
   const stepDescription = useMemo(() => {
     switch (step) {
-      case 1: return 'Review detected tools and proceed to set pricing.'
-      case 2: return 'Set pricing for each tool (e.g., $0.01).'
-      case 3: return 'Configure upstream auth headers (optional).'
-      case 4: return 'Choose networks.'
-      case 5: return needsEvm && needsSvm ? 'Enter EVM and SVM recipient addresses.' : needsEvm ? 'Enter EVM recipient address.' : 'Enter SVM recipient address.'
+      case 1: return 'Review each tool and set a specific price. You can edit these later.'
+      case 2: return 'Configure upstream auth headers (optional).'
+      case 3: return 'Choose networks.'
+      case 4: return needsEvm && needsSvm ? 'Enter EVM and SVM recipient addresses.' : needsEvm ? 'Enter EVM recipient address.' : 'Enter SVM recipient address.'
       default: return ''
     }
   }, [step, needsEvm, needsSvm])
 
+  const pricesSetCount = useMemo(() => {
+    return tools.filter(t => (priceByTool[t.name] ?? 0) > 0).length
+  }, [tools, priceByTool])
+
+  // Format currency value to 0.00 format
+  const formatCurrency = (value: number | string): string => {
+    if (value === '' || value === null || value === undefined) return ''
+    const num = typeof value === 'string' ? parseFloat(value) : value
+    if (isNaN(num)) return ''
+    return num.toFixed(2)
+  }
+
   const Content = (
-    <div className={`flex ${isMobile ? 'h-full' : 'h-[560px]'} flex-col`}>
+    <div className={`flex ${isMobile ? 'h-full' : ''} flex-col`}>
       <div className="flex-1 min-h-0 flex flex-col space-y-4 overflow-hidden">
         {step === 1 && (
-          <div className="space-y-3 flex flex-col min-h-0">
-            <div className="flex items-center gap-3">
-              <div className="ml-auto relative">
-                <Input value={toolsSearch} onChange={(e) => setToolsSearch(e.target.value)} placeholder="Search tools" className="w-56 pl-3 bg-background border-border" />
+          <div className="space-y-4 flex flex-col min-h-0">
+            {/* SET PRICES Label with count and Bulk Price Input */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-mono">SET PRICES</Label>
+                <HighlighterText>{pricesSetCount}/{tools.length}</HighlighterText>
+              </div>
+              
+              {/* Bulk Price Input - Right aligned */}
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-mono z-10">$</span>
+                  <Input
+                    variant="default"
+                    type="text"
+                    value={bulkPriceInput}
+                    onChange={(e) => {
+                      const cleaned = e.target.value.replace(/[^0-9.]/g, '')
+                      const parts = cleaned.split('.')
+                      let formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned
+                      if (parts.length === 2 && parts[1].length > 2) {
+                        formatted = parts[0] + '.' + parts[1].slice(0, 2)
+                      }
+                      setBulkPriceInput(formatted)
+                    }}
+                    onBlur={(e) => {
+                      const val = parseFloat(e.target.value) || 0
+                      setBulkPriceInput(val > 0 ? formatCurrency(val) : '')
+                    }}
+                    placeholder="0.00"
+                    className="w-24 pl-8 pr-3 text-right bg-background border-border font-mono"
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  variant="secondary" 
+                  onClick={() => {
+                    const v = parseFloat(bulkPriceInput)
+                    if (!isFinite(v) || v <= 0) { toast.error('Enter a positive number'); return }
+                    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, v])))
+                    setBulkPriceInput("")
+                  }}
+                >
+                  APPLY
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0.01])))
+                    setBulkPriceInput("")
+                  }}
+                >
+                  CLEAR
+                </Button>
               </div>
             </div>
-            <div className="flex-1 min-h-0 overflow-auto border border-border rounded-md bg-background p-3">
+
+            {/* Tools List */}
+            <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
               {tools.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No tools detected.</div>
               ) : (
-                <>
-                  <div className="text-xs text-muted-foreground mb-2">Showing {filteredTools.length} of {tools.length}</div>
-                  <ul className="space-y-2">
-                    {filteredTools.map((t) => (
-                      <li key={t.name} className="flex items-start justify-between gap-4 p-2 rounded-md hover:bg-muted/40 transition-all duration-300">
-                        <div className="min-w-0">
-                          <div className="font-medium text-foreground truncate">{t.name}</div>
-                          {t.description && (<div className="text-xs text-muted-foreground truncate">{t.description}</div>)}
+                tools.map((t) => {
+                  const isExpanded = expandedDescriptions.has(t.name)
+                  const description = t.description || ''
+                  const maxLength = 100
+                  const shouldTruncate = description.length > maxLength
+                  const displayDescription = isExpanded ? description : (shouldTruncate ? description.slice(0, maxLength) + '...' : description)
+                  const priceValue = priceByTool[t.name] ?? 0
+                  const hasPrice = priceValue > 0
+                  
+                  return (
+                    <div key={t.name} className={cn("flex gap-4 p-4 rounded-[2px] bg-background border border-muted", isExpanded ? "items-start" : "items-center")}>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-sm font-medium text-foreground mb-1">{t.name}</div>
+                        {description && (
+                          <div className="text-sm text-muted-foreground">
+                            {displayDescription}
+                            {shouldTruncate && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSet = new Set(expandedDescriptions)
+                                  if (isExpanded) {
+                                    newSet.delete(t.name)
+                                  } else {
+                                    newSet.add(t.name)
+                                  }
+                                  setExpandedDescriptions(newSet)
+                                }}
+                                className="ml-1 font-mono text-muted-foreground underline decoration-dotted hover:text-foreground hover:no-underline"
+                              >
+                                {isExpanded ? 'LESS' : 'MORE'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative shrink-0 self-center">
+                        <div className="relative flex items-center">
+                          <span className="absolute left-3 text-muted-foreground font-mono z-10">$</span>
+                          <Input
+                            variant="tall"
+                            type="text"
+                            value={priceValue > 0 ? formatCurrency(priceValue) : ''}
+                            onChange={(e) => {
+                              const cleaned = e.target.value.replace(/[^0-9.]/g, '')
+                              const parts = cleaned.split('.')
+                              let formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned
+                              if (parts.length === 2 && parts[1].length > 2) {
+                                formatted = parts[0] + '.' + parts[1].slice(0, 2)
+                              }
+                              setPriceByTool((prev) => ({ ...prev, [t.name]: formatted === '' ? 0 : parseFloat(formatted) || 0 }))
+                            }}
+                            onBlur={(e) => {
+                              const val = parseFloat(e.target.value) || 0
+                              setPriceByTool((prev) => ({ ...prev, [t.name]: val }))
+                            }}
+                            placeholder="0.00"
+                            className={cn("w-32 pl-8 pr-3 text-right bg-background border-border font-mono", hasPrice && "border-foreground")}
+                          />
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded font-mono border text-teal-700 bg-teal-500/10 border-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:border-teal-800/50">tool</span>
-                      </li>
-                    ))}
-                  </ul>
-                </>
+                      </div>
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-3 flex flex-col min-h-0">
-            <div className="text-sm flex items-center gap-2">
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                step="0.001"
-                min="0"
-                value={bulkPriceInput}
-                onChange={(e) => setBulkPriceInput(e.target.value)}
-                placeholder="Set all to…"
-                className="w-40 bg-background border-border"
-              />
-              <Button type="button" variant="secondary" size="sm" onClick={() => {
-                const v = Number(bulkPriceInput)
-                if (!isFinite(v) || v <= 0) { toast.error('Enter a positive number'); return }
-                setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, v])))
-              }}>Apply</Button>
-              <div className="ml-1 flex items-center gap-1">
-                <Button type="button" variant="outline" size="sm" onClick={() => setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0.01])))}>$0.01</Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0.05])))}>$0.05</Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0.10])))}>$0.10</Button>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setBulkPriceInput("")}>Clear</Button>
-              </div>
-            </div>
-            <div className="flex-1 min-h-0 overflow-auto border border-border rounded-md bg-background p-3">
-              <div className="space-y-2 pr-1">
-                {tools.map((t) => (
-                  <div key={t.name} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/40 transition-all duration-300">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium text-foreground truncate">{t.name}</div>
-                    </div>
-                    <div className="relative">
-                      <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
-                      <Input
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        value={priceByTool[t.name] ?? 0}
-                        onChange={(e) => setPriceByTool((prev) => ({ ...prev, [t.name]: Number(e.target.value) }))}
-                        className="w-28 pl-4 bg-background border-border"
-                        placeholder="0.01"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 flex-wrap">
@@ -459,7 +523,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
           </div>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <div className="space-y-4">
             <div className="flex items-center gap-3 flex-wrap">
               <div className="inline-flex items-center rounded-md border p-0.5">
@@ -522,7 +586,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
           </div>
         )}
 
-        {step === 5 && (
+        {step === 4 && (
           <div className="space-y-4">
             {needsEvm && (
               <div className="space-y-3">
@@ -917,42 +981,41 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[85vh] flex flex-col">
           <DrawerHeader>
-            <DrawerTitle>Monetize Server</DrawerTitle>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-medium">{currentLabel}</div>
-                <div className="text-xs text-muted-foreground">Step {step} of {totalSteps}</div>
-              </div>
-              <div className="text-xs text-muted-foreground">{stepDescription}</div>
-              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-primary transition-all" style={{ width: `${progressPercent}%` }} />
-              </div>
-            </div>
+            <DrawerTitle className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">{currentLabel}</DrawerTitle>
+            <div className="text-base font-inter text-muted-foreground">{stepDescription}</div>
           </DrawerHeader>
           <div className="flex-1 min-h-0 overflow-auto px-4">{Content}</div>
           <DrawerFooter>
             <div className="flex items-center justify-between w-full gap-3">
               <Button 
-                variant="outline" 
-                onClick={() => setStep((s) => (s > 1 ? (s - 1) as typeof step : s))} 
-                disabled={step === 1}
-                size="sm"
+                variant="secondary"
+                onClick={step === 1 ? () => onOpenChange(false) : () => setStep((s) => (s > 1 ? (s - 1) as typeof step : s))} 
+                size="tall"
+                className="w-48 flex-shrink-0"
               >
-                Back
+                {step === 1 ? 'CANCEL' : 'BACK'}
               </Button>
-              {step < 5 ? (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm font-mono">STEP</Label>
+                <span className="text-sm font-mono text-muted-foreground">{step}/{totalSteps}</span>
+              </div>
+              {step < 4 ? (
                 <Button 
-                  onClick={() => setStep((s) => (s < 5 ? (s + 1) as typeof step : s))} 
-                  disabled={(step === 1 && tools.length === 0) || (step === 2 && !pricesValid) || (step === 3 && !authHeadersValid) || (step === 4 && selectedNetworks.length === 0)}
-                  size="sm"
+                  variant="default"
+                  onClick={() => setStep((s) => (s < 4 ? (s + 1) as typeof step : s))} 
+                  disabled={(step === 1 && !pricesValid) || (step === 2 && !authHeadersValid) || (step === 3 && selectedNetworks.length === 0)}
+                  size="tall"
+                  className="w-48 flex-shrink-0"
                 >
-                  Next
+                  NEXT
                 </Button>
               ) : (
                 <Button 
+                  variant="default"
                   onClick={async () => { setLoading(true); try { await onCreate({ prices: priceByTool, evmRecipientAddress, svmRecipientAddress, networks: selectedNetworks, requireAuth, authHeaders: Object.fromEntries(authHeaders.filter(h => h.key && h.value).map(h => [h.key, h.value])), testnet: recipientIsTestnet }); onOpenChange(false); } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to create'); } finally { setLoading(false) } }} 
                   disabled={loading || (needsEvm && !evmValid) || (needsSvm && !svmValid)}
-                  size="sm"
+                  size="tall"
+                  className="w-48 flex-shrink-0"
                 >
                   {loading ? (
                     <>
@@ -960,7 +1023,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                       Creating
                     </>
                   ) : (
-                    'Create'
+                    'CREATE'
                   )}
                 </Button>
               )}
@@ -973,44 +1036,45 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-[min(96vw,900px)] max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-2xl md:max-w-3xl lg:max-w-4xl w-[min(96vw,900px)] min-h-[80vh] max-h-[80vh] flex flex-col">
         <DialogHeader>
           <div className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-medium">{currentLabel}</div>
-              <div className="text-xs text-muted-foreground">Step {step} of {totalSteps}</div>
-            </div>
-            <div className="text-xs text-muted-foreground">{stepDescription}</div>
-            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <div className="hidden md:block text-xs text-muted-foreground truncate">{serverUrl}</div>
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">{currentLabel}</h2>
+            <div className="text-base font-inter text-muted-foreground">{stepDescription}</div>
           </div>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-auto">{Content}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto">{Content}</div>
         <DialogFooter>
           <div className="flex items-center justify-between w-full gap-3">
             <Button 
-              variant="outline" 
-              onClick={() => setStep((s) => (s > 1 ? (s - 1) as typeof step : s))} 
-              disabled={step === 1}
-              size="sm"
+              variant="secondary"
+              onClick={step === 1 ? () => onOpenChange(false) : () => setStep((s) => (s > 1 ? (s - 1) as typeof step : s))} 
+              size="tall"
+              className="!w-48"
             >
-              Back
+              {step === 1 ? 'CANCEL' : 'BACK'}
             </Button>
-            {step < 5 ? (
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-mono">STEP</Label>
+              <span className="text-sm font-mono text-muted-foreground">{step}/{totalSteps}</span>
+            </div>
+            {step < 4 ? (
               <Button 
-                onClick={() => setStep((s) => (s < 5 ? (s + 1) as typeof step : s))} 
-                disabled={(step === 1 && tools.length === 0) || (step === 2 && !pricesValid) || (step === 3 && !authHeadersValid) || (step === 4 && selectedNetworks.length === 0)}
-                size="sm"
+                variant="default"
+                onClick={() => setStep((s) => (s < 4 ? (s + 1) as typeof step : s))} 
+                disabled={(step === 1 && !pricesValid) || (step === 2 && !authHeadersValid) || (step === 3 && selectedNetworks.length === 0)}
+                size="tall"
+                className="w-48 flex-shrink-0"
               >
-                Next
+                NEXT
               </Button>
             ) : (
               <Button 
+                variant="default"
                 onClick={async () => { setLoading(true); try { await onCreate({ prices: priceByTool, evmRecipientAddress, svmRecipientAddress, networks: selectedNetworks, requireAuth, authHeaders: Object.fromEntries(authHeaders.filter(h => h.key && h.value).map(h => [h.key, h.value])), testnet: recipientIsTestnet }); onOpenChange(false); } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to create'); } finally { setLoading(false) } }} 
                 disabled={loading || (needsEvm && !evmValid) || (needsSvm && !svmValid)}
-                size="sm"
+                size="tall"
+                className="w-48 flex-shrink-0"
               >
                 {loading ? (
                   <>
@@ -1018,7 +1082,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                     Creating
                   </>
                 ) : (
-                  'Create'
+                  'CREATE'
                 )}
               </Button>
             )}
