@@ -11,11 +11,12 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import HighlighterText from "@/components/custom-ui/highlighter-text"
+import { cn } from "@/lib/utils"
 import { mcpDataApi, api as realApi, urlUtils } from "@/lib/client/utils"
 import { usePrimaryWallet } from "@/components/providers/user"
 import { SupportedEVMNetworks, SupportedSVMNetworks } from "x402/types"
 import { type Network } from "@/types/blockchain"
-import { AlertCircle, ArrowUpRight, CheckCircle, Clipboard, Info, Loader2, Server, Trash2, FlaskConical } from "lucide-react"
+import { AlertCircle, ArrowUpRight, CircleCheck, Clipboard, Info, Loader2, Server, Trash2, FlaskConical } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState, useCallback } from "react"
 import dynamic from "next/dynamic"
@@ -578,7 +579,7 @@ function RegisterOptionsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           <div className="max-w-6xl px-4 md:px-6 mx-auto mb-10">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight">Register</h2>
-            <p className="text-base font-inter text-muted-foreground mt-4">
+            <p className="text-base font-inter text-muted-foreground mt-2">
               Connect your MCP/API and start accepting payments instantly.
             </p>
           </div>
@@ -632,15 +633,18 @@ function RegisterOptionsPage() {
                       try { localStorage.setItem('mcp_register_last_url', serverUrl.trim()) } catch {}
                     }}
                     onKeyDown={onKeyDown}
-                    className="flex-1 pr-9 font-mono transition-shadow bg-background border-border text-foreground placeholder:text-muted-foreground focus:bg-background focus:shadow-[0_0_0_2px_rgba(0,82,255,0.25)]"
+                    className={cn(
+                      "flex-1 pr-9 font-mono transition-shadow bg-background text-foreground placeholder:text-muted-foreground focus:bg-background focus:shadow-[0_0_0_2px_rgba(0,82,255,0.25)]",
+                      urlValid ? "border-foreground" : "border-border"
+                    )}
                   />
                   {(serverUrl || urlTouched) && (
-                    <div className="absolute inset-y-0 right-2 flex items-center">
+                    <div className="absolute inset-y-0 right-3 flex items-center">
                       {urlValid ? (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-teal-600 dark:text-teal-400" aria-label="Valid URL">
-                              <CheckCircle className="h-4 w-4" />
+                            <span className="text-foreground" aria-label="Valid URL">
+                              <CircleCheck className="h-4 w-4" />
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>Valid URL</TooltipContent>
@@ -678,7 +682,7 @@ function RegisterOptionsPage() {
                   <HighlighterText>INVALID URL</HighlighterText>
                 ) : urlValid ? (
                   <>
-                    <HighlighterText>VALID URL</HighlighterText>
+                    <HighlighterText className="text-teal-700 bg-teal-500/10 dark:text-teal-200 dark:bg-teal-800/50">VALID URL</HighlighterText>
                     {loadingTools ? (
                       <HighlighterText>FETCHING TOOLS</HighlighterText>
                     ) : toolCount !== null ? (
@@ -716,8 +720,8 @@ function RegisterOptionsPage() {
                 {/* Option 1: Monetize */}
                 <div className="flex flex-col gap-8 p-6 rounded-lg bg-card">
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-xl font-bold font-host text-foreground">Monetize</h3>
-                    <p className="font-inter font-medium text-foreground leading-relaxed text-lg">
+                    <h3 className="text-2xl font-bold font-host text-foreground">Monetize</h3>
+                    <p className="font-inter font-medium text-muted-foreground leading-relaxed text-lg">
                       Wrap your server and set specific prices per tool call.
                     </p>
                   </div>
@@ -744,8 +748,8 @@ function RegisterOptionsPage() {
                 {/* Option 2: Index Server */}
                 <div className="flex flex-col gap-8 p-6 rounded-lg bg-card">
                   <div className="flex flex-col gap-2">
-                    <h3 className="text-xl font-bold font-host text-foreground">Index Server</h3>
-                    <p className="font-inter font-medium text-foreground leading-relaxed text-lg">
+                    <h3 className="text-2xl font-bold font-host text-foreground">Index Server</h3>
+                    <p className="font-inter font-medium text-muted-foreground leading-relaxed text-lg">
                       For already x402-enabled servers. Index to increase discoverability and analytics.
                     </p>
                   </div>
