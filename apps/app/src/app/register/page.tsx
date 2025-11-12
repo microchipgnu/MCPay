@@ -469,7 +469,7 @@ function RegisterOptionsPage() {
           ...(includesEvm ? { evm: { address: (evmRecipientAddress || selectedWalletAddress), isTestnet: recipientIsTestnet } } : {}),
           ...(includesSvm ? { svm: { address: svmRecipientAddress, isTestnet: recipientIsTestnet } } : {}),
         },
-        tools: monetizeTools.map((t) => ({ name: t.name, pricing: formatPrice(priceByTool[t.name] ?? 0.01) })),
+        tools: (monetizeTools || []).map((t) => ({ name: t.name, pricing: formatPrice(priceByTool[t.name] ?? 0.01) })),
         requireAuth: requireAuth === true,
         authHeaders: requireAuth ? authHeadersRecord : {},
         metadata: { createdAt: new Date().toISOString(), source: 'app:register', networks: selectedNetworks },
