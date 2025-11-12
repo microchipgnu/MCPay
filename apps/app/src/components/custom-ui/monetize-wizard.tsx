@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { AlertCircle, Eye, EyeOff, FlaskConical, Loader2, Trash2, Wallet as WalletIcon, Copy, Check, ChevronDown, Search } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import HighlighterText from "@/components/custom-ui/highlighter-text"
@@ -28,7 +29,7 @@ export type MonetizeWizardProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   serverUrl: string
-  tools: MCPToolLite[]
+  tools: MCPToolLite[] | null
   initialAuthHeaders?: Array<{ key: string; value: string }>
   initialRequireAuth?: boolean
   onCreate: (payload: {
@@ -53,6 +54,9 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   const primaryWallet = usePrimaryWallet()
 
   const [priceByTool, setPriceByTool] = useState<Record<string, number>>(() => Object.fromEntries((tools || []).map(t => [t.name, 0.01])))
+  
+  // Auto-detect loading state: tools is null means we're still fetching
+  const fetchingTools = tools === null
   const [evmRecipientAddress, setEvmRecipientAddress] = useState<string>("")
   const [svmRecipientAddress, setSvmRecipientAddress] = useState<string>("")
   const [recipientIsTestnet, setRecipientIsTestnet] = useState(false)
@@ -91,13 +95,16 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   }, [initialRequireAuth, initialAuthHeaders])
 
   useEffect(() => {
-    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0.01])))
+    if (tools) {
+      setPriceByTool(Object.fromEntries(tools.map(t => [t.name, 0.01])))
+    }
   }, [tools])
 
-  const pricesValid = tools.length > 0 && tools.every(t => (priceByTool[t.name] ?? 0) > 0)
+  const pricesValid = tools && tools.length > 0 && tools.every(t => (priceByTool[t.name] ?? 0) > 0)
   const authHeadersValid = !requireAuth || authHeaders.every(h => (h.key || '').trim() && (h.value || '').trim())
 
   const filteredTools = useMemo(() => {
+    if (!tools) return []
     const q = (toolsSearch || "").toLowerCase().trim()
     if (!q) return tools
     return tools.filter(t =>
@@ -230,6 +237,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   }, [visibleEvmNetworks, visibleSvmNetworks])
 
   const pricesSetCount = useMemo(() => {
+    if (!tools) return 0
     return tools.filter(t => (priceByTool[t.name] ?? 0) > 0).length
   }, [tools, priceByTool])
 
@@ -272,7 +280,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-2">
                 <Label className="text-sm font-mono">SET PRICES</Label>
-                <HighlighterText>{pricesSetCount}/{tools.length}</HighlighterText>
+                <HighlighterText>{pricesSetCount}/{tools?.length ?? 0}</HighlighterText>
               </div>
               
               {/* Bulk Price Input - Right aligned */}
@@ -305,7 +313,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                     if (digitsOnly === '') { toast.error('Enter a positive number'); return }
                     const v = parseInt(digitsOnly, 10) / 100
                     if (v <= 0) { toast.error('Enter a positive number'); return }
-                    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, v])))
+                    if (tools) setPriceByTool(Object.fromEntries(tools.map(t => [t.name, v])))
                     setBulkPriceInput("")
                   }}
                 >
@@ -315,7 +323,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                   type="button" 
                   variant="outline" 
                   onClick={() => {
-                    setPriceByTool(Object.fromEntries((tools || []).map(t => [t.name, 0])))
+                    if (tools) setPriceByTool(Object.fromEntries(tools.map(t => [t.name, 0])))
                     setBulkPriceInput("")
                     setPriceInputDigits({})
                   }}
@@ -327,7 +335,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
 
             {/* Tools List */}
             <div className="flex-1 min-h-0 overflow-y-auto space-y-3">
-              {tools.length === 0 ? (
+              {!tools || tools.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No tools detected.</div>
               ) : (
                 tools.map((t) => {
@@ -1095,8 +1103,17 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
             <div className="text-base font-inter text-muted-foreground">{stepDescription}</div>
           </div>
         </DialogHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto">{Content}</div>
-        <DialogFooter>
+        {fetchingTools ? (
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="rounded-sm bg-foreground/5 p-3">
+              <Spinner className="size-8" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Fetching Server Information</p>
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 overflow-y-auto">{Content}</div>
+        )}
+        <DialogFooter className={fetchingTools ? "hidden" : ""}>
           <div className="flex items-center justify-between w-full gap-3">
             <Button 
               variant="secondary"

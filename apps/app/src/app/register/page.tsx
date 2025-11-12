@@ -17,6 +17,7 @@ import { usePrimaryWallet } from "@/components/providers/user"
 import { SupportedEVMNetworks, SupportedSVMNetworks } from "x402/types"
 import { type Network } from "@/types/blockchain"
 import { AlertCircle, ArrowUpRight, CircleCheck, Clipboard, Info, Loader2, Server, Trash2, FlaskConical } from "lucide-react"
+import { Spinner } from "@/components/ui/spinner"
 import Link from "next/link"
 import { useEffect, useState, useCallback } from "react"
 import dynamic from "next/dynamic"
@@ -170,7 +171,7 @@ function RegisterOptionsPage() {
 
   // Monetize wizard state
   const [monetizeOpen, setMonetizeOpen] = useState(false)
-  const [monetizeTools, setMonetizeTools] = useState<RegisterMCPTool[]>([])
+  const [monetizeTools, setMonetizeTools] = useState<RegisterMCPTool[] | null>(null)
   const [priceByTool, setPriceByTool] = useState<Record<string, number>>({})
   const [evmRecipientAddress, setEvmRecipientAddress] = useState<string>("")
   const [svmRecipientAddress, setSvmRecipientAddress] = useState<string>("")
@@ -247,9 +248,13 @@ function RegisterOptionsPage() {
       return
     }
     
-    if (isOpenApiMode) {
-      // For OpenAPI mode, first convert to MCP URL, then monetize
-      try {
+    // Open monetize wizard immediately with loading state (null = loading)
+    setMonetizeTools(null)
+    setMonetizeOpen(true)
+    
+    try {
+      if (isOpenApiMode) {
+        // For OpenAPI mode, first convert to MCP URL, then monetize
         const mcpUrl = `https://api2.mcpay.tech/mcp?url=${encodeURIComponent(serverUrl.trim())}`
         
         // Inspect the generated MCP URL to get tools
@@ -263,20 +268,17 @@ function RegisterOptionsPage() {
           const defaults: Record<string, number> = {}
           for (const t of tools) defaults[t.name] = 0.01
           setPriceByTool(defaults)
-          setMonetizeOpen(true)
           toast.success('OpenAPI converted to MCP! Proceeding to monetization.')
         } else {
+          setMonetizeOpen(false)
+          setMonetizeTools([])
           toast.error('Failed to convert OpenAPI to MCP')
         }
-      } catch {
-        toast.error('Failed to convert OpenAPI to MCP')
+        return
       }
-      return
-    }
-    
-    // Original MCP mode logic
-    // First try to inspect without auth
-    try {
+      
+      // Original MCP mode logic
+      // First try to inspect without auth
       const res = await fetch(`/api/inspect-mcp-server?url=${encodeURIComponent(serverUrl.trim())}&include=tools,prompts`)
       const data = await res.json().catch(() => ({}))
       const tools = Array.isArray(data?.tools) ? (data.tools as RegisterMCPTool[]) : []
@@ -287,13 +289,16 @@ function RegisterOptionsPage() {
         const defaults: Record<string, number> = {}
         for (const t of tools) defaults[t.name] = 0.01
         setPriceByTool(defaults)
-        setMonetizeOpen(true)
       } else {
         // No tools found, likely requires auth - show auth config dialog
+        setMonetizeOpen(false)
+        setMonetizeTools([])
         setAuthConfigOpen(true)
       }
     } catch {
       // On error, show auth config dialog
+      setMonetizeOpen(false)
+      setMonetizeTools([])
       setAuthConfigOpen(true)
     }
   }, [serverUrl, urlValid, isOpenApiMode])
@@ -685,7 +690,10 @@ function RegisterOptionsPage() {
                   <>
                     <HighlighterText className="text-teal-700 bg-teal-500/10 dark:text-teal-200 dark:bg-teal-800/50">VALID URL</HighlighterText>
                     {loadingTools ? (
-                      <HighlighterText>FETCHING TOOLS</HighlighterText>
+                      <HighlighterText className="flex items-center gap-2">
+                        <Spinner className="size-3" />
+                        TOOLS
+                      </HighlighterText>
                     ) : toolCount !== null ? (
                       <HighlighterText>{toolCount} TOOLS</HighlighterText>
                     ) : null}
@@ -697,7 +705,12 @@ function RegisterOptionsPage() {
             {/* Monetize Wizard */}
             <MonetizeWizard
               open={monetizeOpen}
-              onOpenChange={(open) => setMonetizeOpen(open)}
+              onOpenChange={(open) => {
+                setMonetizeOpen(open)
+                if (!open) {
+                  setMonetizeTools(null)
+                }
+              }}
               serverUrl={serverUrl}
               tools={monetizeTools}
               initialAuthHeaders={authHeaders}
