@@ -210,16 +210,16 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
   }
 
   const totalSteps = 4
-  const currentLabel = step === 1 ? 'Set Pricing' : step === 2 ? 'Auth (Optional)' : step === 3 ? 'Networks' : 'Addresses'
+  const currentLabel = step === 1 ? 'Set Pricing' : step === 2 ? 'Auth (Optional)' : step === 3 ? 'Networks' : 'Wallets'
   const stepDescription = useMemo(() => {
     switch (step) {
       case 1: return 'Review each tool and set a specific price. You can edit these later.'
       case 2: return 'Configure upstream auth headers. You can edit there later.'
       case 3: return 'Activate the networks you wish to support payments on. You can edit these later.'
-      case 4: return needsEvm && needsSvm ? 'Enter EVM and SVM recipient addresses.' : needsEvm ? 'Enter EVM recipient address.' : 'Enter SVM recipient address.'
+      case 4: return 'Enter EVM and SVM recipient addresses. You can edit these later.'
       default: return ''
     }
-  }, [step, needsEvm, needsSvm])
+  }, [step])
 
   const selectedNetworksCount = useMemo(() => {
     return selectedNetworks.length
@@ -480,14 +480,17 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                       </div>
                       <div className="w-14"></div>
                     </div>
-                    {authHeaders.map((row, idx) => (
+                    {authHeaders.map((row, idx) => {
+                      const hasKey = (row.key || '').trim().length > 0
+                      const hasValue = (row.value || '').trim().length > 0
+                      return (
                       <div key={idx} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
                         <Input
                           placeholder="Authorization"
                           value={row.key}
                           onChange={(e) => setAuthHeaders((prev) => prev.map((r, i) => i === idx ? { ...r, key: e.target.value } : r))}
                           variant="tall"
-                          className="bg-background border-border font-mono"
+                          className={cn("bg-background border-border font-mono", hasKey && "border-foreground")}
                         />
                         <Input
                           placeholder="Bearer token"
@@ -495,7 +498,7 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                           value={row.value}
                           onChange={(e) => setAuthHeaders((prev) => prev.map((r, i) => i === idx ? { ...r, value: e.target.value } : r))}
                           variant="tall"
-                          className="bg-background border-border font-mono"
+                          className={cn("bg-background border-border font-mono", hasValue && "border-foreground")}
                         />
                         <Button
                           type="button"
@@ -508,7 +511,8 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -583,186 +587,212 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
         )}
 
         {step === 4 && (
-          <div className="space-y-4">
+          <div className="space-y-12">
             {needsEvm && (
-              <div className="space-y-3">
-                <Label htmlFor="recipient-evm" className="text-sm">EVM recipient address</Label>
-                
-                {/* Unified Address Input */}
-                <div className="relative">
-                  <WalletIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input 
-                    id="recipient-evm" 
-                    value={evmRecipientAddress} 
-                    onChange={(e) => {
-                      setEvmRecipientAddress(e.target.value)
-                      setEvmSuggestionsOpen(e.target.value.length > 0 && filteredEvmWallets.length > 0)
-                      setEvmUserEdited(true)
-                      if (e.target.value.length > 0) {
-                        setEvmManuallyCleared(false)
-                      }
-                    }}
-                    onFocus={() => {
-                      setEvmInputFocused(true)
-                      setEvmSuggestionsOpen(evmRecipientAddress.length > 0 && filteredEvmWallets.length > 0)
-                    }}
-                    onBlur={() => {
-                      setEvmInputFocused(false)
-                      // Delay closing to allow clicking on suggestions
-                      setTimeout(() => setEvmSuggestionsOpen(false), 150)
-                    }}
-                    placeholder={recipientIsTestnet ? '0x… (testnet) or select from wallets' : '0x… (mainnet) or select from wallets'} 
-                    className="pl-10 pr-28 bg-background border-border" 
-                  />
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
-                    {evmWallets.length > 0 && (
-                      <Popover open={evmWalletSelectorOpen} onOpenChange={setEvmWalletSelectorOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Select from connected wallets"
-                          >
-                            <WalletIcon className="h-3 w-3" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-0" align="end">
-                          <div className="p-4">
-                            <h5 className="text-sm font-medium mb-3 text-foreground">Select EVM Wallet</h5>
-                            <div className="space-y-2 max-h-60 overflow-auto">
-                              {evmWallets
-                                .sort((a, b) => {
-                                  if (a.isPrimary && !b.isPrimary) return -1
-                                  if (!a.isPrimary && b.isPrimary) return 1
-                                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                                })
-                                .map((wallet) => (
-                                  <div
-                                    key={wallet.id}
-                                    onClick={() => {
-                                      setEvmRecipientAddress(wallet.walletAddress)
-                                      setEvmWalletSelectorOpen(false)
-                                      setEvmManuallyCleared(false)
-                                      setEvmUserEdited(false)
-                                    }}
-                                    className={`p-3 rounded-md border cursor-pointer transition-all duration-300 ${
-                                      evmRecipientAddress === wallet.walletAddress
-                                        ? 'border-teal-500 bg-teal-500/10 dark:bg-teal-800/50'
-                                        : 'border-border hover:border-border hover:bg-muted/40'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <WalletIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                                        <div className="min-w-0 flex-1">
-                                          <div className="text-sm font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {wallet.isPrimary && (
-                                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                                            Primary
-                                          </Badge>
-                                        )}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            copyAddress(wallet.walletAddress)
-                                          }}
-                                        >
-                                          {copiedAddress === wallet.walletAddress ? (
-                                            <Check className="h-3 w-3 text-green-600" />
-                                          ) : (
-                                            <Copy className="h-3 w-3" />
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                    {evmRecipientAddress && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => copyAddress(evmRecipientAddress)}
-                        title="Copy address"
-                      >
-                        {copiedAddress === evmRecipientAddress ? (
-                          <Check className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        if (process.env.NODE_ENV !== 'production') {
-                          // eslint-disable-next-line no-console
-                          console.log('Clear EVM button clicked')
-                        }
-                        setEvmRecipientAddress("")
-                        setEvmManuallyCleared(true)
-                      }}
-                      title="Clear address"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+              <div className="space-y-2">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-mono uppercase">EVM RECIPIENT</Label>
+                      <HighlighterText className={recipientIsTestnet ? "text-amber-700 bg-amber-500/10 dark:text-amber-200 dark:bg-amber-800/50" : "text-teal-700 bg-teal-500/10 dark:text-teal-200 dark:bg-teal-800/50"}>{recipientIsTestnet ? 'testnet' : 'mainnet'}</HighlighterText>
+                    </div>
                   </div>
-                  
-                  {/* Smart Suggestions Dropdown */}
-                  {evmSuggestionsOpen && filteredEvmWallets.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-                      <div className="p-2">
-                        <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Connected wallets</div>
-                        {filteredEvmWallets
-                          .sort((a, b) => {
-                            if (a.isPrimary && !b.isPrimary) return -1
-                            if (!a.isPrimary && b.isPrimary) return 1
-                            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                          })
-                          .slice(0, 5) // Limit to 5 suggestions
-                          .map((wallet) => (
-                            <div
-                              key={wallet.id}
-                              onClick={() => {
-                                setEvmRecipientAddress(wallet.walletAddress)
-                                setEvmSuggestionsOpen(false)
-                              }}
-                              className="flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-muted/40"
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <WalletIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {wallet.isPrimary && <span className="ml-1 text-primary">• Primary</span>}
+                  <div className="w-14"></div>
+                  <div className="w-14"></div>
+                  <div className="w-14"></div>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
+                  <div className="relative">
+                    <Input 
+                      id="recipient-evm" 
+                      value={evmRecipientAddress} 
+                      onChange={(e) => {
+                        setEvmRecipientAddress(e.target.value)
+                        setEvmSuggestionsOpen(e.target.value.length > 0 && filteredEvmWallets.length > 0)
+                        setEvmUserEdited(true)
+                        if (e.target.value.length > 0) {
+                          setEvmManuallyCleared(false)
+                        }
+                      }}
+                      onFocus={() => {
+                        setEvmInputFocused(true)
+                        setEvmSuggestionsOpen(evmRecipientAddress.length > 0 && filteredEvmWallets.length > 0)
+                      }}
+                      onBlur={() => {
+                        setEvmInputFocused(false)
+                        setTimeout(() => setEvmSuggestionsOpen(false), 150)
+                      }}
+                      placeholder={recipientIsTestnet ? '0x… (testnet) or select from wallets' : '0x… (mainnet) or select from wallets'} 
+                      variant="tall"
+                      className={cn("bg-background border-border font-mono", (evmRecipientAddress || '').trim().length > 0 && "border-foreground")}
+                    />
+                    {/* Smart Suggestions Dropdown */}
+                    {evmSuggestionsOpen && filteredEvmWallets.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                        <div className="p-2">
+                          <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Connected wallets</div>
+                          {filteredEvmWallets
+                            .sort((a, b) => {
+                              if (a.isPrimary && !b.isPrimary) return -1
+                              if (!a.isPrimary && b.isPrimary) return 1
+                              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                            })
+                            .slice(0, 5)
+                            .map((wallet) => (
+                              <div
+                                key={wallet.id}
+                                onClick={() => {
+                                  setEvmRecipientAddress(wallet.walletAddress)
+                                  setEvmSuggestionsOpen(false)
+                                }}
+                                className="flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-muted/40"
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <WalletIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {wallet.isPrimary && <span className="ml-1 text-primary">• Primary</span>}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <Popover open={evmWalletSelectorOpen} onOpenChange={setEvmWalletSelectorOpen}>
+                    {evmWallets.length === 0 ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-block">
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="tall"
+                                disabled={true}
+                                className="w-14 h-14 p-0"
+                              >
+                                <WalletIcon className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Connect to MCPay to select a wallet from here</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="tall"
+                          className="w-14 h-14 p-0"
+                          title="Select from connected wallets"
+                        >
+                          <WalletIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                    )}
+                    <PopoverContent className="w-80 p-0" align="end">
+                      <div className="p-4">
+                        <h5 className="text-sm font-medium mb-3 text-foreground">Select EVM Wallet</h5>
+                        <div className="space-y-2 max-h-60 overflow-auto">
+                          {evmWallets
+                            .sort((a, b) => {
+                              if (a.isPrimary && !b.isPrimary) return -1
+                              if (!a.isPrimary && b.isPrimary) return 1
+                              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                            })
+                            .map((wallet) => (
+                              <div
+                                key={wallet.id}
+                                onClick={() => {
+                                  setEvmRecipientAddress(wallet.walletAddress)
+                                  setEvmWalletSelectorOpen(false)
+                                  setEvmManuallyCleared(false)
+                                  setEvmUserEdited(false)
+                                }}
+                                className={`p-3 rounded-md border cursor-pointer transition-all duration-300 ${
+                                  evmRecipientAddress === wallet.walletAddress
+                                    ? 'border-teal-500 bg-teal-500/10 dark:bg-teal-800/50'
+                                    : 'border-border hover:border-border hover:bg-muted/40'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <WalletIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-sm font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {wallet.isPrimary && (
+                                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                                        Primary
+                                      </Badge>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        copyAddress(wallet.walletAddress)
+                                      }}
+                                    >
+                                      {copiedAddress === wallet.walletAddress ? (
+                                        <Check className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Copy className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="tall"
+                    onClick={() => copyAddress(evmRecipientAddress)}
+                    disabled={!evmRecipientAddress}
+                    className="w-14 h-14 p-0"
+                    title="Copy address"
+                  >
+                    {copiedAddress === evmRecipientAddress ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="tall"
+                    onClick={() => {
+                      if (process.env.NODE_ENV !== 'production') {
+                        // eslint-disable-next-line no-console
+                        console.log('Clear EVM button clicked')
+                      }
+                      setEvmRecipientAddress("")
+                      setEvmManuallyCleared(true)
+                    }}
+                    disabled={!evmRecipientAddress}
+                    className="w-14 h-14 p-0"
+                    title="Clear address"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                
                 {!evmValid ? (
                   <div className="text-xs text-amber-600 flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" /> Enter a valid EVM address (0x…)</div>
                 ) : (
@@ -771,189 +801,215 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
               </div>
             )}
             {needsSvm && (
-              <div className="space-y-3">
-                <Label htmlFor="recipient-svm" className="text-sm">SVM recipient address</Label>
-                
-                {/* Unified Address Input */}
-                <div className="relative">
-                  <WalletIcon className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <Input 
-                    id="recipient-svm" 
-                    value={svmRecipientAddress} 
-                    onChange={(e) => {
-                      setSvmRecipientAddress(e.target.value)
-                      setSvmSuggestionsOpen(e.target.value.length > 0 && filteredSvmWallets.length > 0)
-                      setSvmUserEdited(true)
-                      if (e.target.value.length > 0) {
-                        setSvmManuallyCleared(false)
-                      }
-                    }}
-                    onFocus={() => {
-                      setSvmInputFocused(true)
-                      setSvmSuggestionsOpen(svmRecipientAddress.length > 0 && filteredSvmWallets.length > 0)
-                    }}
-                    onBlur={() => {
-                      setSvmInputFocused(false)
-                      // Delay closing to allow clicking on suggestions
-                      setTimeout(() => setSvmSuggestionsOpen(false), 150)
-                    }}
-                    placeholder={recipientIsTestnet ? 'Devnet address or select from wallets' : 'Mainnet address or select from wallets'} 
-                    className="pl-10 pr-28 bg-background border-border" 
-                  />
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
-                    {svmWallets.length > 0 && (
-                      <Popover open={svmWalletSelectorOpen} onOpenChange={setSvmWalletSelectorOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Select from connected wallets"
-                          >
-                            <WalletIcon className="h-3 w-3" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-80 p-0" align="end">
-                          <div className="p-4">
-                            <h5 className="text-sm font-medium mb-3 text-foreground">Select SVM Wallet</h5>
-                            <div className="space-y-2 max-h-60 overflow-auto">
-                              {svmWallets
-                                .sort((a, b) => {
-                                  if (a.isPrimary && !b.isPrimary) return -1
-                                  if (!a.isPrimary && b.isPrimary) return 1
-                                  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                                })
-                                .map((wallet) => (
-                                  <div
-                                    key={wallet.id}
-                                    onClick={() => {
-                                      setSvmRecipientAddress(wallet.walletAddress)
-                                      setSvmWalletSelectorOpen(false)
-                                      setSvmManuallyCleared(false)
-                                      setSvmUserEdited(false)
-                                    }}
-                                    className={`p-3 rounded-md border cursor-pointer transition-all duration-300 ${
-                                      svmRecipientAddress === wallet.walletAddress
-                                        ? 'border-teal-500 bg-teal-500/10 dark:bg-teal-800/50'
-                                        : 'border-border hover:border-border hover:bg-muted/40'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <WalletIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                                        <div className="min-w-0 flex-1">
-                                          <div className="text-sm font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
-                                          <div className="text-xs text-muted-foreground truncate">
-                                            {wallet.blockchain} • {wallet.walletType}
-                                            {wallet.isPrimary && <span className="ml-1 text-primary">• Primary</span>}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {wallet.isPrimary && (
-                                          <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
-                                            Primary
-                                          </Badge>
-                                        )}
-                                        <Button
-                                          type="button"
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-6 w-6"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            copyAddress(wallet.walletAddress)
-                                          }}
-                                        >
-                                          {copiedAddress === wallet.walletAddress ? (
-                                            <Check className="h-3 w-3 text-green-600" />
-                                          ) : (
-                                            <Copy className="h-3 w-3" />
-                                          )}
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                    {svmRecipientAddress && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => copyAddress(svmRecipientAddress)}
-                        title="Copy address"
-                      >
-                        {copiedAddress === svmRecipientAddress ? (
-                          <Check className="h-3 w-3 text-green-600" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    )}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7"
-                      onClick={() => {
-                        if (process.env.NODE_ENV !== 'production') {
-                          // eslint-disable-next-line no-console
-                          console.log('Clear SVM button clicked')
-                        }
-                        setSvmRecipientAddress("")
-                        setSvmManuallyCleared(true)
-                      }}
-                      title="Clear address"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+              <div className="space-y-2">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-end">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-mono uppercase">SVM RECIPIENT</Label>
+                      <HighlighterText className={recipientIsTestnet ? "text-amber-700 bg-amber-500/10 dark:text-amber-200 dark:bg-amber-800/50" : "text-teal-700 bg-teal-500/10 dark:text-teal-200 dark:bg-teal-800/50"}>{recipientIsTestnet ? 'testnet' : 'mainnet'}</HighlighterText>
+                    </div>
                   </div>
-                  
-                  {/* Smart Suggestions Dropdown */}
-                  {svmSuggestionsOpen && filteredSvmWallets.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
-                      <div className="p-2">
-                        <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Connected wallets</div>
-                        {filteredSvmWallets
-                          .sort((a, b) => {
-                            if (a.isPrimary && !b.isPrimary) return -1
-                            if (!a.isPrimary && b.isPrimary) return 1
-                            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                          })
-                          .slice(0, 5) // Limit to 5 suggestions
-                          .map((wallet) => (
-                            <div
-                              key={wallet.id}
-                              onClick={() => {
-                                setSvmRecipientAddress(wallet.walletAddress)
-                                setSvmSuggestionsOpen(false)
-                              }}
-                              className="flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-muted/40"
-                            >
-                              <div className="flex items-center gap-2 min-w-0 flex-1">
-                                <WalletIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-xs font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {wallet.blockchain} • {wallet.walletType}
-                                    {wallet.isPrimary && <span className="ml-1 text-primary">• Primary</span>}
+                  <div className="w-14"></div>
+                  <div className="w-14"></div>
+                  <div className="w-14"></div>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 items-center">
+                  <div className="relative">
+                    <Input 
+                      id="recipient-svm" 
+                      value={svmRecipientAddress} 
+                      onChange={(e) => {
+                        setSvmRecipientAddress(e.target.value)
+                        setSvmSuggestionsOpen(e.target.value.length > 0 && filteredSvmWallets.length > 0)
+                        setSvmUserEdited(true)
+                        if (e.target.value.length > 0) {
+                          setSvmManuallyCleared(false)
+                        }
+                      }}
+                      onFocus={() => {
+                        setSvmInputFocused(true)
+                        setSvmSuggestionsOpen(svmRecipientAddress.length > 0 && filteredSvmWallets.length > 0)
+                      }}
+                      onBlur={() => {
+                        setSvmInputFocused(false)
+                        setTimeout(() => setSvmSuggestionsOpen(false), 150)
+                      }}
+                      placeholder={recipientIsTestnet ? 'Devnet address or select from wallets' : 'Mainnet address or select from wallets'} 
+                      variant="tall"
+                      className={cn("bg-background border-border font-mono", (svmRecipientAddress || '').trim().length > 0 && "border-foreground")}
+                    />
+                    {/* Smart Suggestions Dropdown */}
+                    {svmSuggestionsOpen && filteredSvmWallets.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-background border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                        <div className="p-2">
+                          <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Connected wallets</div>
+                          {filteredSvmWallets
+                            .sort((a, b) => {
+                              if (a.isPrimary && !b.isPrimary) return -1
+                              if (!a.isPrimary && b.isPrimary) return 1
+                              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                            })
+                            .slice(0, 5)
+                            .map((wallet) => (
+                              <div
+                                key={wallet.id}
+                                onClick={() => {
+                                  setSvmRecipientAddress(wallet.walletAddress)
+                                  setSvmSuggestionsOpen(false)
+                                }}
+                                className="flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-all hover:bg-muted/40"
+                              >
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <WalletIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {wallet.blockchain} • {wallet.walletType}
+                                      {wallet.isPrimary && <span className="ml-1 text-primary">• Primary</span>}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <Popover open={svmWalletSelectorOpen} onOpenChange={setSvmWalletSelectorOpen}>
+                    {svmWallets.length === 0 ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-block">
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="tall"
+                                disabled={true}
+                                className="w-14 h-14 p-0"
+                              >
+                                <WalletIcon className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Connect to MCPay to select a wallet from here</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="tall"
+                          className="w-14 h-14 p-0"
+                          title="Select from connected wallets"
+                        >
+                          <WalletIcon className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                    )}
+                    <PopoverContent className="w-80 p-0" align="end">
+                      <div className="p-4">
+                        <h5 className="text-sm font-medium mb-3 text-foreground">Select SVM Wallet</h5>
+                        <div className="space-y-2 max-h-60 overflow-auto">
+                          {svmWallets
+                            .sort((a, b) => {
+                              if (a.isPrimary && !b.isPrimary) return -1
+                              if (!a.isPrimary && b.isPrimary) return 1
+                              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                            })
+                            .map((wallet) => (
+                              <div
+                                key={wallet.id}
+                                onClick={() => {
+                                  setSvmRecipientAddress(wallet.walletAddress)
+                                  setSvmWalletSelectorOpen(false)
+                                  setSvmManuallyCleared(false)
+                                  setSvmUserEdited(false)
+                                }}
+                                className={`p-3 rounded-md border cursor-pointer transition-all duration-300 ${
+                                  svmRecipientAddress === wallet.walletAddress
+                                    ? 'border-teal-500 bg-teal-500/10 dark:bg-teal-800/50'
+                                    : 'border-border hover:border-border hover:bg-muted/40'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <WalletIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-sm font-mono text-foreground truncate">{formatWalletAddress(wallet.walletAddress)}</div>
+                                      <div className="text-xs text-muted-foreground truncate">
+                                        {wallet.blockchain} • {wallet.walletType}
+                                        {wallet.isPrimary && <span className="ml-1 text-primary">• Primary</span>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {wallet.isPrimary && (
+                                      <Badge variant="secondary" className="text-xs px-1.5 py-0.5">
+                                        Primary
+                                      </Badge>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        copyAddress(wallet.walletAddress)
+                                      }}
+                                    >
+                                      {copiedAddress === wallet.walletAddress ? (
+                                        <Check className="h-3 w-3 text-green-600" />
+                                      ) : (
+                                        <Copy className="h-3 w-3" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="tall"
+                    onClick={() => copyAddress(svmRecipientAddress)}
+                    disabled={!svmRecipientAddress}
+                    className="w-14 h-14 p-0"
+                    title="Copy address"
+                  >
+                    {copiedAddress === svmRecipientAddress ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="tall"
+                    onClick={() => {
+                      if (process.env.NODE_ENV !== 'production') {
+                        // eslint-disable-next-line no-console
+                        console.log('Clear SVM button clicked')
+                      }
+                      setSvmRecipientAddress("")
+                      setSvmManuallyCleared(true)
+                    }}
+                    disabled={!svmRecipientAddress}
+                    className="w-14 h-14 p-0"
+                    title="Clear address"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                
                 {!svmValid ? (
                   <div className="text-xs text-amber-600 flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5" /> Enter a valid SVM address</div>
                 ) : (
@@ -992,8 +1048,8 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
                 {step === 1 ? 'CANCEL' : 'BACK'}
               </Button>
               <div className="flex items-center gap-2">
-                <Label className="text-sm font-mono">STEP</Label>
-                <span className="text-sm font-mono text-muted-foreground">{step}/{totalSteps}</span>
+                <Label className="text-sm font-mono text-muted-foreground">STEP</Label>
+                <span className="text-sm font-mono text-foreground">{step}/{totalSteps}</span>
               </div>
               {step < 4 ? (
                 <Button 
@@ -1051,8 +1107,8 @@ export function MonetizeWizard({ open, onOpenChange, serverUrl, tools, initialAu
               {step === 1 ? 'CANCEL' : 'BACK'}
             </Button>
             <div className="flex items-center gap-2">
-              <Label className="text-sm font-mono">STEP</Label>
-              <span className="text-sm font-mono text-muted-foreground">{step}/{totalSteps}</span>
+              <Label className="text-sm font-mono text-muted-foreground">STEP</Label>
+              <span className="text-sm font-mono text-foreground">{step}/{totalSteps}</span>
             </div>
             {step < 4 ? (
               <Button 
