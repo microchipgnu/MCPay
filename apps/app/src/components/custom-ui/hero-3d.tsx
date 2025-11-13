@@ -27,8 +27,13 @@ const SUPPORTED_BY_LOGOS = [
   },
   {
     name: "vlayer",
-    href: "https://vlayer.com/",
+    href: "https://vlayer.xyz/",
     src: "/logos/vlayer-logo.svg",
+  },
+  {
+    name: "ethglobal",
+    href: "https://www.youtube.com/watch?v=0oi8ZEPILaI",
+    src: "/logos/ETHGlobal.svg",
   },
 ] as const
 
@@ -41,6 +46,8 @@ const getLogoSize = (name: string) => {
       return { className: "h-8 w-[80px]", width: 80, height: 32 }
     case "vlayer":
       return { className: "h-6 w-[60px]", width: 60, height: 24 }
+    case "ethglobal":
+      return { className: "h-5 w-[90px]", width: 80, height: 20 }
     default:
       return { className: "h-12 w-[160px]", width: 160, height: 64 }
   }
@@ -269,7 +276,7 @@ export default function Hero3D({
                     <div
                       className={cn(
                         "transition-all duration-300",
-                        logo.name === "coinbase" ? "h-7 w-[70px]" : logo.name === "polygon" ? "h-8 w-[80px]" : logo.name === "vlayer" ? "h-6 w-[60px]" : "h-12 w-[160px]",
+                        logo.name === "coinbase" ? "h-7 w-[70px]" : logo.name === "polygon" ? "h-8 w-[80px]" : logo.name === "vlayer" ? "h-6 w-[60px]" : logo.name === "ethglobal" ? "h-5 w-[80px]" : "h-12 w-[160px]",
                         "opacity-70 group-hover:opacity-100",
                         "[background-color:var(--foreground)]"
                       )}
@@ -287,8 +294,8 @@ export default function Hero3D({
                     <Image
                       src={logo.src}
                       alt={`${logo.name} logo`}
-                      width={logo.name === "coinbase" ? 35 : logo.name === "polygon" ? 45 : logo.name === "vlayer" ? 40 : 80}
-                      height={logo.name === "coinbase" ? 14 : logo.name === "polygon" ? 18 : logo.name === "vlayer" ? 16 : 32}
+                      width={logo.name === "coinbase" ? 35 : logo.name === "polygon" ? 45 : logo.name === "vlayer" ? 40 : logo.name === "ethglobal" ? 40 : 80}
+                      height={logo.name === "coinbase" ? 14 : logo.name === "polygon" ? 18 : logo.name === "vlayer" ? 16 : logo.name === "ethglobal" ? 10 : 32}
                       className="sr-only"
                     />
                   </div>

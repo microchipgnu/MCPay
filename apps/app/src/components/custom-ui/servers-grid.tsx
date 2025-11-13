@@ -1,15 +1,16 @@
 "use client"
 
-import { McpServer } from "@/lib/client/utils"
+import { McpServer, mcpDataApi } from "@/lib/client/utils"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { urlUtils } from "@/lib/client/utils"
-import { Check, CheckCircle2, Copy } from "lucide-react"
+import { Check, CheckCircle2, Copy, PlugZap } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "sonner"
+import { Spinner } from "@/components/ui/spinner"
 import HighlighterText from "./highlighter-text"
 
 export default function ServersGrid({
@@ -40,7 +41,25 @@ export default function ServersGrid({
 
 function ServerCard({ server }: { server: McpServer }) {
   const [copied, setCopied] = useState(false)
+  const [totalRequests, setTotalRequests] = useState<number | null>(null)
+  const [loadingRequests, setLoadingRequests] = useState(true)
   const url = urlUtils.getMcpUrl(server.origin)
+
+  useEffect(() => {
+    // Fetch requests count for this server
+    setLoadingRequests(true)
+    mcpDataApi.getServerById(server.id)
+      .then((data) => {
+        setTotalRequests(data.summary?.totalRequests || 0)
+      })
+      .catch(() => {
+        // Silently fail - keep showing 0 or null
+        setTotalRequests(0)
+      })
+      .finally(() => {
+        setLoadingRequests(false)
+      })
+  }, [server.id])
 
   const handleCopy = () => {
     navigator.clipboard.writeText(url)
@@ -50,59 +69,53 @@ function ServerCard({ server }: { server: McpServer }) {
   }
 
   return (
-    <Link href={`/servers/${server.id}`} className="group">
-      <Card className="p-6 rounded-lg bg-card hover:shadow-lg hover:border-teal-700 dark:hover:border-teal-200 border border-transparent transition-all duration-300 cursor-pointer">
-        <CardHeader className="p-0 mb-0">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">{server?.server?.info?.name || "Unknown Server"}</CardTitle>
-            {server.moderation_status === 'approved' && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <CheckCircle2 className="h-4 w-4 text-teal-700 dark:text-teal-200" />
-                  </TooltipTrigger>
-                  <TooltipContent>Verified server</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-          </div>
-        </CardHeader>
+    <Link href={`/servers/${server.id}`} className="block">
+      <Card className="p-4 rounded-[2px] bg-card hover:shadow-lg hover:border-foreground/70 border border-transparent transition-all duration-300 gap-0">
+        <div className="flex items-center gap-2 mb-4">
+          <CardTitle className="text-lg mb-0 pb-0 leading-none">{server?.server?.info?.name || "Unknown Server"}</CardTitle>
+          {server.moderation_status === 'approved' && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CheckCircle2 className="h-4 w-4 text-teal-700 dark:text-teal-200" />
+                </TooltipTrigger>
+                <TooltipContent>Verified server</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
 
-        <CardContent className="p-0">
-          {/* Tools with HighlighterText */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="inline-flex">
-              <HighlighterText>
-                TOOLS: <span className="!text-foreground">{server.tools.length}</span>
-              </HighlighterText>
-            </div>
-          </div>
+        <div className="flex items-center gap-2 mb-12">
+          <HighlighterText>
+            <span className="text-foreground">{server.tools.length}</span>
+            <span className="ml-1">TOOLS</span>
+          </HighlighterText>
+          {loadingRequests ? (
+            <HighlighterText className="flex items-center gap-2">
+              <Spinner className="size-3" />
+              REQUESTS
+            </HighlighterText>
+          ) : (
+            <HighlighterText>
+              <span className="text-foreground">{totalRequests !== null ? totalRequests : 0}</span>
+              <span className="ml-1">REQUESTS</span>
+            </HighlighterText>
+          )}
+        </div>
 
-          {/* URL with label + copy */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-medium text-muted-foreground">
-                Connection URL
-              </div>
-              <Button
-                size="icon"
-                variant="outline"
-                onClick={(e) => {
-                  e.preventDefault()
-                  handleCopy()
-                }}
-                className="h-6 w-6 rounded-sm cursor-pointer"
-              >
-                {copied ? <Check className="size-3 stroke-[2.5]" /> : <Copy className="size-3 stroke-[2.5]" />}
-              </Button>
-            </div>
-            <div className="p-2 px-3 rounded-md bg-muted-2 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800">
-              <code className="text-xs font-mono whitespace-nowrap block">
-                {url}
-              </code>
-            </div>
-          </div>
-        </CardContent>
+        <Button
+          variant="customTallAccentAmber"
+          size="xs"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            handleCopy()
+          }}
+          className="w-auto self-start justify-start rounded-[2px] text-xs !px-2 tracking-wider border-0"
+        >
+          <PlugZap className="size-4" />
+          CONNECT
+        </Button>
       </Card>
     </Link>
   )
@@ -110,22 +123,18 @@ function ServerCard({ server }: { server: McpServer }) {
 
 function ServerSkeletonCard() {
   return (
-    <Card className="p-6 rounded-lg bg-card space-y-4">
-      <div>
-        <Skeleton className="h-5 w-3/4 mb-4" />
+    <Card className="p-4 rounded-[2px] bg-card gap-0">
+      <div className="flex items-center gap-2 mb-4">
+        <Skeleton className="h-5 w-3/4" />
+        <Skeleton className="h-4 w-4 rounded-full" />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-5 w-20 rounded-[2px]" />
+      <div className="flex items-center gap-2 mb-12">
+        <Skeleton className="h-6 w-16 rounded-[2px]" />
+        <Skeleton className="h-6 w-20 rounded-[2px]" />
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-6 w-6 rounded-sm" />
-        </div>
-        <Skeleton className="h-8 w-full rounded-md" />
-      </div>
+      <Skeleton className="h-7 w-24 rounded-[2px]" />
     </Card>
   )
 }
