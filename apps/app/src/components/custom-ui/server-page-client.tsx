@@ -338,7 +338,7 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
             )}
 
             {/* Stats with HighlighterText */}
-            <div className="flex items-center gap-2 flex-wrap mb-6">
+            <div className="flex items-center gap-2 flex-wrap mb-10">
               <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
                 <span className="text-foreground">{data.summary.totalRequests.toLocaleString()}</span>
                 <span className="text-muted-foreground">&nbsp;REQUESTS</span>
@@ -784,7 +784,59 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
 
               {/* PAYMENTS Tab */}
               <TabsContent value="payments" className="mt-6">
-            <RecentPaymentsCard serverId={serverId} initialPayments={data.recentPayments} />
+                <RecentPaymentsCard 
+                  serverId={serverId} 
+                  initialPayments={data.recentPayments}
+                  renderHeader={(lastRefreshTime, autoRefreshEnabled, paymentsCount, onToggleAutoRefresh, onRefresh) => (
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-foreground leading-tight">Recent Payments</h2>
+                          <HighlighterText className="!text-foreground">{paymentsCount}</HighlighterText>
+                        </div>
+                        <div className="flex flex-col gap-1 font-mono text-xs uppercase">
+                          <div className={`flex items-center gap-1.5 font-semibold tracking-wider ${autoRefreshEnabled ? 'text-teal-700 dark:text-teal-200' : 'text-muted-foreground'}`}>
+                            {autoRefreshEnabled && <Loader2 className="size-3 animate-spin" />}
+                            <span>AUTO REFRESH {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
+                          </div>
+                          {lastRefreshTime && (
+                            <span className="text-muted-foreground">Updated {formatRelativeShort(lastRefreshTime.toISOString())}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={autoRefreshEnabled ? "customTallAccent" : "secondary"}
+                                size="sm"
+                                className="h-8 rounded-[2px] !transition-none"
+                                onClick={onToggleAutoRefresh}
+                              >
+                                AUTO {autoRefreshEnabled ? "ON" : "OFF"}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {autoRefreshEnabled 
+                                ? "Pause auto-refresh (every 10s)" 
+                                : "Enable auto-refresh every 10 seconds"
+                              }
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <Button
+                          variant="secondary"
+                          size="icon"
+                          className="h-8 w-8 rounded-[2px] !transition-none"
+                          onClick={onRefresh}
+                        >
+                          <RefreshCcw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                />
               </TabsContent>
 
               {/* CONNECT Tab */}

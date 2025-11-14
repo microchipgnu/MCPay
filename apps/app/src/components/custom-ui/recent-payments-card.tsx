@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import React, { useEffect, useMemo, useState } from "react"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -23,6 +23,7 @@ import { isNetworkSupported, type UnifiedNetwork } from "@/lib/commons"
 import { ArrowUpRight, CheckCircle2, Clock, Pause, Play, RefreshCcw } from "lucide-react"
 import Image from "next/image"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 export type RecentPayment = {
   id: string
@@ -45,6 +46,7 @@ type RecentPaymentsCardProps = {
   serverId: string
   initialPayments?: RecentPayment[]
   className?: string
+  renderHeader?: (lastRefreshTime: Date | null, autoRefreshEnabled: boolean, paymentsCount: number, onToggleAutoRefresh: () => void, onRefresh: () => Promise<void>) => React.ReactNode
 }
 
 const ITEMS_PER_PAGE = 10
@@ -84,7 +86,7 @@ function safeTxUrl(network?: string, hash?: string) {
   return `https://etherscan.io/tx/${hash}`
 }
 
-export function RecentPaymentsCard({ serverId, initialPayments, className }: RecentPaymentsCardProps) {
+export function RecentPaymentsCard({ serverId, initialPayments, className, renderHeader }: RecentPaymentsCardProps) {
   const { isDark } = useTheme()
   const [payments, setPayments] = useState<RecentPayment[]>(initialPayments || [])
   const [loading, setLoading] = useState<boolean>(!initialPayments || initialPayments.length === 0)
@@ -164,100 +166,23 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
     return () => clearInterval(interval)
   }, [autoRefreshEnabled, serverId, fetchPayments])
 
+  const handleToggleAutoRefresh = () => {
+    setAutoRefreshEnabled(!autoRefreshEnabled)
+  }
+
+  const handleRefresh = async () => {
+    try {
+      await fetchPayments()
+      toast.success("Data refreshed")
+    } catch (e) {
+      toast.error("Failed to refresh data")
+    }
+  }
+
   return (
-    <Card className={`${isDark ? "bg-gray-800 border-gray-700" : ""} mt-6 overflow-hidden ${className || ""}`}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-semibold flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-teal-500"></div>
-              Recent Payments
-              {payments.length > 0 && (
-                <span className="ml-2 px-2 py-1 text-xs font-medium bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-full">
-                  {payments.length}
-                </span>
-              )}
-            </CardTitle>
-            <CardDescription className="text-sm text-muted-foreground">
-              Latest payment transactions from tool usage with verified token information
-              {payments.length > ITEMS_PER_PAGE && (
-                <span className="ml-2">
-                  (Showing {startIndex + 1}-{Math.min(endIndex, payments.length)} of {payments.length})
-                </span>
-              )}
-            </CardDescription>
-            {(lastRefreshTime || autoRefreshEnabled) && (
-              <div className="flex items-center gap-3 mt-2">
-                {lastRefreshTime && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span>Last updated {formatRelativeShort(lastRefreshTime.toISOString())}</span>
-                  </div>
-                )}
-                {autoRefreshEnabled && (
-                  <div className="flex items-center gap-1 text-xs text-teal-600 dark:text-teal-400">
-                    <div className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse"></div>
-                    <span>Auto-refresh every 10s</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-                    className={`h-6 w-6 p-0 ${
-                      autoRefreshEnabled 
-                        ? "text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70" 
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    } transition-all duration-300`}
-                  >
-                    {autoRefreshEnabled ? (
-                      <Pause className="h-3 w-3" />
-                    ) : (
-                      <Play className="h-3 w-3" />
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {autoRefreshEnabled 
-                    ? "Pause auto-refresh (every 10s)" 
-                    : "Enable auto-refresh every 10 seconds"
-                  }
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        await fetchPayments()
-                        toast.success("Data refreshed")
-                      } catch (e) {
-                        toast.error("Failed to refresh data")
-                      }
-                    }}
-                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-300"
-                  >
-                    <RefreshCcw className="h-3 w-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh data</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
+    <>
+      {renderHeader && renderHeader(lastRefreshTime, autoRefreshEnabled, payments.length, handleToggleAutoRefresh, handleRefresh)}
+      <div className={`bg-card rounded-[2px] p-4 ${className || ""}`}>
         {hasVisibleSkeleton ? (
           <div className="overflow-x-auto">
             <div className="min-w-[900px]">
@@ -376,7 +301,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
                             {p.vlayerProof && (
                               <Button
                                 type="button"
-                                variant="outline"
+                                variant="accentBlue"
                                 size="sm"
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -385,16 +310,25 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
                                   setSelectedProof(p.vlayerProof || null)
                                   setIsProofModalOpen(true)
                                 }}
-                                className="h-auto px-3 py-2 text-xs font-medium flex items-center gap-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 transition-all rounded-md shadow-sm hover:shadow"
+                                className="h-auto px-3 py-2 text-xs font-medium flex items-center gap-2 rounded-[2px]"
                               >
-                                <Image
-                                  src="/logos/vlayer_ Signet_Black.svg"
-                                  alt="VLayer Proof"
-                                  width={16}
-                                  height={16}
+                                <svg
+                                  width="16"
+                                  height="16"
+                                  viewBox="0 0 110 95"
+                                  fill="none"
+                                  xmlns="http://www.w3.org/2000/svg"
                                   className="opacity-90"
-                                />
-                                <span className="font-semibold">Web Proof</span>
+                                  aria-label="VLayer Proof"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    clipRule="evenodd"
+                                    d="M0 1.90735e-05L55 95L85.0069 43.1699L76.3049 38.1597L65.2209 57.3047L37.8248 9.98415L92.6171 9.98414L81.3187 29.4994L90.0207 34.5097L110 0L0 1.90735e-05Z"
+                                    fill="currentColor"
+                                  />
+                                </svg>
+                                <span className="font-semibold uppercase">WEB PROOF</span>
                               </Button>
                             )}
                             {p.transactionHash ? (
@@ -433,17 +367,19 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
             </div>
           </div>
         )}
-      </CardContent>
       
       {payments.length > ITEMS_PER_PAGE && (
-        <div className="px-6 py-4 border-t border-border">
+        <div className="pt-4 border-t border-border">
           <Pagination>
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
                   onClick={goPrev}
                   aria-disabled={currentPage === 1 || loading}
-                  className={currentPage === 1 || loading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  className={cn(
+                    currentPage === 1 || loading ? "pointer-events-none opacity-50" : "cursor-pointer",
+                    "[&_span]:uppercase"
+                  )}
                 />
               </PaginationItem>
 
@@ -498,7 +434,10 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
                 <PaginationNext
                   onClick={goNext}
                   aria-disabled={currentPage === totalPages || loading}
-                  className={currentPage === totalPages || loading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                  className={cn(
+                    currentPage === totalPages || loading ? "pointer-events-none opacity-50" : "cursor-pointer",
+                    "[&_span]:uppercase"
+                  )}
                 />
               </PaginationItem>
             </PaginationContent>
@@ -588,6 +527,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className }: Rec
           </div>
         </DialogContent>
       </Dialog>
-    </Card>
+      </div>
+    </>
   )
 }
