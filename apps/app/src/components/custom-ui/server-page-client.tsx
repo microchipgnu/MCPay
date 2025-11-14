@@ -1,26 +1,20 @@
 "use client"
 
-import { AboutSection } from "@/components/custom-ui/about-section"
 import { ConnectPanel } from "@/components/custom-ui/connect-panel"
 import { RecentPaymentsCard } from "@/components/custom-ui/recent-payments-card"
 import { ServerDetailsCard } from "@/components/custom-ui/server-details-card"
-import { ServerHeader } from "@/components/custom-ui/server-header"
 import { ToolExecutionModal, type ToolFromMcpServerWithStats } from "@/components/custom-ui/tool-execution-modal"
 import HighlighterText from "@/components/custom-ui/highlighter-text"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Input } from "@/components/ui/input"
-import { getExplorerUrl } from "@/lib/client/blockscout"
 import { mcpDataApi, urlUtils } from "@/lib/client/utils"
-import { isNetworkSupported, type UnifiedNetwork } from "@/lib/commons"
 import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  ChevronRight,
   ChevronsUpDown,
   ChevronsDownUp,
   Loader2,
@@ -104,9 +98,6 @@ function formatRelativeShort(iso?: string, now = Date.now()) {
   return `${value.n} ${value.u} ${diffMs <= 0 ? "ago" : "from now"}`
 }
 
-const truncateHash = (h: string, left = 6, right = 7) =>
-  h && h.length > left + right + 3 ? `${h.slice(0, left)}...${h.slice(-right)}` : h
-
 const formatAddress = (address: string) => {
   if (!address || address.length < 12) {
     return { start: address, middle: '', end: '' }
@@ -115,14 +106,6 @@ const formatAddress = (address: string) => {
   const middle = address.slice(6, -6)
   const end = address.slice(-6)
   return { start, middle, end }
-}
-
-function safeTxUrl(network?: string, hash?: string) {
-  if (!network || !hash) return undefined
-  if (isNetworkSupported(network)) {
-    return getExplorerUrl(hash, network as UnifiedNetwork, 'tx')
-  }
-  return `https://etherscan.io/tx/${hash}`
 }
 
 interface ServerPageClientProps {
@@ -209,23 +192,44 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
     setShowToolModal(true)
   }
 
-  function InstallationSidebar() {
-    if (!data) return null
-    
-    const server = {
-      id: data.serverId,
-      displayName: data.info?.name || data.origin,
-      baseUrl: proxyUrl || data.origin,
-      oauthSupported: true
-    }
-    
-    return (
-      <ConnectPanel 
-        server={server}
-        initialAuthMode="oauth"
-      />
+  // Normalize tools data - must be called before conditional returns
+  const normalizedTools = useMemo(() => {
+    if (!data?.tools) return []
+    return (data.tools || []).map((t, idx) => {
+      const annotations = (t as { annotations?: Record<string, unknown> })?.annotations || {};
+      const paymentHint = Boolean(annotations.paymentHint);
+      const paymentPriceUSD = annotations.paymentPriceUSD as number | undefined;
+      const paymentNetworks = annotations.paymentNetworks as Array<{
+        network: string;
+        recipient: string;
+        maxAmountRequired: string;
+        asset: { address: string; symbol?: string; decimals?: number };
+        type: 'evm' | 'svm';
+      }> | undefined;
+      const paymentVersion = annotations.paymentVersion as number | undefined;
+
+      return {
+        id: (t?.id as string) || (t?.name as string) || `tool-${idx}`,
+        name: (t?.name as string) || `tool-${idx}`,
+        description: (t?.description as string) || '',
+        inputSchema: ((t as { inputSchema?: unknown; parameters?: { jsonSchema?: unknown } })?.inputSchema || (t as { parameters?: { jsonSchema?: unknown } })?.parameters?.jsonSchema || {}) as Record<string, unknown>,
+        pricing: Array.isArray((t as { pricing?: unknown[] })?.pricing) ? (t as { pricing?: unknown[] }).pricing as Array<{ label?: string; amount?: number; currency?: string; active?: boolean }> : [],
+        isMonetized: Array.isArray((t as { pricing?: Array<{ active?: boolean }> })?.pricing) && ((t as { pricing?: Array<{ active?: boolean }> }).pricing || []).some((p) => p?.active === true),
+        paymentHint,
+        paymentPriceUSD,
+        paymentNetworks,
+        paymentVersion,
+      };
+    })
+  }, [data?.tools])
+
+  const filteredTools = useMemo(() => {
+    if (!toolsSearch.trim()) return normalizedTools
+    const q = toolsSearch.toLowerCase().trim()
+    return normalizedTools.filter(t =>
+      t.name.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q)
     )
-  }
+  }, [normalizedTools, toolsSearch])
 
   if (loading) {
     return (
@@ -261,44 +265,6 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
   }
 
   if (!data) return null
-
-  // Normalize tools data
-  const normalizedTools = useMemo(() => {
-    return (data.tools || []).map((t, idx) => {
-                        const annotations = (t as { annotations?: Record<string, unknown> })?.annotations || {};
-                        const paymentHint = Boolean(annotations.paymentHint);
-                        const paymentPriceUSD = annotations.paymentPriceUSD as number | undefined;
-                        const paymentNetworks = annotations.paymentNetworks as Array<{
-                          network: string;
-                          recipient: string;
-                          maxAmountRequired: string;
-                          asset: { address: string; symbol?: string; decimals?: number };
-                          type: 'evm' | 'svm';
-                        }> | undefined;
-                        const paymentVersion = annotations.paymentVersion as number | undefined;
-
-                        return {
-                          id: (t?.id as string) || (t?.name as string) || `tool-${idx}`,
-                          name: (t?.name as string) || `tool-${idx}`,
-                          description: (t?.description as string) || '',
-                          inputSchema: ((t as { inputSchema?: unknown; parameters?: { jsonSchema?: unknown } })?.inputSchema || (t as { parameters?: { jsonSchema?: unknown } })?.parameters?.jsonSchema || {}) as Record<string, unknown>,
-                          pricing: Array.isArray((t as { pricing?: unknown[] })?.pricing) ? (t as { pricing?: unknown[] }).pricing as Array<{ label?: string; amount?: number; currency?: string; active?: boolean }> : [],
-                          isMonetized: Array.isArray((t as { pricing?: Array<{ active?: boolean }> })?.pricing) && ((t as { pricing?: Array<{ active?: boolean }> }).pricing || []).some((p) => p?.active === true),
-                          paymentHint,
-                          paymentPriceUSD,
-                          paymentNetworks,
-                          paymentVersion,
-                        };
-                      })
-  }, [data.tools])
-
-  const filteredTools = useMemo(() => {
-    if (!toolsSearch.trim()) return normalizedTools
-    const q = toolsSearch.toLowerCase().trim()
-    return normalizedTools.filter(t =>
-      t.name.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q)
-    )
-  }, [normalizedTools, toolsSearch])
 
   // Get MCP URL display
   const mcpUrlDisplay = useMemo(() => {
