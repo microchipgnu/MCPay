@@ -6,23 +6,30 @@ import { RecentPaymentsCard } from "@/components/custom-ui/recent-payments-card"
 import { ServerDetailsCard } from "@/components/custom-ui/server-details-card"
 import { ServerHeader } from "@/components/custom-ui/server-header"
 import { ToolExecutionModal, type ToolFromMcpServerWithStats } from "@/components/custom-ui/tool-execution-modal"
-import { ToolsAccordion } from "@/components/custom-ui/tools-accordion"
+import HighlighterText from "@/components/custom-ui/highlighter-text"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Input } from "@/components/ui/input"
 import { getExplorerUrl } from "@/lib/client/blockscout"
 import { mcpDataApi, urlUtils } from "@/lib/client/utils"
 import { isNetworkSupported, type UnifiedNetwork } from "@/lib/commons"
 import {
   AlertCircle,
   ChevronDown,
+  ChevronUp,
   ChevronRight,
+  ChevronsUpDown,
+  ChevronsDownUp,
   Loader2,
-  RefreshCcw
+  RefreshCcw,
+  Copy
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 type ServerDetail = {
   serverId: string
@@ -99,6 +106,16 @@ function formatRelativeShort(iso?: string, now = Date.now()) {
 const truncateHash = (h: string, left = 6, right = 7) =>
   h && h.length > left + right + 3 ? `${h.slice(0, left)}...${h.slice(-right)}` : h
 
+const formatAddress = (address: string) => {
+  if (!address || address.length < 12) {
+    return { start: address, middle: '', end: '' }
+  }
+  const start = address.slice(0, 6)
+  const middle = address.slice(6, -6)
+  const end = address.slice(-6)
+  return { start, middle, end }
+}
+
 function safeTxUrl(network?: string, hash?: string) {
   if (!network || !hash) return undefined
   if (isNetworkSupported(network)) {
@@ -121,8 +138,10 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
   const [reindexing, setReindexing] = useState(false)
   const [showToolModal, setShowToolModal] = useState(false)
   const [selectedTool, setSelectedTool] = useState<ToolFromMcpServerWithStats | null>(null)
-  const [isToolsCardExpanded, setIsToolsCardExpanded] = useState(true)
-  const [showAllTools, setShowAllTools] = useState(false)
+  const [activeTab, setActiveTab] = useState<'tools' | 'payments' | 'connect'>('tools')
+  const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set())
+  const [expandedNetworkDetails, setExpandedNetworkDetails] = useState<Set<string>>(new Set())
+  const [toolsSearch, setToolsSearch] = useState("")
 
   useEffect(() => {
     if (initialData) return // Don't refetch if we have initial data
@@ -242,89 +261,9 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
 
   if (!data) return null
 
-  return (
-    <div className={`min-h-screen transition-colors duration-200 ${isDark ? "bg-gradient-to-br from-black to-gray-900 text-white" : "bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900"}`}>
-      <main>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="max-w-6xl px-4 md:px-6 mx-auto">
-
-            <div className="mb-2">
-              <ServerHeader
-                name={data?.info?.name || data?.origin || ''}
-                description={data?.info?.description}
-                origin={data?.origin || ''}
-                isVerified={data.moderationStatus === 'approved'}
-                onExplore={() => {
-                  // Scroll to tools
-                  const el = document.getElementById('tools-section')
-                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                }}
-              />
-            </div>
-
-            <div className={`flex items-center justify-between px-3 py-2 rounded-lg border ${isDark ? "bg-gray-800 border-gray-700" : "bg-gray-50 border-gray-200"} mb-6`}>
-              <div className="flex items-center gap-6">
-                <div className="text-center">
-                  <div className="text-sm font-semibold">{data.summary.totalRequests.toLocaleString()}</div>
-                  <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Requests</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold">{data.summary.totalTools}</div>
-                  <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Tools</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold">{data.summary.totalPayments}</div>
-                  <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Payments</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold">{data.qualityScore || 0}</div>
-                  <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Quality Score</div>
-                </div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm font-semibold">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span>{formatRelative(data.summary.lastActivity)}</span>
-                      </TooltipTrigger>
-                      <TooltipContent className="text-xs">{formatDate(data.summary.lastActivity)}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <div className={`text-[10px] ${isDark ? "text-gray-400" : "text-gray-600"}`}>Last Activity</div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <AboutSection text={data.info?.description || ''} />
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              <Card id="tools-section" className={`lg:col-span-2 ${isDark ? "bg-gray-800 border-gray-700" : ""}`}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-base">Tools ({data.summary.totalTools})</CardTitle>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsToolsCardExpanded(!isToolsCardExpanded)}
-                      className="h-8 w-8 p-0"
-                    >
-                      {isToolsCardExpanded ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </CardHeader>
-                {isToolsCardExpanded && (
-                  <CardContent>
-                    {(() => {
-                      const allTools = (data.tools || []).map((t, idx) => {
+  // Normalize tools data
+  const normalizedTools = useMemo(() => {
+    return (data.tools || []).map((t, idx) => {
                         const annotations = (t as { annotations?: Record<string, unknown> })?.annotations || {};
                         const paymentHint = Boolean(annotations.paymentHint);
                         const paymentPriceUSD = annotations.paymentPriceUSD as number | undefined;
@@ -344,56 +283,412 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                           inputSchema: ((t as { inputSchema?: unknown; parameters?: { jsonSchema?: unknown } })?.inputSchema || (t as { parameters?: { jsonSchema?: unknown } })?.parameters?.jsonSchema || {}) as Record<string, unknown>,
                           pricing: Array.isArray((t as { pricing?: unknown[] })?.pricing) ? (t as { pricing?: unknown[] }).pricing as Array<{ label?: string; amount?: number; currency?: string; active?: boolean }> : [],
                           isMonetized: Array.isArray((t as { pricing?: Array<{ active?: boolean }> })?.pricing) && ((t as { pricing?: Array<{ active?: boolean }> }).pricing || []).some((p) => p?.active === true),
-                          // X402 payment annotations
                           paymentHint,
                           paymentPriceUSD,
                           paymentNetworks,
                           paymentVersion,
                         };
                       })
-                      
-                      const toolsToShow = showAllTools ? allTools : allTools.slice(0, 5)
-                      const hasMoreTools = allTools.length > 5
+  }, [data.tools])
+
+  const filteredTools = useMemo(() => {
+    if (!toolsSearch.trim()) return normalizedTools
+    const q = toolsSearch.toLowerCase().trim()
+    return normalizedTools.filter(t =>
+      t.name.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q)
+    )
+  }, [normalizedTools, toolsSearch])
+
+  // Get MCP URL display
+  const mcpUrlDisplay = useMemo(() => {
+    if (!data.origin) return ""
+    try {
+      const url = new URL(data.origin)
+      return url.hostname.toUpperCase()
+    } catch {
+      return data.origin.toUpperCase()
+    }
+  }, [data.origin])
+
+  const server = useMemo(() => {
+    if (!data) return null
+    return {
+      id: data.serverId,
+      displayName: data.info?.name || data.origin,
+      baseUrl: proxyUrl || data.origin,
+      oauthSupported: true
+    }
+  }, [data, proxyUrl])
                       
                       return (
-                        <div>
-                          <ToolsAccordion
-                            tools={toolsToShow}
-                            onTry={(tool) => openToolModal(tool as unknown as Record<string, unknown>)}
-                          />
-                          {hasMoreTools && !showAllTools && (
-                            <div className="mt-4 text-center">
+    <div className="bg-background min-h-screen">
+      <main>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+          <div className="max-w-6xl px-4 md:px-6 mx-auto">
+            {/* Title */}
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight mb-2">
+              {data?.info?.name || data?.origin || ''}
+            </h1>
+
+            {/* MCP URL */}
+            {mcpUrlDisplay && (
+              <p className="text-base sm:text-lg text-muted-foreground mb-4 font-mono">
+                {mcpUrlDisplay}
+              </p>
+            )}
+
+            {/* Stats with HighlighterText */}
+            <div className="flex items-center gap-2 flex-wrap mb-6">
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+                <span className="text-foreground">{data.summary.totalRequests.toLocaleString()}</span>
+                <span className="text-muted-foreground">&nbsp;REQUESTS</span>
+              </div>
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+                <span className="text-foreground">{data.summary.totalTools}</span>
+                <span className="text-muted-foreground">&nbsp;TOOLS</span>
+              </div>
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+                <span className="text-foreground">{data.summary.totalPayments}</span>
+                <span className="text-muted-foreground">&nbsp;PAYMENTS</span>
+              </div>
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+                <span className="text-foreground">{data.qualityScore || 0}</span>
+                <span className="text-muted-foreground">&nbsp;QUALITY SCORE</span>
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted cursor-pointer">
+                      <span className="text-foreground">{formatRelative(data.summary.lastActivity)}</span>
+                      <span className="text-muted-foreground">&nbsp;ACTIVE</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="text-xs">{formatDate(data.summary.lastActivity)}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'tools' | 'payments' | 'connect')} className="mb-6">
+              <TabsList size="tall" variant="equal" className="max-w-md">
+                <TabsTrigger value="tools" size="tall" variant="highlight">TOOLS</TabsTrigger>
+                <TabsTrigger value="payments" size="tall" variant="highlight">PAYMENTS</TabsTrigger>
+                <TabsTrigger value="connect" size="tall" variant="highlight">CONNECT</TabsTrigger>
+              </TabsList>
+
+              {/* TOOLS Tab */}
+              <TabsContent value="tools" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  <div className="lg:col-span-2 space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-foreground leading-tight">Tools</h2>
+                      <HighlighterText>{normalizedTools.length}</HighlighterText>
+                    </div>
+
+                    <Input
+                      placeholder="Search Tools"
+                      value={toolsSearch}
+                      onChange={(e) => setToolsSearch(e.target.value)}
+                      variant="tall"
+                      className="w-full"
+                    />
+
+                    <div className="space-y-3">
+                      {filteredTools.map((tool) => {
+                        const isExpanded = expandedTools.has(tool.id)
+                        const isNetworkExpanded = expandedNetworkDetails.has(tool.id)
+
+                        return (
+                          <div key={tool.id} className={cn("flex gap-4 p-4 rounded-[2px] bg-card", isExpanded && "flex-col")}>
+                            <div className="flex items-center justify-between gap-4 w-full">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-mono text-sm font-medium text-foreground mb-1">{tool.name}</h3>
+                                {tool.description && (
+                                  <p className="text-sm text-muted-foreground">{tool.description}</p>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {tool.paymentHint && tool.paymentPriceUSD && (
+                                  <HighlighterText variant="blue">${tool.paymentPriceUSD}</HighlighterText>
+                                )}
+                                {tool.paymentNetworks && tool.paymentNetworks.length > 0 && (
+                                  <>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                        <div className="cursor-pointer inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted transition-colors group">
+                                          <span className="text-foreground group-hover:text-foreground">{tool.paymentNetworks.length}</span>
+                                          <span className="text-muted-foreground group-hover:text-foreground">&nbsp;NETWORKS</span>
+                                        </div>
+                                        </TooltipTrigger>
+                                      <TooltipContent>
+                                        <div className="text-sm">
+                                          {tool.paymentNetworks.map((net, idx) => net.network.charAt(0).toUpperCase() + net.network.slice(1).toLowerCase()).join(', ')}
+                                        </div>
+                                      </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                    <div className="w-4"></div>
+                                  </>
+                                )}
                               <Button
-                                variant="outline"
+                                  variant="customTallAccent"
                                 size="sm"
-                                onClick={() => setShowAllTools(true)}
-                                className="text-xs"
-                              >
-                                Show {allTools.length - 5} more tools
+                                  className="h-8 rounded-[2px]"
+                                  onClick={() => openToolModal(tool as unknown as Record<string, unknown>)}
+                                >
+                                  RUN
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedTools)
+                                    if (isExpanded) {
+                                      newExpanded.delete(tool.id)
+                                    } else {
+                                      newExpanded.add(tool.id)
+                                    }
+                                    setExpandedTools(newExpanded)
+                                  }}
+                                >
+                                  {isExpanded ? (
+                                    <ChevronUp className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
                               </Button>
+                              </div>
                             </div>
-                          )}
-                          {hasMoreTools && showAllTools && (
-                            <div className="mt-4 text-center">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setShowAllTools(false)}
-                                className="text-xs"
-                              >
-                                Show less
-                              </Button>
+
+                            {/* Expanded Content */}
+                            {isExpanded && (
+                              <div className="mt-4 space-y-8 pt-4 w-full">
+                                {/* Input Properties - Always visible */}
+                                {tool.inputSchema && typeof tool.inputSchema === 'object' && tool.inputSchema !== null && 'properties' in tool.inputSchema && tool.inputSchema.properties && typeof tool.inputSchema.properties === 'object' && (
+                                  <div>
+                                    <div className="mb-4 font-mono text-sm uppercase font-medium tracking-wider text-foreground">
+                                      INPUT PROPERTIES
+                                    </div>
+                                    <div className="space-y-3">
+                                      {Object.entries(tool.inputSchema.properties as Record<string, unknown>).map(([key, value]: [string, Record<string, unknown>]) => (
+                                        <div key={key} className="bg-muted-2 rounded-[2px] p-2 flex items-center justify-between">
+                                          <span className="font-mono text-sm text-foreground">
+                                            {key}
+                                            {Array.isArray(tool.inputSchema?.required) && tool.inputSchema.required.includes(key) && (
+                                              <span className="text-red-500 ml-1">*</span>
+                                            )}
+                                          </span>
+                                          <HighlighterText className="ml-auto">
+                                            {typeof value === 'object' && value !== null && 'type' in value && typeof value.type === 'string' ? value.type.toUpperCase() : 'ANY'}
+                                          </HighlighterText>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Summary - Always visible */}
+                                {tool.paymentHint && (
+                                  <div>
+                                    <div className="mb-4 font-mono text-sm uppercase font-medium tracking-wider text-foreground">
+                                      SUMMARY
+                                    </div>
+                                    <div className="space-y-3">
+                                      {tool.paymentPriceUSD && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-mono text-xs tracking-wider text-muted-foreground">USD PRICE</span>
+                                          <HighlighterText variant="blue">${tool.paymentPriceUSD}</HighlighterText>
+                                        </div>
+                                      )}
+                                      {tool.paymentNetworks && tool.paymentNetworks.length > 0 && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-mono text-xs tracking-wider text-muted-foreground">NETWORKS</span>
+                                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                                            {tool.paymentNetworks.map((net, idx) => (
+                                              <HighlighterText className="!text-foreground" key={idx}>{net.network}</HighlighterText>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+                                      {tool.paymentNetworks && tool.paymentNetworks.length > 0 && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-mono text-xs tracking-wider text-muted-foreground">NETWORKS TYPES</span>
+                                          <HighlighterText>{[...new Set(tool.paymentNetworks.map(n => n.type))].join(', ').toUpperCase()}</HighlighterText>
+                                        </div>
+                                      )}
+                                      {tool.paymentNetworks && tool.paymentNetworks.length > 0 && tool.paymentNetworks[0]?.recipient && (
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-mono text-xs tracking-wider text-muted-foreground">RECIPIENT ADDRESS</span>
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-mono text-xs tracking-wider">
+                                              {(() => {
+                                                const formatted = formatAddress(tool.paymentNetworks[0].recipient)
+                                                return (
+                                                  <>
+                                                    <span className="text-foreground">{formatted.start}</span>
+                                                    <span className="text-muted-foreground">{formatted.middle}</span>
+                                                    <span className="text-foreground">{formatted.end}</span>
+                                                  </>
+                                                )
+                                              })()}
+                                            </span>
+                                            <div 
+                                              className="inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground size-5 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
+                                              onClick={() => {
+                                                navigator.clipboard.writeText(tool.paymentNetworks![0].recipient)
+                                                toast.success('Address copied')
+                                              }}
+                                            >
+                                              <Copy className="h-3 w-3" />
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Network Details - Toggleable */}
+                                {tool.paymentNetworks && tool.paymentNetworks.length > 0 && (
+                                  <div>
+                                    <div className="w-full">
+                                      <button
+                                        onClick={() => {
+                                          const newExpanded = new Set(expandedNetworkDetails)
+                                          if (isNetworkExpanded) {
+                                            newExpanded.delete(tool.id)
+                                          } else {
+                                            newExpanded.add(tool.id)
+                                          }
+                                          setExpandedNetworkDetails(newExpanded)
+                                        }}
+                                        className={cn(
+                                          "inline-flex items-center gap-2 font-mono text-sm uppercase font-medium tracking-wider transition-colors underline decoration-dotted cursor-pointer",
+                                          isNetworkExpanded ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                      >
+                                        <span>NETWORK DETAILS</span>
+                                        {isNetworkExpanded ? (
+                                          <ChevronsDownUp className="h-4 w-4" />
+                                        ) : (
+                                          <ChevronsUpDown className="h-4 w-4" />
+                                        )}
+                                      </button>
+                                    </div>
+                                    {isNetworkExpanded && (
+                                      <div>
+                                        {tool.paymentNetworks.map((network, idx) => {
+                                          const amount = network.maxAmountRequired;
+                                          const symbol = network.asset.symbol || 'tokens';
+                                          const decimals = network.asset.decimals || 6;
+                                          const formattedAmount = (Number(amount) / Math.pow(10, decimals)).toFixed(decimals);
+
+                                          return (
+                                            <div key={idx} className="space-y-3 mt-12">
+                                              <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                  <HighlighterText className="!text-foreground">{network.network}</HighlighterText>
+                                                  {tool.paymentPriceUSD && (
+                                                    <HighlighterText variant="blue">${tool.paymentPriceUSD}</HighlighterText>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="space-y-2 font-mono">
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-xs tracking-wider text-muted-foreground">RECIPIENT</span>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-xs tracking-wider">
+                                                      {(() => {
+                                                        const formatted = formatAddress(network.recipient)
+                                                        return (
+                                                          <>
+                                                            <span className="text-foreground">{formatted.start}</span>
+                                                            <span className="text-muted-foreground">{formatted.middle}</span>
+                                                            <span className="text-foreground">{formatted.end}</span>
+                                                          </>
+                                                        )
+                                                      })()}
+                                                    </span>
+                                                    <div 
+                                                      className="inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground size-5 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
+                                                      onClick={() => {
+                                                        navigator.clipboard.writeText(network.recipient)
+                                                        toast.success('Address copied')
+                                                      }}
+                                                    >
+                                                      <Copy className="h-3 w-3" />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-xs tracking-wider text-muted-foreground">ASSET</span>
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-xs tracking-wider">
+                                                      {(() => {
+                                                        const formatted = formatAddress(network.asset.address)
+                                                        return (
+                                                          <>
+                                                            <span className="text-foreground">{formatted.start}</span>
+                                                            <span className="text-muted-foreground">{formatted.middle}</span>
+                                                            <span className="text-foreground">{formatted.end}</span>
+                                                          </>
+                                                        )
+                                                      })()}
+                                                    </span>
+                                                    <div 
+                                                      className="inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground size-5 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
+                                                      onClick={() => {
+                                                        navigator.clipboard.writeText(network.asset.address)
+                                                        toast.success('Address copied')
+                                                      }}
+                                                    >
+                                                      <Copy className="h-3 w-3" />
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-xs tracking-wider text-muted-foreground">ATOMIC</span>
+                                                  <span className="text-xs">
+                                                    <span className="text-foreground">{Number(amount).toLocaleString()}</span>
+                                                    <span className="text-muted-foreground"> UNITS</span>
+                                                  </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-xs tracking-wider text-muted-foreground">DECIMALS</span>
+                                                  <span className="text-xs text-foreground">{decimals}</span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                  <span className="text-xs tracking-wider text-muted-foreground">FORMATTED</span>
+                                                  <span className="text-xs">
+                                                    <span className="text-foreground">{formattedAmount}</span>
+                                                    <span className="text-muted-foreground"> {symbol.toUpperCase()}</span>
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                             </div>
                           )}
                         </div>
                       )
-                    })()}
-                  </CardContent>
-                )}
-              </Card>
+                      })}
+                    </div>
+                  </div>
 
               <div className="lg:col-span-1 space-y-4">
-                <InstallationSidebar />
+                    {server && (
+                      <ConnectPanel 
+                        server={server}
+                        initialAuthMode="oauth"
+                      />
+                    )}
                 <ServerDetailsCard
                   details={{
                     deploymentRef: data.indexedAt ? `indexed ${formatRelative(data.indexedAt)}` : undefined,
@@ -408,9 +703,41 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                 />
               </div>
             </div>
+              </TabsContent>
 
+              {/* PAYMENTS Tab */}
+              <TabsContent value="payments" className="mt-6">
             <RecentPaymentsCard serverId={serverId} initialPayments={data.recentPayments} />
+              </TabsContent>
 
+              {/* CONNECT Tab */}
+              <TabsContent value="connect" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    {server && (
+                      <ConnectPanel 
+                        server={server}
+                        initialAuthMode="oauth"
+                      />
+                    )}
+                  </div>
+                  <div className="lg:col-span-1">
+                    <ServerDetailsCard
+                      details={{
+                        deploymentRef: data.indexedAt ? `indexed ${formatRelative(data.indexedAt)}` : undefined,
+                        license: (data as unknown as { info?: { license?: string } })?.info?.license,
+                        isLocal: /localhost|127\.0\.0\.1/.test(data.origin),
+                        publishedAt: (data as unknown as { info?: { publishedAt?: string } })?.info?.publishedAt,
+                        repo: (data as unknown as { info?: { repo?: string } })?.info?.repo,
+                        homepage: (data as unknown as { info?: { homepage?: string } })?.info?.homepage,
+                      }}
+                      onRefresh={handleRefresh}
+                      isRefreshing={reindexing}
+                    />
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>
