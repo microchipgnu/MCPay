@@ -430,8 +430,8 @@ function CodeBlock({
   ]
 
   return (
-    <div className={`relative code-block p-3 ${className}`}>
-      <div className="overflow-x-auto" style={{ paddingTop: showAuthDropdown ? '28px' : '0' }}>
+    <div className={`relative code-block pt-3 px-3 pb-0 ${className}`}>
+      <div className="overflow-x-auto" style={{ paddingTop: showAuthDropdown ? '48px' : '0' }}>
         <pre className={`language-${language} whitespace-pre`}>
           <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
         </pre>
@@ -439,35 +439,56 @@ function CodeBlock({
       
       {/* Auth Dropdown */}
       {showAuthDropdown && authMode && onAuthModeChange && (
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2" style={{ width: '66.666%' }}>
           <div className="relative">
-            <Button
-              size="sm"
-              variant="ghost"
+            <div 
+              className={cn(
+                "flex items-center justify-between px-3 py-1 h-7 rounded-[2px] border border-input bg-transparent cursor-pointer transition-colors w-full",
+                isDropdownOpen ? "border-foreground" : "hover:border-foreground"
+              )}
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="h-7 px-2 text-xs bg-muted/50 hover:bg-muted border"
-              aria-label="Select authentication method"
             >
-              {authOptions.find(opt => opt.key === authMode)?.label}
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-foreground uppercase">
+                  {authOptions.find(opt => opt.key === authMode)?.label}
+                </span>
+              </div>
+              <ChevronDown className={`h-3 w-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </div>
             
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-32 rounded-md border bg-background shadow-lg z-20">
-                {authOptions.map((option) => (
-                  <button
-                    key={option.key}
-                    onClick={() => {
-                      onAuthModeChange(option.key as AuthMode)
-                      setIsDropdownOpen(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors ${
-                      authMode === option.key ? 'bg-muted font-medium' : ''
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="absolute top-full left-0 right-0 mt-1 max-h-72 overflow-hidden rounded-md border bg-background shadow-lg z-20">
+                <div className="max-h-56 overflow-auto p-2">
+                  {authOptions.map((option) => (
+                    <div 
+                      key={option.key}
+                      onClick={() => {
+                        onAuthModeChange(option.key as AuthMode)
+                        setIsDropdownOpen(false)
+                      }}
+                      className={`group flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-all duration-300 cursor-pointer ${
+                        authMode === option.key ? 'bg-muted/60' : ''
+                      }`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onAuthModeChange(option.key as AuthMode)
+                          setIsDropdownOpen(false)
+                        }
+                      }}
+                      aria-label={`Select ${option.label} authentication method`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-foreground uppercase">{option.label}</span>
+                      </div>
+                      {authMode === option.key && (
+                        <CheckCircle2 className="h-3 w-3 text-teal-600" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -475,16 +496,12 @@ function CodeBlock({
       )}
       
       {/* Copy Button */}
-      <Button
-        size="sm"
-        variant="ghost"
+      <div 
+        className="absolute top-2 right-2 inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground h-7 w-7 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
         onClick={handleCopy}
-        className="absolute top-2 right-2 h-7 w-7 rounded-sm"
-        aria-label="Copy code"
-        tabIndex={0}
       >
-        {copied ? <CheckCircle2 className="h-4 w-4 text-teal-600" /> : <Copy className="h-4 w-4" />}
-      </Button>
+        {copied ? <CheckCircle2 className="h-3 w-3 text-teal-600" /> : <Copy className="h-3 w-3" />}
+      </div>
     </div>
   )
 }
@@ -855,38 +872,17 @@ export function ConnectPanel({
               <div className="space-y-4">
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">Configuration</p>
-                  <div className="flex gap-1 p-1 rounded-lg bg-muted">
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, platform: 'mac' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.platform === 'mac' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Mac/Linux
-                    </button>
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, platform: 'win' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.platform === 'win' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Windows
-                    </button>
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, platform: 'wsl' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.platform === 'wsl' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      WSL
-                    </button>
-                  </div>
+                  <Tabs 
+                    value={state.platform} 
+                    onValueChange={(value) => setState(prev => ({ ...prev, platform: value as 'mac' | 'win' | 'wsl' }))}
+                    className="w-full"
+                  >
+                    <TabsList variant="equal" className="!grid w-full grid-cols-3 bg-muted-2 gap-2">
+                      <TabsTrigger value="mac" variant="default" className="text-xs uppercase">Mac/Linux</TabsTrigger>
+                      <TabsTrigger value="win" variant="default" className="text-xs uppercase">Windows</TabsTrigger>
+                      <TabsTrigger value="wsl" variant="default" className="text-xs uppercase">WSL</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
                 
                 <CodeBlock 
@@ -915,28 +911,16 @@ export function ConnectPanel({
                 {/* Language Selection */}
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">Language</p>
-                  <div className="flex gap-1 p-1 rounded-lg bg-muted">
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, codeLanguage: 'ts' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.codeLanguage === 'ts' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      TypeScript
-                    </button>
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, codeLanguage: 'py' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.codeLanguage === 'py' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Python
-                    </button>
-                  </div>
+                  <Tabs 
+                    value={state.codeLanguage} 
+                    onValueChange={(value) => setState(prev => ({ ...prev, codeLanguage: value as 'ts' | 'py' }))}
+                    className="w-full"
+                  >
+                    <TabsList variant="equal" className="!grid w-full grid-cols-2 bg-muted-2 gap-2">
+                      <TabsTrigger value="ts" variant="default" className="text-xs uppercase">TypeScript</TabsTrigger>
+                      <TabsTrigger value="py" variant="default" className="text-xs uppercase">Python</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
 
                 {/* Code Block */}

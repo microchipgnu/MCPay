@@ -35,7 +35,7 @@ const tabsTriggerVariants = cva(
         tall: "h-[calc(100%-1px)]",
       },
       variant: {
-        default: "flex-1 data-[state=active]:bg-background dark:data-[state=active]:text-foreground dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 data-[state=active]:text-foreground",
+        default: "flex-1 data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground data-[state=active]:border-transparent",
         highlight: "flex-1 data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:text-background",
       },
     },
