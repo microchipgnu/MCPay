@@ -528,8 +528,12 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                             {isExpanded && (
                               <div className="mt-4 space-y-8 pt-4 w-full">
                                 {/* Input Properties - Always visible */}
-                                {tool.inputSchema && typeof tool.inputSchema === 'object' && tool.inputSchema !== null && 'properties' in tool.inputSchema && tool.inputSchema.properties && typeof tool.inputSchema.properties === 'object' && (
-                                  <div>
+                                {(() => {
+                                  if (!tool.inputSchema || typeof tool.inputSchema !== 'object' || tool.inputSchema === null || !('properties' in tool.inputSchema) || !tool.inputSchema.properties || typeof tool.inputSchema.properties !== 'object') {
+                                    return null
+                                  }
+                                  return (
+                                    <div>
                                     <div className="mb-4 font-mono text-sm uppercase font-medium tracking-wider text-foreground">
                                       INPUT PROPERTIES
                                     </div>
@@ -553,7 +557,8 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                       })}
                                     </div>
                                   </div>
-                                )}
+                                  )
+                                })()}
 
                                 {/* Summary - Always visible */}
                                 {tool.paymentHint && (
