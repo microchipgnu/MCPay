@@ -41,9 +41,9 @@ export function ServerDetailsCard({
   const { isDark } = useTheme()
 
   return (
-    <div className={`rounded-md border ${isDark ? "bg-gray-800 border-gray-700" : "bg-background"}`}>
-      <div className="px-4 py-3 border-b text-sm font-medium flex items-center justify-between">
-        <span>Details</span>
+    <div className="rounded-[2px] bg-card p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <span className="text-sm font-medium text-muted-foreground uppercase font-mono tracking-wider">DETAILS</span>
         {onRefresh && (
           <Button
             variant="ghost"
@@ -60,7 +60,7 @@ export function ServerDetailsCard({
           </Button>
         )}
       </div>
-      <div className="px-4">
+      <div>
         <DetailRow label="Deployed from" value={details.deploymentRef} />
         <DetailRow label="License" value={details.license} />
         <DetailRow label="Local" value={details.isLocal} />
