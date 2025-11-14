@@ -534,19 +534,23 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                       INPUT PROPERTIES
                                     </div>
                                     <div className="space-y-3">
-                                      {Object.entries(tool.inputSchema.properties as Record<string, unknown>).map(([key, value]: [string, Record<string, unknown>]) => (
-                                        <div key={key} className="bg-muted-2 rounded-[2px] p-2 flex items-center justify-between">
-                                          <span className="font-mono text-sm text-foreground">
-                                            {key}
-                                            {Array.isArray(tool.inputSchema?.required) && tool.inputSchema.required.includes(key) && (
-                                              <span className="text-red-500 ml-1">*</span>
-                                            )}
-                                          </span>
-                                          <HighlighterText className="ml-auto">
-                                            {typeof value === 'object' && value !== null && 'type' in value && typeof value.type === 'string' ? value.type.toUpperCase() : 'ANY'}
-                                          </HighlighterText>
-                                        </div>
-                                      ))}
+                                      {Object.entries(tool.inputSchema.properties as Record<string, unknown>).map(([key, value]) => {
+                                        const valueObj = value as Record<string, unknown>
+                                        const typeString = typeof valueObj === 'object' && valueObj !== null && 'type' in valueObj && typeof valueObj.type === 'string' ? valueObj.type.toUpperCase() : 'ANY'
+                                        return (
+                                          <div key={key} className="bg-muted-2 rounded-[2px] p-2 flex items-center justify-between">
+                                            <span className="font-mono text-sm text-foreground">
+                                              {key}
+                                              {Array.isArray(tool.inputSchema?.required) && tool.inputSchema.required.includes(key) && (
+                                                <span className="text-red-500 ml-1">*</span>
+                                              )}
+                                            </span>
+                                            <HighlighterText className="ml-auto">
+                                              {typeString}
+                                            </HighlighterText>
+                                          </div>
+                                        )
+                                      })}
                                     </div>
                                   </div>
                                 )}
