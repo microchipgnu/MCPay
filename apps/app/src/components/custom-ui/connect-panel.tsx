@@ -541,18 +541,19 @@ function ClientDetails({ client, server, apiKey, onApiKeyNeeded }: {
   }
 
   if (client.steps?.length) {
+    const steps = client.steps
     return (
-      <div className="mb-0">
-        <ol className="space-y-3 mb-6">
-          {client.steps.map(step => (
-            <li key={step.n} className="text-sm text-foreground">
+      <div>
+        <ol className="space-y-3">
+          {steps.map((step, index) => (
+            <li key={step.n} className={index === steps.length - 1 ? "text-sm text-foreground" : "text-sm text-foreground"}>
               <span className="font-medium">{step.n}.</span> {step.text}
             </li>
           ))}
         </ol>
         
         {/* Connection URL Display */}
-        <div>
+        <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <p className="text-sm font-medium text-muted-foreground uppercase font-mono tracking-wider">CONNECTION URL</p>
             <div 
