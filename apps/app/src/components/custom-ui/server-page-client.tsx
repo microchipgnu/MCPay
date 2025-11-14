@@ -231,6 +231,27 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
     )
   }, [normalizedTools, toolsSearch])
 
+  // Get MCP URL display - must be called before conditional returns
+  const mcpUrlDisplay = useMemo(() => {
+    if (!data?.origin) return ""
+    try {
+      const url = new URL(data.origin)
+      return url.hostname.toUpperCase()
+    } catch {
+      return data.origin.toUpperCase()
+    }
+  }, [data?.origin])
+
+  const server = useMemo(() => {
+    if (!data) return null
+    return {
+      id: data.serverId,
+      displayName: data.info?.name || data.origin,
+      baseUrl: proxyUrl || data.origin,
+      oauthSupported: true
+    }
+  }, [data, proxyUrl])
+
   if (loading) {
     return (
       <div className={`min-h-screen transition-colors duration-200 ${isDark ? "bg-gradient-to-br from-black to-gray-900 text-white" : "bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900"}`}>
@@ -265,27 +286,6 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
   }
 
   if (!data) return null
-
-  // Get MCP URL display
-  const mcpUrlDisplay = useMemo(() => {
-    if (!data.origin) return ""
-    try {
-      const url = new URL(data.origin)
-      return url.hostname.toUpperCase()
-    } catch {
-      return data.origin.toUpperCase()
-    }
-  }, [data.origin])
-
-  const server = useMemo(() => {
-    if (!data) return null
-    return {
-      id: data.serverId,
-      displayName: data.info?.name || data.origin,
-      baseUrl: proxyUrl || data.origin,
-      oauthSupported: true
-    }
-  }, [data, proxyUrl])
                       
                       return (
     <div className="bg-background min-h-screen">
@@ -412,7 +412,7 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                         </TooltipTrigger>
                                       <TooltipContent>
                                         <div className="text-sm">
-                                          {tool.paymentNetworks.map((net, idx) => net.network.charAt(0).toUpperCase() + net.network.slice(1).toLowerCase()).join(', ')}
+                                          {tool.paymentNetworks.map((net) => net.network.charAt(0).toUpperCase() + net.network.slice(1).toLowerCase()).join(', ')}
                                         </div>
                                       </TooltipContent>
                                       </Tooltip>
@@ -477,7 +477,7 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <div className="text-sm">
-                                          {tool.paymentNetworks.map((net, idx) => net.network.charAt(0).toUpperCase() + net.network.slice(1).toLowerCase()).join(', ')}
+                                          {tool.paymentNetworks.map((net) => net.network.charAt(0).toUpperCase() + net.network.slice(1).toLowerCase()).join(', ')}
                                         </div>
                                       </TooltipContent>
                                     </Tooltip>
