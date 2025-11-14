@@ -382,7 +382,7 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                   <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center gap-2 mb-4">
                       <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-foreground leading-tight">Tools</h2>
-                      <HighlighterText>{normalizedTools.length}</HighlighterText>
+                      <HighlighterText className="!text-foreground">{normalizedTools.length}</HighlighterText>
                     </div>
 
                     <Input
