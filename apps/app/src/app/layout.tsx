@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     siteName: "MCPay",
     images: [
       {
-        url: '/mcpay-agentic-payments-og-image.png',
+        url: '/mcpay-agentic-payments-og-image-14112025.png',
         width: 1200,
         height: 630,
         alt: 'MCPay — Payments for MCPs',
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "MCPay — Payments for MCPs",
     description: "Add micropayments per tool call to your MCP servers or APIs without rewriting infrastructure. Prepare your stack for agent-to-agent payments.",
-    images: ['/mcpay-agentic-payments-og-image.png'],
+    images: ['/mcpay-agentic-payments-og-image-14112025.png'],
     creator: '@mcpaytech',
     site: '@mcpaytech',
   },

@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { useState, useCallback, useEffect } from "react"
 import { useTheme } from "@/components/providers/theme-context"
 import { ApiKeyModal } from "./api-key-modal"
+import { cn } from "@/lib/utils"
 import Prism from 'prismjs'
 import 'prismjs/components/prism-json'
 import 'prismjs/components/prism-typescript'
@@ -429,8 +430,8 @@ function CodeBlock({
   ]
 
   return (
-    <div className={`relative code-block p-3 ${className}`}>
-      <div className="overflow-x-auto" style={{ paddingTop: showAuthDropdown ? '28px' : '0' }}>
+    <div className={`relative code-block pt-3 px-3 pb-0 ${className}`}>
+      <div className="overflow-x-auto" style={{ paddingTop: showAuthDropdown ? '48px' : '0' }}>
         <pre className={`language-${language} whitespace-pre`}>
           <code dangerouslySetInnerHTML={{ __html: highlightedCode }} />
         </pre>
@@ -438,35 +439,56 @@ function CodeBlock({
       
       {/* Auth Dropdown */}
       {showAuthDropdown && authMode && onAuthModeChange && (
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2" style={{ width: '66.666%' }}>
           <div className="relative">
-            <Button
-              size="sm"
-              variant="ghost"
+            <div 
+              className={cn(
+                "flex items-center justify-between px-3 py-1 h-7 rounded-[2px] border border-input bg-transparent cursor-pointer transition-colors w-full",
+                isDropdownOpen ? "border-foreground" : "hover:border-foreground"
+              )}
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="h-7 px-2 text-xs bg-muted/50 hover:bg-muted border"
-              aria-label="Select authentication method"
             >
-              {authOptions.find(opt => opt.key === authMode)?.label}
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-foreground uppercase">
+                  {authOptions.find(opt => opt.key === authMode)?.label}
+                </span>
+              </div>
+              <ChevronDown className={`h-3 w-3 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </div>
             
             {isDropdownOpen && (
-              <div className="absolute top-full left-0 mt-1 min-w-32 rounded-md border bg-background shadow-lg z-20">
-                {authOptions.map((option) => (
-                  <button
-                    key={option.key}
-                    onClick={() => {
-                      onAuthModeChange(option.key as AuthMode)
-                      setIsDropdownOpen(false)
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors ${
-                      authMode === option.key ? 'bg-muted font-medium' : ''
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+              <div className="absolute top-full left-0 right-0 mt-1 max-h-72 overflow-hidden rounded-md border bg-background shadow-lg z-20">
+                <div className="max-h-56 overflow-auto p-2">
+                  {authOptions.map((option) => (
+                    <div 
+                      key={option.key}
+                      onClick={() => {
+                        onAuthModeChange(option.key as AuthMode)
+                        setIsDropdownOpen(false)
+                      }}
+                      className={`group flex items-center justify-between p-2 rounded-md hover:bg-muted/40 transition-all duration-300 cursor-pointer ${
+                        authMode === option.key ? 'bg-muted/60' : ''
+                      }`}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          onAuthModeChange(option.key as AuthMode)
+                          setIsDropdownOpen(false)
+                        }
+                      }}
+                      aria-label={`Select ${option.label} authentication method`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-foreground uppercase">{option.label}</span>
+                      </div>
+                      {authMode === option.key && (
+                        <CheckCircle2 className="h-3 w-3 text-teal-600" />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -474,16 +496,12 @@ function CodeBlock({
       )}
       
       {/* Copy Button */}
-      <Button
-        size="sm"
-        variant="ghost"
+      <div 
+        className="absolute top-2 right-2 inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground h-7 w-7 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
         onClick={handleCopy}
-        className="absolute top-2 right-2 h-7 w-7 rounded-sm"
-        aria-label="Copy code"
-        tabIndex={0}
       >
-        {copied ? <CheckCircle2 className="h-4 w-4 text-teal-600" /> : <Copy className="h-4 w-4" />}
-      </Button>
+        {copied ? <CheckCircle2 className="h-3 w-3 text-teal-600" /> : <Copy className="h-3 w-3" />}
+      </div>
     </div>
   )
 }
@@ -540,28 +558,23 @@ function ClientDetails({ client, server, apiKey, onApiKeyNeeded }: {
   }
 
   if (client.steps?.length) {
+    const steps = client.steps
     return (
-      <div className="space-y-3">
+      <div>
         <ol className="space-y-3">
-          {client.steps.map(step => (
-            <li key={step.n} className="text-sm text-foreground">
+          {steps.map((step, index) => (
+            <li key={step.n} className={index === steps.length - 1 ? "text-sm text-foreground" : "text-sm text-foreground"}>
               <span className="font-medium">{step.n}.</span> {step.text}
             </li>
           ))}
         </ol>
         
         {/* Connection URL Display */}
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">Server URL:</div>
-          <div className="flex items-center gap-2 p-3 rounded-md border bg-muted/50">
-            <div className="flex-1 overflow-x-auto">
-              <code className="text-xs font-mono whitespace-nowrap text-muted-foreground">
-                {server?.baseUrl || "https://server.smithery.ai/@upstash/context7-mcp/mcp"}
-              </code>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase font-mono tracking-wider">CONNECTION URL</p>
+            <div 
+              className="inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground size-5 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
               onClick={async () => {
                 try {
                   await copy(server?.baseUrl || "")
@@ -570,11 +583,12 @@ function ClientDetails({ client, server, apiKey, onApiKeyNeeded }: {
                   toast.error("Failed to copy")
                 }
               }}
-              className="h-7 w-7 rounded-sm flex-shrink-0"
-              aria-label="Copy server URL"
             >
-              <Copy className="h-4 w-4" />
-            </Button>
+              <Copy className="h-2.5 w-2.5" />
+            </div>
+          </div>
+          <div className="bg-muted-2 rounded-[2px] p-3 overflow-x-auto">
+            <code className="text-xs font-mono whitespace-nowrap text-foreground">{server?.baseUrl || "https://server.smithery.ai/@upstash/context7-mcp/mcp"}</code>
           </div>
         </div>
       </div>
@@ -622,39 +636,6 @@ function ConnectionUrlCard({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">Get connection URL</p>
-        <div className="inline-flex h-6 w-6 items-center justify-center rounded-sm text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70 transition-all duration-300">
-          <CheckCircle2 className="h-4 w-4" />
-        </div>
-      </div>
-      
-      <div className="relative group">
-        <div className={`flex items-center gap-2 p-3 rounded-md border ${isDark ? "bg-gray-800 border-gray-700" : "bg-background"} group-hover:border-border transition-all duration-300`}>
-          <div className="flex-1 overflow-x-auto">
-            <code className="text-xs font-mono whitespace-nowrap text-muted-foreground">{visibleUrl}</code>
-          </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleCopy}
-            className={`group h-7 w-7 rounded-sm transition-all duration-300 flex-shrink-0 ${copied ? "text-teal-600" : "text-muted-foreground/80 group-hover:text-foreground"}`}
-            aria-label="Copy connection URL"
-          >
-            {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-          </Button>
-        </div>
-        {copied && (
-          <div 
-            className="absolute -top-8 right-0 bg-teal-600 text-white text-xs px-2 py-1 rounded-md animate-in fade-in-0 zoom-in-95"
-            role="status"
-            aria-live="polite"
-          >
-            Copied!
-          </div>
-        )}
-      </div>
-
       <div className="text-xs text-muted-foreground">
         Client doesn&apos;t support OAuth yet or link isn&apos;t working?{" "}
         <button 
@@ -689,6 +670,7 @@ export function ConnectPanel({
     authMode: initialAuthMode,
     key: null,
     selectedTab: 'auto',
+    selectedClientId: 'chatgpt',
     platform: 'mac',
     copied: {},
     showApiKeyModal: false,
@@ -745,45 +727,62 @@ export function ConnectPanel({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Connection URL Card */}
-      <div className={`rounded-md border ${isDark ? "bg-gray-800 border-gray-700" : "bg-background"}`}>
-        <div className="px-4 py-3 border-b text-sm font-medium">
-          Connect
+      <div className="rounded-[2px] bg-card p-4">
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-sm font-medium text-muted-foreground uppercase font-mono tracking-wider">CONNECTION URL</p>
+            <div 
+              className="inline-flex items-center justify-center font-mono text-xs uppercase font-medium tracking-wide bg-muted text-muted-foreground size-5 rounded-[2px] hover:text-foreground transition-colors cursor-pointer"
+              onClick={async () => {
+                const url = buildUrl(server.baseUrl, state.authMode, state.key?.full)
+                try {
+                  await copy(url)
+                  toast.success("Connection URL copied!")
+                } catch {
+                  toast.error("Failed to copy")
+                }
+              }}
+            >
+              <Copy className="h-2.5 w-2.5" />
+            </div>
+          </div>
+          <div className="bg-muted-2 rounded-[2px] p-3 overflow-x-auto">
+            <code className="text-xs font-mono whitespace-nowrap text-foreground">{buildUrl(server.baseUrl, state.authMode, state.key?.full ?? state.key?.masked)}</code>
+          </div>
         </div>
-        <div className="px-4 py-4">
-          <ConnectionUrlCard
-            server={server}
-            authMode={state.authMode}
-            keyInfo={state.key}
-            onToggleAuth={handleToggleAuth}
-            onCopy={handleCopy}
-          />
-        </div>
+        <ConnectionUrlCard
+          server={server}
+          authMode={state.authMode}
+          keyInfo={state.key}
+          onToggleAuth={handleToggleAuth}
+          onCopy={handleCopy}
+        />
       </div>
 
       {/* Integration Tabs */}
-      <div className={`rounded-md border ${isDark ? "bg-gray-800 border-gray-700" : "bg-background"}`}>
-        <div className="px-4 py-3 border-b text-sm font-medium">
-          Integration
-        </div>
-        <div className="px-4 py-4">
-          <Tabs 
-            value={state.selectedTab} 
-            onValueChange={(value) => setState(prev => ({ ...prev, selectedTab: value as 'auto' | 'json' | 'code' }))}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="auto" className="text-xs">Auto</TabsTrigger>
-              <TabsTrigger value="json" className="text-xs">JSON</TabsTrigger>
-              <TabsTrigger value="code" className="text-xs">Code</TabsTrigger>
-            </TabsList>
+      <div className="rounded-[2px] bg-card px-4 pt-4 pb-4">
+        <p className="text-sm font-medium text-muted-foreground uppercase font-mono tracking-wider mb-4">INTEGRATE</p>
+        <Tabs 
+          value={state.selectedTab} 
+          onValueChange={(value) => setState(prev => ({ ...prev, selectedTab: value as 'auto' | 'json' | 'code' }))}
+          className="w-full"
+        >
+          <TabsList variant="equal" className="grid w-full grid-cols-3 bg-muted-2">
+            <TabsTrigger value="auto" variant="highlight" className="text-xs">AUTO</TabsTrigger>
+            <TabsTrigger value="json" variant="highlight" className="text-xs">JSON</TabsTrigger>
+            <TabsTrigger value="code" variant="highlight" className="text-xs">CODE</TabsTrigger>
+          </TabsList>
 
-            {/* Auto Tab */}
-            <TabsContent value="auto" className="mt-4">
-              <div className="space-y-4">
+          {/* Auto Tab */}
+          <TabsContent value="auto" className="mt-4">
+            <div className="space-y-4">
                 {/* Client Dropdown */}
-                <div className="relative">
+                <div className="relative mb-4">
                   <div 
-                    className="flex items-center justify-between p-3 rounded-md border bg-muted/50 cursor-pointer hover:bg-muted/70 transition-colors"
+                    className={cn(
+                      "flex items-center justify-between px-3 py-1 h-9 rounded-[2px] border border-input bg-transparent cursor-pointer transition-colors",
+                      isDropdownOpen ? "border-foreground" : "hover:border-foreground"
+                    )}
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   >
                     <div className="flex items-center gap-3">
@@ -873,38 +872,17 @@ export function ConnectPanel({
               <div className="space-y-4">
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">Configuration</p>
-                  <div className="flex gap-1 p-1 rounded-lg bg-muted">
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, platform: 'mac' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.platform === 'mac' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Mac/Linux
-                    </button>
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, platform: 'win' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.platform === 'win' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Windows
-                    </button>
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, platform: 'wsl' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.platform === 'wsl' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      WSL
-                    </button>
-                  </div>
+                  <Tabs 
+                    value={state.platform} 
+                    onValueChange={(value) => setState(prev => ({ ...prev, platform: value as 'mac' | 'win' | 'wsl' }))}
+                    className="w-full"
+                  >
+                    <TabsList variant="equal" className="!grid w-full grid-cols-3 bg-muted-2 gap-2">
+                      <TabsTrigger value="mac" variant="default" className="text-xs uppercase">Mac/Linux</TabsTrigger>
+                      <TabsTrigger value="win" variant="default" className="text-xs uppercase">Windows</TabsTrigger>
+                      <TabsTrigger value="wsl" variant="default" className="text-xs uppercase">WSL</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
                 
                 <CodeBlock 
@@ -933,28 +911,16 @@ export function ConnectPanel({
                 {/* Language Selection */}
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">Language</p>
-                  <div className="flex gap-1 p-1 rounded-lg bg-muted">
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, codeLanguage: 'ts' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.codeLanguage === 'ts' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      TypeScript
-                    </button>
-                    <button 
-                      onClick={() => setState(prev => ({ ...prev, codeLanguage: 'py' }))}
-                      className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
-                        state.codeLanguage === 'py' 
-                          ? 'bg-background text-foreground shadow-sm' 
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      Python
-                    </button>
-                  </div>
+                  <Tabs 
+                    value={state.codeLanguage} 
+                    onValueChange={(value) => setState(prev => ({ ...prev, codeLanguage: value as 'ts' | 'py' }))}
+                    className="w-full"
+                  >
+                    <TabsList variant="equal" className="!grid w-full grid-cols-2 bg-muted-2 gap-2">
+                      <TabsTrigger value="ts" variant="default" className="text-xs uppercase">TypeScript</TabsTrigger>
+                      <TabsTrigger value="py" variant="default" className="text-xs uppercase">Python</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
                 </div>
 
                 {/* Code Block */}
@@ -1003,7 +969,6 @@ export function ConnectPanel({
               </div>
             </TabsContent>
           </Tabs>
-        </div>
       </div>
 
       {/* API Key Modal */}
