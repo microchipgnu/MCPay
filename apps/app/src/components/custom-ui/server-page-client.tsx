@@ -25,7 +25,8 @@ import {
   ChevronsDownUp,
   Loader2,
   RefreshCcw,
-  Copy
+  Copy,
+  PlugZap
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -325,40 +326,42 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
       <main>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
           <div className="max-w-6xl md:px-6 mx-auto">
-            {/* Title */}
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight mb-2">
-              {data?.info?.name || data?.origin || ''}
-            </h1>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+              <div className="flex-1">
+                {/* Title */}
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight mb-2">
+                  {data?.info?.name || data?.origin || ''}
+                </h1>
 
-            {/* MCP URL */}
-            {mcpUrlDisplay && (
-              <p className="text-base sm:text-lg text-muted-foreground mb-4 font-mono">
-                {mcpUrlDisplay}
-              </p>
-            )}
+                {/* MCP URL */}
+                {mcpUrlDisplay && (
+                  <p className="text-base sm:text-lg text-muted-foreground mb-4 font-mono">
+                    {mcpUrlDisplay}
+                  </p>
+                )}
 
-            {/* Stats with HighlighterText */}
-            <div className="flex items-center gap-2 flex-wrap mb-10">
-              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+                {/* Stats with HighlighterText */}
+                <div className="flex items-center gap-2 flex-nowrap md:flex-wrap overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 -mx-4 md:mx-0 px-4 md:px-0 scrollbar-hide">
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted shrink-0 whitespace-nowrap">
                 <span className="text-foreground">{data.summary.totalRequests.toLocaleString()}</span>
                 <span className="text-muted-foreground">&nbsp;REQUESTS</span>
               </div>
-              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted shrink-0 whitespace-nowrap">
                 <span className="text-foreground">{data.summary.totalTools}</span>
                 <span className="text-muted-foreground">&nbsp;TOOLS</span>
               </div>
-              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted shrink-0 whitespace-nowrap">
                 <span className="text-foreground">{data.summary.totalPayments}</span>
                 <span className="text-muted-foreground">&nbsp;PAYMENTS</span>
               </div>
-              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted">
+              <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted shrink-0 whitespace-nowrap">
                 <span className="text-foreground">{data.qualityScore || 0}</span>
                 <span className="text-muted-foreground">&nbsp;QUALITY SCORE</span>
               </div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted cursor-pointer">
+                    <div className="inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted cursor-pointer shrink-0 whitespace-nowrap">
                       <span className="text-foreground">{formatRelative(data.summary.lastActivity)}</span>
                       <span className="text-muted-foreground">&nbsp;ACTIVE</span>
                     </div>
@@ -366,6 +369,25 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                   <TooltipContent className="text-xs">{formatDate(data.summary.lastActivity)}</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+                </div>
+              </div>
+              
+              {/* Connect Button */}
+              {data?.origin && (
+                <Button
+                  variant="customTallAccentAmber"
+                  size="tall"
+                  onClick={() => {
+                    const url = urlUtils.getMcpUrl(data.origin)
+                    navigator.clipboard.writeText(url)
+                    toast.success("Copied MCP endpoint to clipboard")
+                  }}
+                  className="rounded-[2px] w-full md:w-auto md:shrink-0 mt-4 md:mt-0"
+                >
+                  <PlugZap className="size-4" />
+                  CONNECT
+                </Button>
+              )}
             </div>
 
             {/* Tabs */}
@@ -794,7 +816,7 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                           <h2 className="text-lg sm:text-xl lg:text-2xl font-bold font-host text-foreground leading-tight">Recent Payments</h2>
                           <HighlighterText className="!text-foreground">{paymentsCount}</HighlighterText>
                         </div>
-                        <div className="flex flex-col gap-1 font-mono text-xs uppercase">
+                        <div className="flex items-center justify-between gap-4 font-mono text-xs uppercase w-full">
                           <div className={`flex items-center gap-1.5 font-semibold tracking-wider ${autoRefreshEnabled ? 'text-teal-700 dark:text-teal-200' : 'text-muted-foreground'}`}>
                             {autoRefreshEnabled && <Loader2 className="size-3 animate-spin" />}
                             <span>AUTO REFRESH {autoRefreshEnabled ? 'ON' : 'OFF'}</span>
