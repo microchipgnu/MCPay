@@ -324,7 +324,7 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
     <div className="bg-background min-h-screen">
       <main>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          <div className="max-w-6xl px-4 md:px-6 mx-auto">
+          <div className="max-w-6xl md:px-6 mx-auto">
             {/* Title */}
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight mb-2">
               {data?.info?.name || data?.origin || ''}
@@ -399,8 +399,9 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                         const isNetworkExpanded = expandedNetworkDetails.has(tool.id)
 
                         return (
-                          <div key={tool.id} className={cn("flex gap-4 p-4 rounded-[2px] bg-card", isExpanded && "flex-col")}>
-                            <div className="flex items-center justify-between gap-4 w-full">
+                          <div key={tool.id} className={cn("flex gap-4 p-4 pr-6 md:pr-4 rounded-[2px] bg-card", isExpanded && "flex-col")}>
+                            {/* Desktop Layout */}
+                            <div className="hidden md:flex items-center justify-between gap-4 w-full">
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-mono text-sm font-medium text-foreground mb-1">{tool.name}</h3>
                                 {tool.description && (
@@ -459,6 +460,79 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                     <ChevronDown className="h-4 w-4" />
                                   )}
                               </Button>
+                              </div>
+                            </div>
+
+                            {/* Mobile Layout */}
+                            <div className="flex md:hidden flex-col gap-3 w-full">
+                              {/* Row 1: Tool name */}
+                              <h3 className="font-mono text-sm font-medium text-foreground">{tool.name}</h3>
+                              
+                              {/* Row 2: Description */}
+                              {tool.description && (
+                                <p className="text-sm text-muted-foreground">{tool.description}</p>
+                              )}
+                              
+                              {/* Row 3: Price and Network */}
+                              <div className="flex items-center gap-2">
+                                {tool.paymentHint && tool.paymentPriceUSD && (
+                                  <HighlighterText variant="blue">${tool.paymentPriceUSD}</HighlighterText>
+                                )}
+                                {tool.paymentNetworks && tool.paymentNetworks.length > 0 && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="cursor-pointer inline-flex items-center font-mono text-xs uppercase font-medium tracking-wide px-2 py-1 rounded-[2px] bg-muted transition-colors group">
+                                          <span className="text-foreground group-hover:text-foreground">{tool.paymentNetworks.length}</span>
+                                          <span className="text-muted-foreground group-hover:text-foreground">&nbsp;NETWORKS</span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <div className="text-sm">
+                                          {tool.paymentNetworks.map((net, idx) => net.network.charAt(0).toUpperCase() + net.network.slice(1).toLowerCase()).join(', ')}
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                              
+                              {/* Row 4: Buttons (INFO left, RUN right) */}
+                              <div className="flex gap-2 w-full">
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  className="h-8 w-[50%] rounded-[2px]"
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedTools)
+                                    if (isExpanded) {
+                                      newExpanded.delete(tool.id)
+                                    } else {
+                                      newExpanded.add(tool.id)
+                                    }
+                                    setExpandedTools(newExpanded)
+                                  }}
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      <ChevronUp className="h-4 w-4 mr-2" />
+                                      INFO
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="h-4 w-4 mr-2" />
+                                      INFO
+                                    </>
+                                  )}
+                                </Button>
+                                <Button
+                                  variant="customTallAccent"
+                                  size="sm"
+                                  className="h-8 w-[50%] rounded-[2px]"
+                                  onClick={() => openToolModal(tool as unknown as Record<string, unknown>)}
+                                >
+                                  RUN
+                                </Button>
                               </div>
                             </div>
 
@@ -528,7 +602,8 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                                 return (
                                                   <>
                                                     <span className="text-foreground">{formatted.start}</span>
-                                                    <span className="text-muted-foreground">{formatted.middle}</span>
+                                                    <span className="text-muted-foreground hidden md:inline">{formatted.middle}</span>
+                                                    <span className="text-muted-foreground md:hidden"> ... </span>
                                                     <span className="text-foreground">{formatted.end}</span>
                                                   </>
                                                 )
@@ -605,7 +680,8 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                                         return (
                                                           <>
                                                             <span className="text-foreground">{formatted.start}</span>
-                                                            <span className="text-muted-foreground">{formatted.middle}</span>
+                                                            <span className="text-muted-foreground hidden md:inline">{formatted.middle}</span>
+                                                            <span className="text-muted-foreground md:hidden"> ... </span>
                                                             <span className="text-foreground">{formatted.end}</span>
                                                           </>
                                                         )
@@ -631,7 +707,8 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
                                                         return (
                                                           <>
                                                             <span className="text-foreground">{formatted.start}</span>
-                                                            <span className="text-muted-foreground">{formatted.middle}</span>
+                                                            <span className="text-muted-foreground hidden md:inline">{formatted.middle}</span>
+                                                            <span className="text-muted-foreground md:hidden"> ... </span>
                                                             <span className="text-foreground">{formatted.end}</span>
                                                           </>
                                                         )
