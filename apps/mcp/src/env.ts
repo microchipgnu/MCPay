@@ -6,7 +6,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 
   // Server
-  PORT: z.string().default("3050").transform((val) => parseInt(val, 10)),
+  PORT: z.string().default("3005").transform((val) => parseInt(val, 10)),
 
   // Better Auth
   BETTER_AUTH_SECRET: z.string().min(1, "BETTER_AUTH_SECRET is required").default(""),
