@@ -31,7 +31,9 @@ const buttonVariants = cva(
         customTallAccent:
           "text-teal-700 bg-teal-500/10 hover:bg-teal-500/20 dark:text-teal-200 dark:bg-teal-800/50 dark:hover:bg-teal-800/70 font-mono tracking-wider uppercase text-sm rounded-[2px] transition-all duration-300",
         customTallAccentAmber:
-          "text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 dark:text-amber-200 dark:bg-amber-800/50 dark:hover:bg-amber-800/70 font-mono tracking-wider uppercase text-sm rounded-[2px] transition-all duration-300"
+          "text-amber-700 bg-amber-500/10 hover:bg-amber-500/20 dark:text-amber-200 dark:bg-amber-800/50 dark:hover:bg-amber-800/70 font-mono tracking-wider uppercase text-sm rounded-[2px] transition-all duration-300",
+        accentBlue:
+          "text-blue-700 bg-blue-500/10 hover:bg-blue-500/20 dark:text-blue-200 dark:bg-blue-800/50 dark:hover:bg-blue-800/70 font-mono tracking-wider uppercase text-sm rounded-[2px] transition-all duration-300"
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
