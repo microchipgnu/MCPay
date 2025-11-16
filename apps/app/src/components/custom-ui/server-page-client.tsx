@@ -9,6 +9,7 @@ import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer"
 import { Input } from "@/components/ui/input"
 import { mcpDataApi, urlUtils } from "@/lib/client/utils"
 import {
@@ -20,7 +21,8 @@ import {
   Loader2,
   RefreshCcw,
   Copy,
-  PlugZap
+  PlugZap,
+  Eye
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -126,6 +128,8 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
   const [expandedTools, setExpandedTools] = useState<Set<string>>(new Set())
   const [expandedNetworkDetails, setExpandedNetworkDetails] = useState<Set<string>>(new Set())
   const [toolsSearch, setToolsSearch] = useState("")
+  const [isMobile, setIsMobile] = useState(false)
+  const [urlDrawerOpen, setUrlDrawerOpen] = useState(false)
 
   useEffect(() => {
     if (initialData) return // Don't refetch if we have initial data
@@ -149,6 +153,13 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
     if (serverId) load()
     return () => { mounted = false }
   }, [serverId, initialData])
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(typeof window !== 'undefined' && window.innerWidth < 768)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const handleRefresh = async () => {
     if (!data?.origin) {
@@ -233,14 +244,26 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
 
   // Get MCP URL display - must be called before conditional returns
   const mcpUrlDisplay = useMemo(() => {
-    if (!data?.origin) return ""
+    if (!data?.serverId) return ""
     try {
-      const url = new URL(data.origin)
+      // Use the mcp2 format: https://mcp2.mcpay.tech/mcp?id=serverId
+      const mcp2Url = urlUtils.getMcp2Url()
+      return `${mcp2Url}/mcp?id=${data.serverId}`
+    } catch {
+      return ""
+    }
+  }, [data?.serverId])
+
+  // Get hostname for display (without https://)
+  const mcpUrlHostname = useMemo(() => {
+    if (!mcpUrlDisplay) return ""
+    try {
+      const url = new URL(mcpUrlDisplay)
       return url.hostname.toUpperCase()
     } catch {
-      return data.origin.toUpperCase()
+      return mcpUrlDisplay.toUpperCase()
     }
-  }, [data?.origin])
+  }, [mcpUrlDisplay])
 
   const server = useMemo(() => {
     if (!data) return null
@@ -295,15 +318,56 @@ export function ServerPageClient({ serverId, initialData }: ServerPageClientProp
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
               <div className="flex-1">
                 {/* Title */}
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight mb-2">
+                <h1 className="text-2xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight mb-2">
                   {data?.info?.name || data?.origin || ''}
                 </h1>
 
                 {/* MCP URL */}
-                {mcpUrlDisplay && (
-                  <p className="text-base sm:text-lg text-muted-foreground mb-4 font-mono">
-                    {mcpUrlDisplay}
-                  </p>
+                {mcpUrlHostname && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <p className="text-sm sm:text-base text-muted-foreground font-mono">
+                      {mcpUrlHostname}
+                    </p>
+                    {isMobile ? (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 rounded-[2px] text-muted-foreground hover:text-foreground"
+                          onClick={() => setUrlDrawerOpen(true)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                        </Button>
+                        <Drawer open={urlDrawerOpen} onOpenChange={setUrlDrawerOpen}>
+                          <DrawerContent>
+                            <DrawerHeader>
+                              <DrawerTitle className="font-mono">MCP URL</DrawerTitle>
+                              <DrawerDescription className="font-mono break-all">
+                                {mcpUrlDisplay}
+                              </DrawerDescription>
+                            </DrawerHeader>
+                          </DrawerContent>
+                        </Drawer>
+                      </>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 rounded-[2px] text-muted-foreground hover:text-foreground"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="font-mono text-xs">{mcpUrlDisplay}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
                 )}
 
                 {/* Stats with HighlighterText */}
