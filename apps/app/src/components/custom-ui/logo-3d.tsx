@@ -157,7 +157,7 @@ export default function Logo3D({ className, delay = 0, duration = 1.2 }: { class
           <directionalLight position={[-10, -10, -5]} intensity={0.5} />
           <Logo3DScene />
           <OrbitControls enableZoom={true} enablePan={false} minDistance={5} maxDistance={15} />
-          <Environment preset="studio" />
+          {/* <Environment preset="studio" /> */}
         </Canvas>
       </motion.div>
     </div>
