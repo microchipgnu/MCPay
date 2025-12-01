@@ -71,7 +71,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Center (desktop only): BROWSE / EXPLORER / REGISTER */}
+          {/* Center (desktop only): BROWSE / MONETIZE / EXPLORER */}
           <div className="hidden sm:flex justify-center items-center gap-8">
             <Button
               asChild
@@ -83,16 +83,16 @@ export default function Navbar() {
             <Button
               asChild
               variant="link"
-              className={`${linkClasses} ${pathname === "/explorer" ? activeLinkClasses : ""}`}
+              className={`${linkClasses} ${pathname === "/register" ? activeLinkClasses : ""}`}
             >
-              <Link href="/explorer">EXPLORER</Link>
+              <Link href="/register">MONETIZE</Link>
             </Button>
             <Button
               asChild
               variant="link"
-              className={`${linkClasses} ${pathname === "/register" ? activeLinkClasses : ""}`}
+              className={`${linkClasses} ${pathname === "/explorer" ? activeLinkClasses : ""}`}
             >
-              <Link href="/register">REGISTER</Link>
+              <Link href="/explorer">EXPLORER</Link>
             </Button>
           </div>
 
@@ -172,18 +172,18 @@ export default function Navbar() {
                   </SheetClose>
                   <SheetClose asChild>
                     <Link
-                      href="/explorer"
+                      href="/register"
                       className="block font-mono tracking-wide text-lg text-muted-foreground hover:text-foreground"
                     >
-                      EXPLORER
+                      MONETIZE
                     </Link>
                   </SheetClose>
                   <SheetClose asChild>
                     <Link
-                      href="/register"
+                      href="/explorer"
                       className="block font-mono tracking-wide text-lg text-muted-foreground hover:text-foreground"
                     >
-                      REGISTER
+                      EXPLORER
                     </Link>
                   </SheetClose>
                 </div>
