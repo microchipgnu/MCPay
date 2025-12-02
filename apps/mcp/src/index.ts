@@ -48,7 +48,8 @@ app.use("*", cors({
         "X-Wallet-Type",
         "X-Wallet-Address", 
         "X-Wallet-Provider",
-        "x-vlayer-enabled"
+        "x-vlayer-enabled",
+        "x-mcpay-target-url"
     ],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
@@ -462,24 +463,44 @@ async function resolveTargetUrl(req: Request, absoluteUrl?: string): Promise<str
         return null;
     }
     
-    const directUrlEncoded = req.headers.get("x-mcpay-target-url")
-        ?? url.searchParams.get("target-url");
+    // Check header first (case-insensitive)
+    const headerValue = req.headers.get("x-mcpay-target-url") 
+        ?? req.headers.get("X-MCPAY-TARGET-URL")
+        ?? req.headers.get("X-Mcpay-Target-Url");
+    const queryValue = url.searchParams.get("target-url");
+    const directUrlEncoded = headerValue ?? queryValue;
+
+    const allTargetHeaders: string[] = [];
+    req.headers.forEach((value, key) => {
+        if (key.toLowerCase().includes("target")) {
+            allTargetHeaders.push(`${key}: ${value.substring(0, 30)}...`);
+        }
+    });
+    console.log("[MCP] resolveTargetUrl - checking:", {
+        hasHeader: !!headerValue,
+        headerValue: headerValue?.substring(0, 50) + "...",
+        hasQuery: !!queryValue,
+        queryValue: queryValue?.substring(0, 50) + "...",
+        allTargetHeaders
+    });
 
     if (directUrlEncoded) {
         try {
             // The value is base64-encoded, so decode it
             // decodeURIComponent in case it was URL-encoded as well
             const decoded = decodeURIComponent(atob(directUrlEncoded));
+            console.log("[MCP] Successfully decoded target-url:", decoded.substring(0, 50) + "...");
             return decoded;
         } catch (e) {
             // If decoding fails, try treating it as already decoded (for backwards compatibility)
             try {
                 // Maybe it's already the actual URL?
                 new URL(directUrlEncoded);
+                console.log("[MCP] Target-url is already a URL (not base64)");
                 return directUrlEncoded;
             } catch {
                 // If that also fails, log and fall through
-                console.log("[MCP] Failed to decode target-url:", e);
+                console.log("[MCP] Failed to decode target-url:", e, "Value:", directUrlEncoded?.substring(0, 50));
             }
         }
     }

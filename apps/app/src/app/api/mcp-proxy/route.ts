@@ -149,10 +149,12 @@ export async function POST(request: Request) {
     forwardHeaders.delete('mcp-session-id')
   }
 
+  const targetUrlHeaderValue = forwardHeaders.get('x-mcpay-target-url')
   console.log('Forwarding to MCP server with headers:', {
-    'x-mcpay-target-url': forwardHeaders.get('x-mcpay-target-url')?.substring(0, 50) + '...',
+    'x-mcpay-target-url': targetUrlHeaderValue ? (targetUrlHeaderValue.substring(0, 50) + '... (full length: ' + targetUrlHeaderValue.length + ')') : 'MISSING',
     'content-type': forwardHeaders.get('content-type'),
     'authorization': forwardHeaders.get('authorization') ? 'present' : 'missing',
+    'all-headers': Array.from(forwardHeaders.entries()).map(([k, v]) => [k, k === 'x-mcpay-target-url' ? v.substring(0, 30) + '...' : v.substring(0, 30)]),
   })
 
   const response = await fetch(mcpUrl, {
