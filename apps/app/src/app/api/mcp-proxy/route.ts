@@ -68,7 +68,8 @@ export async function POST(request: Request) {
   console.log('Request referer:', request.headers.get('referer'))
 
   // Use the local MCP server instead of external proxy
-  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp?target-url=${targetUrl}`
+  // Pass target-url as header to avoid URL encoding issues
+  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp`
 
   console.log('mcpUrl', mcpUrl)
   
@@ -82,6 +83,10 @@ export async function POST(request: Request) {
     }
     forwardHeaders.set(key, value)
   })
+  // Pass target-url as header (base64-encoded) - this is what the MCP server expects
+  if (targetUrl) {
+    forwardHeaders.set('x-mcpay-target-url', targetUrl)
+  }
   // Ensure cookies are forwarded from Next headers API
   if (h.get('cookie')) {
     forwardHeaders.set('Cookie', h.get('cookie') || '')
@@ -167,7 +172,8 @@ export async function GET(request: Request) {
 
 
   // Use the local MCP server instead of external proxy
-  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp?target-url=${targetUrl}`
+  // Pass target-url as header to avoid URL encoding issues
+  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp`
   
   // Forward the request to the local MCP server with original headers (preserve MCP session headers)
   const forwardHeaders = new Headers()
@@ -178,6 +184,10 @@ export async function GET(request: Request) {
     }
     forwardHeaders.set(key, value)
   })
+  // Pass target-url as header (base64-encoded) - this is what the MCP server expects
+  if (targetUrl) {
+    forwardHeaders.set('x-mcpay-target-url', targetUrl)
+  }
   if (h.get('cookie')) {
     forwardHeaders.set('Cookie', h.get('cookie') || '')
   }

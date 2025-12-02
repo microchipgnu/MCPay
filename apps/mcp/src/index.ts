@@ -485,7 +485,8 @@ app.all("/mcp", async (c) => {
     const currentUrl = new URL(c.req.url);
     const targetUrlParam = currentUrl.searchParams.get("target-url");
     const hasId = !!currentUrl.searchParams.get("id");
-    const shouldProxy = hasId || !!targetUrlParam;
+    const hasTargetUrlHeader = !!c.req.raw.headers.get("x-mcpay-target-url");
+    const shouldProxy = hasId || !!targetUrlParam || hasTargetUrlHeader;
     const original = c.req.raw;
     
     const isTruthyHeader = (value: string | null) => {
