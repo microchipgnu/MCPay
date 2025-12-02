@@ -1,26 +1,26 @@
 ---
-title: "VLayer Web Proofs (zkTLS)"
-description: "Generate cryptographic proofs of tool calls using VLayer's zkTLS technology"
+title: "vlayer Web Proofs (zkTLS)"
+description: "Generate cryptographic proofs of tool calls using vlayer's zkTLS technology"
 ---
 
-VLayer provides **zero-knowledge TLS (zkTLS) proofs** for web requests, enabling you to generate cryptographic proofs of tool calls made through MCPay. This allows you to verify that specific API calls were made without revealing sensitive data, creating a trustless verification layer for your MCP server interactions.
+vlayer provides **zero-knowledge TLS (zkTLS) proofs** for web requests, enabling you to generate cryptographic proofs of tool calls made through MCPay. This allows you to verify that specific API calls were made without revealing sensitive data, creating a trustless verification layer for your MCP server interactions.
 
 ## What are Web Proofs?
 
-Web proofs are cryptographic attestations that prove a specific HTTP request was made and received a specific response, without revealing the full contents of the communication. VLayer uses zkTLS technology to generate these proofs, which can be verified independently by anyone.
+Web proofs are cryptographic attestations that prove a specific HTTP request was made and received a specific response, without revealing the full contents of the communication. vlayer uses zkTLS technology to generate these proofs, which can be verified independently by anyone.
 
 ## How It Works
 
-When you enable VLayer for your MCP requests:
+When you enable vlayer for your MCP requests:
 
-1. **Request Execution**: Your tool call is executed through VLayer's notary service
-2. **Proof Generation**: VLayer generates a cryptographic proof of the request/response
+1. **Request Execution**: Your tool call is executed through vlayer's notary service
+2. **Proof Generation**: vlayer generates a cryptographic proof of the request/response
 3. **Proof Return**: The proof is returned alongside the response data
 4. **Verification**: Anyone can verify the proof independently to confirm the request was made
 
-## Enabling VLayer in Your Client
+## Enabling vlayer in Your Client
 
-To enable VLayer web proofs for your MCP tool calls, add the `x-vlayer-enabled` header to your requests:
+To enable vlayer web proofs for your MCP tool calls, add the `x-vlayer-enabled` header to your requests:
 
 ```typescript
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -37,7 +37,7 @@ const transport = new StreamableHTTPClientTransport(new URL(MCP_SERVER_URL), {
   requestInit: {
     headers: {
       'x-mcp-disable-auth': 'true',
-      'x-vlayer-enabled': 'true', // Enable VLayer web proofs
+      'x-vlayer-enabled': 'true', // Enable vlayer web proofs
     },
   },
 });
@@ -70,7 +70,7 @@ export const getClient = async () => {
     requestInit: {
       headers: {
         'x-mcp-disable-auth': 'true',
-        'x-vlayer-enabled': 'true', // Enable VLayer web proofs
+        'x-vlayer-enabled': 'true', // Enable vlayer web proofs
       },
     },
   });
@@ -96,7 +96,7 @@ export const getClient = async () => {
 
 export const getClientResponse = async () => {
   const client = await getClient();
-  // ✅ Call tool with VLayer proof enabled
+  // ✅ Call tool with vlayer proof enabled
   const res = await client.callTool({
     name: "getUserInfo",
     arguments: {
@@ -145,11 +145,11 @@ export const getClientResponse = async () => {
    pnpm start
    ```
 
-The example will make a tool call with VLayer enabled, generating a cryptographic proof that can be verified independently.
+The example will make a tool call with vlayer enabled, generating a cryptographic proof that can be verified independently.
 
 ## Learn More
 
-- [VLayer Documentation](https://vlayer.xyz) - Learn more about zkTLS and web proofs
+- [vlayer Documentation](https://vlayer.xyz) - Learn more about zkTLS and web proofs
 - [Example Repository](https://github.com/microchipgnu/mcpay/tree/main/examples/vlayer-client-example) - Full working example
 - [MCPay GitHub](https://github.com/microchipgnu/mcpay) - Source code and more examples
 
