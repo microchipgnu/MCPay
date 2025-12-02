@@ -26,14 +26,19 @@ function jsonResponse(obj: unknown, status = 200): Response {
     });
 }
 
-function wrapUpstreamResponse(upstream: Response): Response {
+async function wrapUpstreamResponse(upstream: Response): Promise<Response> {
     // Clone headers to avoid immutable header guards on upstream responses
     const headers = new Headers(upstream.headers);
     // If the runtime already decompressed the body, avoid advertising compression again
     headers.delete("content-encoding");
     headers.delete("content-length");
     headers.delete("transfer-encoding");
-    return new Response(upstream.body, {
+    
+    // Read the body content to avoid "Response body object should not be disturbed or locked" error
+    // This ensures the body is fully consumed before creating a new Response
+    const body = await upstream.arrayBuffer();
+    
+    return new Response(body, {
         status: upstream.status,
         statusText: upstream.statusText,
         headers,
@@ -52,7 +57,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                 body: req.body,
                 duplex: 'half'
             } as RequestInit);
-            return wrapUpstreamResponse(upstream);
+            return await wrapUpstreamResponse(upstream);
         }
 
         // Parse JSON while preserving original body stream
@@ -74,7 +79,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                 body: req.body,
                 duplex: 'half'
             } as RequestInit);
-            return wrapUpstreamResponse(upstream);
+            return await wrapUpstreamResponse(upstream);
         }
 
         if (!originalRpc || Array.isArray(originalRpc)) {
@@ -85,7 +90,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                 body: originalBodyText,
                 duplex: 'half'
             } as RequestInit);
-            return wrapUpstreamResponse(upstream);
+            return await wrapUpstreamResponse(upstream);
         }
 
         // Generalized MCP routing
@@ -123,7 +128,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
             forwardHeaders.set("content-type", "application/json");
             // Forward original body text instead of reconstructing JSON
             const upstream = await fetch(targetUrl, { method: req.method, headers: forwardHeaders, body: originalBodyText });
-            return wrapUpstreamResponse(upstream);
+            return await wrapUpstreamResponse(upstream);
         }
 
         // Helper for non-tool methods
@@ -209,15 +214,15 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
             let data: unknown;
             if (isStreaming) {
                 let text: string | null = null;
-                try { text = await upstream.text(); } catch { return wrapUpstreamResponse(clonedUpstream); }
+                try { text = await upstream.text(); } catch { return await wrapUpstreamResponse(clonedUpstream); }
                 try {
                     const dataLines = text.split('\n').filter(line => line.startsWith('data: ')).map(line => line.substring(6));
                     if (dataLines.length === 0) { data = JSON.parse(text); } else { const lastMessage = dataLines[dataLines.length - 1]; data = JSON.parse(lastMessage); }
-                } catch { return wrapUpstreamResponse(clonedUpstream); }
+                } catch { return await wrapUpstreamResponse(clonedUpstream); }
             } else if (isJson) {
-                try { data = await upstream.json(); } catch { return wrapUpstreamResponse(clonedUpstream); }
+                try { data = await upstream.json(); } catch { return await wrapUpstreamResponse(clonedUpstream); }
             } else {
-                return wrapUpstreamResponse(upstream);
+                return await wrapUpstreamResponse(upstream);
             }
 
             const maybeRpc = data as Record<string, unknown>;
@@ -231,7 +236,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                             return jsonResponse(envelope, 200);
                         }
                     }
-                    return wrapUpstreamResponse(upstream);
+                    return await wrapUpstreamResponse(clonedUpstream);
                 }
                 if ("result" in maybeRpc) {
                     let currentRes = (maybeRpc["result"] ?? null) as TRes;
@@ -247,7 +252,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                 }
             }
 
-            return wrapUpstreamResponse(upstream);
+            return await wrapUpstreamResponse(clonedUpstream);
         };
 
         switch (method) {
@@ -363,20 +368,20 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                     if (isStreaming) {
                         let text: string | null = null;
                         try { text = await upstream.text(); } catch { 
-                            return wrapUpstreamResponse(clonedUpstream); 
+                            return await wrapUpstreamResponse(clonedUpstream); 
                         }
                         try {
                             const dataLines = text.split('\n').filter(line => line.startsWith('data: ')).map(line => line.substring(6));
                             if (dataLines.length === 0) { data = JSON.parse(text); } else { const lastMessage = dataLines[dataLines.length - 1]; data = JSON.parse(lastMessage); }
                         } catch { 
-                            return wrapUpstreamResponse(clonedUpstream); 
+                            return await wrapUpstreamResponse(clonedUpstream); 
                         }
                     } else if (isJson) {
                         try { data = await upstream.json(); } catch { 
-                            return wrapUpstreamResponse(clonedUpstream); 
+                            return await wrapUpstreamResponse(clonedUpstream); 
                         }
                     } else {
-                        return wrapUpstreamResponse(upstream);
+                        return await wrapUpstreamResponse(upstream);
                     }
 
                     const maybeRpc = data as Record<string, unknown>;
@@ -424,7 +429,7 @@ export function withProxy(targetUrl: string, hooks: Hook[]) {
                     }
 
                     // Fallback
-                    return wrapUpstreamResponse(upstream);
+                    return await wrapUpstreamResponse(clonedUpstream);
                 }
             }
             

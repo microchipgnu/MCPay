@@ -1,5 +1,19 @@
 # x402-mcp
 
+## 0.0.6
+
+### Patch Changes
+
+- Updated dependencies
+  - mcpay@0.1.17
+
+## 0.0.6-beta.0
+
+### Patch Changes
+
+- Updated dependencies
+  - mcpay@0.1.17-beta.0
+
 ## 0.0.5
 
 ### Patch Changes

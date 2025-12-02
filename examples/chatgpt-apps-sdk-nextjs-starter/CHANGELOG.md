@@ -1,5 +1,19 @@
 # openai-apps-minimal-nextjs
 
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies
+  - mcpay@0.1.17
+
+## 0.1.7-beta.0
+
+### Patch Changes
+
+- Updated dependencies
+  - mcpay@0.1.17-beta.0
+
 ## 0.1.6
 
 ### Patch Changes

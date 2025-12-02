@@ -1,5 +1,17 @@
 # mcpay
 
+## 0.1.17
+
+### Patch Changes
+
+- response body object should not be disturbed
+
+## 0.1.17-beta.0
+
+### Patch Changes
+
+- response body object should not be disturbed
+
 ## 0.1.16
 
 ### Patch Changes

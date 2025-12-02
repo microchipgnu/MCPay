@@ -2,7 +2,7 @@
   "name": "vlayer-client-example",
   "module": "index.ts",
   "type": "module",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "scripts": {
     "dev": "tsx --watch index.ts",

@@ -2,7 +2,7 @@
   "name": "x402-mcp",
   "module": "index.ts",
   "type": "module",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "scripts": {
     "dev": "tsx --watch index.ts",
