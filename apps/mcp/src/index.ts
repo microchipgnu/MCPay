@@ -467,13 +467,20 @@ async function resolveTargetUrl(req: Request, absoluteUrl?: string): Promise<str
 
     if (directUrlEncoded) {
         try {
-
             // The value is base64-encoded, so decode it
             // decodeURIComponent in case it was URL-encoded as well
             const decoded = decodeURIComponent(atob(directUrlEncoded));
             return decoded;
         } catch (e) {
-            // If decoding fails, treat as invalid and fall through
+            // If decoding fails, try treating it as already decoded (for backwards compatibility)
+            try {
+                // Maybe it's already the actual URL?
+                new URL(directUrlEncoded);
+                return directUrlEncoded;
+            } catch {
+                // If that also fails, log and fall through
+                console.log("[MCP] Failed to decode target-url:", e);
+            }
         }
     }
 
@@ -505,10 +512,16 @@ app.all("/mcp", async (c) => {
         console.log("[MCP] Proxying request:", {
             url: original.url,
             method: original.method,
+            hasTargetUrlHeader: !!original.headers.get("x-mcpay-target-url"),
+            targetUrlHeaderValue: original.headers.get("x-mcpay-target-url")?.substring(0, 50) + "...",
         });
 
         const targetUrl = await resolveTargetUrl(original, c.req.url);
         if (!targetUrl) {
+            console.log("[MCP] Failed to resolve target URL. Headers:", {
+                "x-mcpay-target-url": original.headers.get("x-mcpay-target-url"),
+                "target-url-query": new URL(c.req.url).searchParams.get("target-url"),
+            });
             return new Response("target-url missing", { status: 400 });
         }
         

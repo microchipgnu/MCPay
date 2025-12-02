@@ -62,14 +62,41 @@ export async function POST(request: Request) {
     return new Response("target-url parameter is required", { status: 400 })
   }
 
-  console.log('targetUrl', targetUrl)
+  // Ensure targetUrl is base64-encoded (it should be when coming from query params)
+  // If it's already a URL, encode it. Otherwise, assume it's already base64.
+  let base64TargetUrl = targetUrl
+  try {
+    // Try to decode it - if it works, it's base64. If not, maybe it's already a URL?
+    const decoded = atob(targetUrl)
+    // If decoding worked, check if it's a valid URL
+    try {
+      new URL(decoded)
+      // It's valid base64 that decodes to a URL, use it as-is
+      base64TargetUrl = targetUrl
+    } catch {
+      // Not a URL, maybe it's already decoded? Re-encode it
+      base64TargetUrl = btoa(targetUrl)
+    }
+  } catch {
+    // Not valid base64, try encoding it
+    try {
+      base64TargetUrl = btoa(targetUrl)
+    } catch (e) {
+      console.error('Failed to encode targetUrl:', e)
+      return new Response("Invalid target-url parameter", { status: 400 })
+    }
+  }
+
+  console.log('targetUrl (original):', targetUrl.substring(0, 50))
+  console.log('base64TargetUrl:', base64TargetUrl.substring(0, 50))
+  console.log('targetUrl length:', targetUrl?.length)
   console.log('Incoming cookies:', h.get('cookie'))
   console.log('Request origin:', request.headers.get('origin'))
   console.log('Request referer:', request.headers.get('referer'))
 
   // Use the local MCP server instead of external proxy
-  // Pass target-url as header to avoid URL encoding issues
-  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp`
+  // Pass target-url as both header (preferred) and query param (fallback) to ensure it's received
+  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp?target-url=${encodeURIComponent(base64TargetUrl)}`
 
   console.log('mcpUrl', mcpUrl)
   
@@ -84,9 +111,8 @@ export async function POST(request: Request) {
     forwardHeaders.set(key, value)
   })
   // Pass target-url as header (base64-encoded) - this is what the MCP server expects
-  if (targetUrl) {
-    forwardHeaders.set('x-mcpay-target-url', targetUrl)
-  }
+  forwardHeaders.set('x-mcpay-target-url', base64TargetUrl)
+  console.log('Setting x-mcpay-target-url header:', base64TargetUrl.substring(0, 50) + '...')
   // Ensure cookies are forwarded from Next headers API
   if (h.get('cookie')) {
     forwardHeaders.set('Cookie', h.get('cookie') || '')
@@ -123,12 +149,20 @@ export async function POST(request: Request) {
     forwardHeaders.delete('mcp-session-id')
   }
 
+  console.log('Forwarding to MCP server with headers:', {
+    'x-mcpay-target-url': forwardHeaders.get('x-mcpay-target-url')?.substring(0, 50) + '...',
+    'content-type': forwardHeaders.get('content-type'),
+    'authorization': forwardHeaders.get('authorization') ? 'present' : 'missing',
+  })
+
   const response = await fetch(mcpUrl, {
     method: 'POST',
     headers: forwardHeaders,
     body: bodyText ?? '',
     credentials: 'include',
   })
+
+  console.log('MCP server response status:', response.status, response.statusText)
 
   // Get the validated origin for CORS
   const validOrigin = getValidOrigin(request)
@@ -170,10 +204,27 @@ export async function GET(request: Request) {
     return new Response("target-url parameter is required", { status: 400 })
   }
 
+  // Ensure targetUrl is base64-encoded (same logic as POST)
+  let base64TargetUrl = targetUrl
+  try {
+    const decoded = atob(targetUrl)
+    try {
+      new URL(decoded)
+      base64TargetUrl = targetUrl
+    } catch {
+      base64TargetUrl = btoa(targetUrl)
+    }
+  } catch {
+    try {
+      base64TargetUrl = btoa(targetUrl)
+    } catch (e) {
+      return new Response("Invalid target-url parameter", { status: 400 })
+    }
+  }
 
   // Use the local MCP server instead of external proxy
-  // Pass target-url as header to avoid URL encoding issues
-  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp`
+  // Pass target-url as both header (preferred) and query param (fallback) to ensure it's received
+  const mcpUrl = `${env.NEXT_PUBLIC_AUTH_URL}/mcp?target-url=${encodeURIComponent(base64TargetUrl)}`
   
   // Forward the request to the local MCP server with original headers (preserve MCP session headers)
   const forwardHeaders = new Headers()
@@ -185,9 +236,7 @@ export async function GET(request: Request) {
     forwardHeaders.set(key, value)
   })
   // Pass target-url as header (base64-encoded) - this is what the MCP server expects
-  if (targetUrl) {
-    forwardHeaders.set('x-mcpay-target-url', targetUrl)
-  }
+  forwardHeaders.set('x-mcpay-target-url', base64TargetUrl)
   if (h.get('cookie')) {
     forwardHeaders.set('Cookie', h.get('cookie') || '')
   }
