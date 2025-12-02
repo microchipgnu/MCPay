@@ -25,9 +25,35 @@ async function initializeStore(): Promise<void> {
 }
 
 // Resolve upstream target MCP origin from header/query (base64) or store by server id
-async function resolveTargetUrl(req: Request): Promise<string | null> {
+async function resolveTargetUrl(req: Request, absoluteUrl?: string): Promise<string | null> {
     // No console logging
-    const url = new URL(req.url);
+    // Use absoluteUrl if provided (from Hono context), otherwise try to construct from req.url
+    let url: URL;
+    try {
+        if (absoluteUrl) {
+            url = new URL(absoluteUrl);
+        } else {
+            // If req.url is relative, we need to construct an absolute URL
+            // Try to use req.url directly first
+            try {
+                url = new URL(req.url);
+            } catch {
+                // If that fails, try constructing from headers
+                const host = req.headers.get("host") || req.headers.get("x-forwarded-host");
+                const protocol = req.headers.get("x-forwarded-proto") || "https";
+                if (host) {
+                    url = new URL(req.url, `${protocol}://${host}`);
+                } else {
+                    // Fallback: try req.url as-is (might work in some contexts)
+                    url = new URL(req.url, "http://localhost");
+                }
+            }
+        }
+    } catch (e) {
+        // If URL construction fails, return null
+        return null;
+    }
+    
     const id = url.searchParams.get("id");
     // No console logging
     if (id) {
@@ -229,7 +255,7 @@ app.get("/servers", async (c) => {
 app.all("/mcp", async (c) => {
     // No console logging
     const original = c.req.raw;
-    const targetUrl = await resolveTargetUrl(original);
+    const targetUrl = await resolveTargetUrl(original, c.req.url);
     // No console logging
 
     let prices: Record<string, Price> = {};
@@ -245,7 +271,9 @@ app.all("/mcp", async (c) => {
         }
     }
 
-    const serverId = new URL(original.url).searchParams.get("id");
+    // Use Hono's absolute URL instead of original.url which might be relative
+    const currentUrl = new URL(c.req.url);
+    const serverId = currentUrl.searchParams.get("id");
     if (!serverId) {
         return new Response("server-id missing", { status: 400 });
     }

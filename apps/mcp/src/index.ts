@@ -433,10 +433,37 @@ app.get("/", async (c) => {
     );
 });
 
-async function resolveTargetUrl(req: Request): Promise<string | null> {
+async function resolveTargetUrl(req: Request, absoluteUrl?: string): Promise<string | null> {
     // First, try to get target URL from header or query param (base64-encoded)
+    // Use absoluteUrl if provided (from Hono context), otherwise try to construct from req.url
+    let url: URL;
+    try {
+        if (absoluteUrl) {
+            url = new URL(absoluteUrl);
+        } else {
+            // If req.url is relative, we need to construct an absolute URL
+            // Try to use req.url directly first
+            try {
+                url = new URL(req.url);
+            } catch {
+                // If that fails, try constructing from headers
+                const host = req.headers.get("host") || req.headers.get("x-forwarded-host");
+                const protocol = req.headers.get("x-forwarded-proto") || "https";
+                if (host) {
+                    url = new URL(req.url, `${protocol}://${host}`);
+                } else {
+                    // Fallback: try req.url as-is (might work in some contexts)
+                    url = new URL(req.url, "http://localhost");
+                }
+            }
+        }
+    } catch (e) {
+        // If URL construction fails, return null
+        return null;
+    }
+    
     const directUrlEncoded = req.headers.get("x-mcpay-target-url")
-        ?? new URL(req.url).searchParams.get("target-url");
+        ?? url.searchParams.get("target-url");
 
     if (directUrlEncoded) {
         try {
@@ -479,7 +506,7 @@ app.all("/mcp", async (c) => {
             method: original.method,
         });
 
-        const targetUrl = await resolveTargetUrl(original);
+        const targetUrl = await resolveTargetUrl(original, c.req.url);
         if (!targetUrl) {
             return new Response("target-url missing", { status: 400 });
         }
