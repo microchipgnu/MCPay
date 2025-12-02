@@ -284,7 +284,8 @@ app.all("/mcp", async (c) => {
         headers.set("x-mcpay-target-url", btoa(targetUrl));
     }
 
-    const reqForProxy = new Request(original.url, {
+    // Use absolute URL from Hono context instead of original.url which might be relative
+    const reqForProxy = new Request(c.req.url, {
         method: original.method,
         headers,
         body: original.body,
