@@ -126,14 +126,6 @@ export default function MCPBrowser() {
         </section>
 
         <section>
-          <DeveloperInfo />
-        </section>
-
-        <section className="mb-40">
-          <Stats />
-        </section>
-
-        <section>
           <ConsumerInfo />
         </section>
 
@@ -149,6 +141,14 @@ export default function MCPBrowser() {
               </Button>
             </Link>
           </div>
+        </section>
+
+        <section>
+          <DeveloperInfo />
+        </section>
+
+        <section className="mb-40">
+          <Stats />
         </section>
 
         <section className="mb-20">
