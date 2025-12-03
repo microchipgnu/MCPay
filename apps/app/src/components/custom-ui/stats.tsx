@@ -40,7 +40,7 @@ export default function Stats({
           </div>
 
           {/* Minimal Explorer Card */}
-          <div className="rounded-lg bg-card py-2">
+          <div className="rounded-[2px] bg-card py-2">
             <MinimalExplorer />
           </div>
         </div>

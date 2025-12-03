@@ -123,7 +123,8 @@ export default function Hero3D({
             Payments infrastructure for the agent economy
           </h1>
           <p className="text-sm sm:text-lg text-foreground/80 leading-relaxed max-w-lg">
-            In one minute, add our open-source proxy to your APIs or MCPs and get discovered and paid by autonomous agents.
+            Single connection to use paid MCP tools across any client.<br />
+            Pay-per-use instead of expensive subscriptions.
           </p>
         </motion.div>
 
@@ -139,14 +140,14 @@ export default function Hero3D({
           animate={isMounted ? "visible" : "hidden"}
           variants={fadeUp}
         >
-          <Link href="/register" className="flex-1 min-w-0">
+          <Link href="/servers" className="flex-1 min-w-0">
             <Button variant="customTallPrimary" size="tall" className="w-full px-3 lg:px-6">
-              MONETIZE SERVERS
+              BROWSE SERVERS
             </Button>
           </Link>
-          <Link href="https://docs.mcpay.tech" target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
+          <Link href="/register" className="flex-1 min-w-0">
             <Button variant="customTallSecondary" size="tall" className="w-full px-3 lg:px-6">
-              DOCUMENTATION
+              MONETIZE SERVERS
             </Button>
           </Link>
         </motion.div>
@@ -231,19 +232,20 @@ export default function Hero3D({
 
             {/* Subheading */}
             <p className="text-base sm:text-lg text-foreground/80 leading-relaxed">
-              In one minute, add our open-source proxy to your APIs or MCPs and get discovered and paid by autonomous agents.
+              Single connection to use paid MCP tools across any client.<br />
+              Pay-per-use instead of expensive subscriptions.
             </p>
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-4 pt-2">
-              <Link href="/register" className="flex-1 lg:flex-none">
+              <Link href="/servers" className="flex-1 lg:flex-none">
                 <Button variant="customTallPrimary" size="tall" className="w-full min-w-[220px]">
-                  MONETIZE SERVERS
+                  BROWSE SERVERS
                 </Button>
               </Link>
-              <Link href="https://docs.mcpay.tech" target="_blank" rel="noopener noreferrer" className="flex-1 lg:flex-none">
+              <Link href="/register" className="flex-1 lg:flex-none">
                 <Button variant="customTallSecondary" size="tall" className="w-full min-w-[220px]">
-                  DOCUMENTATION
+                  MONETIZE SERVERS
                 </Button>
               </Link>
             </div>
