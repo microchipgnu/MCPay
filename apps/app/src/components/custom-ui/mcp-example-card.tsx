@@ -226,7 +226,7 @@ export default function McpExampleCard({
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center gap-4">
             {/* Square black image - bigger with same rounded corners as tools, smaller on mobile */}
-            <div className="w-24 h-24 sm:w-40 sm:h-40 bg-black rounded-[2px] flex-shrink-0 flex items-center justify-center p-10 sm:p-12">
+            <div className="w-16 h-16 sm:w-40 sm:h-40 bg-black rounded-[2px] flex-shrink-0 flex items-center justify-center p-4 sm:p-12">
               <Image 
                 src="/x-logo.svg" 
                 alt="X Logo" 
@@ -237,7 +237,7 @@ export default function McpExampleCard({
             </div>
             
             {/* Title */}
-            <div className="flex flex-col gap-2 flex-1">
+            <div className="flex flex-col gap-2 sm:gap-4 flex-1">
               <h3 className="text-2xl sm:text-3xl font-bold font-host text-foreground">
                 {data?.info?.name || "Loading..."}
               </h3>
@@ -253,13 +253,16 @@ export default function McpExampleCard({
           </div>
           
           {/* Description - shown below image on mobile */}
-          <p className="block sm:hidden text-sm text-muted-foreground">
-            <span className="text-foreground">Regular subscription</span>{" "}
-            <HighlighterText variant="red">$200 /month</HighlighterText>
-            <br />
-            <span className="text-foreground">via MCPay</span>{" "}
-            <HighlighterText variant="green">$0.05 /tool</HighlighterText>
-          </p>
+          <div className="block sm:hidden text-sm text-muted-foreground mt-4">
+            <div>
+              <span className="text-foreground">Regular subscription</span>{" "}
+              <HighlighterText variant="red">$200 /month</HighlighterText>
+            </div>
+            <div className="mt-3">
+              <span className="text-foreground">via MCPay</span>{" "}
+              <HighlighterText variant="green">$0.05 /tool</HighlighterText>
+            </div>
+          </div>
         </div>
 
         {/* Tools List - First 5 tools */}
