@@ -27,7 +27,7 @@ export default function DeveloperInfo({
         {/* Header */}
         <div className="flex flex-col gap-4">
           <div className="inline-flex">
-            <HighlighterText>FOR BUSINESSES & DEVELOPERS</HighlighterText>
+            <HighlighterText>PROVIDE PAID ENDPOINTS</HighlighterText>
           </div>
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold font-host text-foreground leading-tight max-w-3xl">
             The AI Gateway for your app.{" "}
