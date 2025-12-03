@@ -12,6 +12,7 @@ const highlighterTextVariants = cva(
         blue: "text-blue-700 bg-blue-500/10 dark:text-blue-200 dark:bg-blue-800/50",
         amber: "text-amber-700 bg-amber-500/10 dark:text-amber-200 dark:bg-amber-800/50",
         red: "text-red-700 bg-red-500/10 dark:text-red-200 dark:bg-red-800/50",
+        green: "text-teal-700 bg-teal-500/10 dark:text-teal-200 dark:bg-teal-800/50",
       },
     },
     defaultVariants: {
@@ -29,6 +30,7 @@ const highlighterIconVariants = cva(
         blue: "text-blue-700 bg-blue-500/10 dark:text-blue-200 dark:bg-blue-800/50",
         amber: "text-amber-700 bg-amber-500/10 dark:text-amber-200 dark:bg-amber-800/50",
         red: "text-red-700 bg-red-500/10 dark:text-red-200 dark:bg-red-800/50",
+        green: "text-teal-700 bg-teal-500/10 dark:text-teal-200 dark:bg-teal-800/50",
       },
     },
     defaultVariants: {

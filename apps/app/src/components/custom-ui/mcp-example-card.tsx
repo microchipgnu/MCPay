@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { PlugZap } from "lucide-react"
 import { ToolExecutionModal, type ToolFromMcpServerWithStats } from "./tool-execution-modal"
-import { mcpDataApi } from "@/lib/client/utils"
+import { mcpDataApi, urlUtils } from "@/lib/client/utils"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "next/image"
+import { toast } from "sonner"
 
 interface McpExampleCardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
@@ -114,6 +115,7 @@ export default function McpExampleCard({
   const [showToolModal, setShowToolModal] = useState(false)
   const [data, setData] = useState<{
     serverId: string
+    origin?: string
     tools: Array<Record<string, unknown>>
     summary?: { totalTools: number; totalRequests: number }
     info?: { name?: string; description?: string }
@@ -138,6 +140,7 @@ export default function McpExampleCard({
         const serverData = await mcpDataApi.getServerById(serverId)
         setData({
           serverId: serverData.serverId,
+          origin: serverData.origin,
           tools: (serverData.tools || []) as Array<Record<string, unknown>>,
           summary: serverData.summary,
           info: serverData.info,
@@ -214,7 +217,7 @@ export default function McpExampleCard({
 
   return (
     <>
-      <div className={cn("flex flex-col gap-6 rounded-lg bg-card p-6", className)} {...props}>
+      <div className={cn("flex flex-col gap-6 rounded-[2px] bg-card p-6", className)} {...props}>
         <div className="inline-flex">
           <HighlighterText className="!text-foreground">SERVER EXAMPLE</HighlighterText>
         </div>
@@ -241,20 +244,21 @@ export default function McpExampleCard({
               
               {/* Description - hidden on mobile, shown next to title on desktop */}
               <p className="hidden sm:block text-sm sm:text-base text-muted-foreground">
-                Regular subscription{" "}
-                <HighlighterText variant="red">$200 /month</HighlighterText> via MCPay{" "}
-                <HighlighterText variant="blue">$0.05 /tool</HighlighterText>
+                <span className="text-foreground">Regular subscription</span>{" "}
+                <HighlighterText variant="red" className="!text-sm">$200 /month</HighlighterText>{" "}
+                <span className="text-foreground">via MCPay</span>{" "}
+                <HighlighterText variant="green" className="!text-sm">$0.05 /tool</HighlighterText>
               </p>
             </div>
           </div>
           
           {/* Description - shown below image on mobile */}
           <p className="block sm:hidden text-sm text-muted-foreground">
-            Regular subscription{" "}
+            <span className="text-foreground">Regular subscription</span>{" "}
             <HighlighterText variant="red">$200 /month</HighlighterText>
             <br />
-            via MCPay{" "}
-            <HighlighterText variant="blue">$0.05 /tool</HighlighterText>
+            <span className="text-foreground">via MCPay</span>{" "}
+            <HighlighterText variant="green">$0.05 /tool</HighlighterText>
           </p>
         </div>
 
@@ -300,19 +304,33 @@ export default function McpExampleCard({
         {/* Text + Buttons Section */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12">
           <p className="font-inter font-medium leading-relaxed text-lg text-left lg:max-w-[50%]">
-            <span className="text-foreground">Connect to any paid MCP server with a single account.</span>{" "}
+            <span className="text-foreground">Consume any paid MCP server with a single account.</span>{" "}
             <span className="text-muted-foreground">Pay per tool call, no subscriptions required.</span>
           </p>
           <div className="flex flex-col lg:flex-row gap-4 lg:max-w-[50%] lg:flex-1">
-            <Link href="/servers/example" className="w-full lg:w-auto lg:flex-1">
-              <Button variant="customTallSecondary" size="tall" className="w-full lg:min-w-[200px]">
-                SERVER DETAILS
-              </Button>
-            </Link>
+            {data?.serverId && (
+              <Link 
+                href={`/servers/${data.serverId}`}
+                className="w-full lg:flex-1 block"
+              >
+                <Button variant="customTallSecondary" size="tall" className="w-full rounded-[2px]">
+                  SERVER DETAILS
+                </Button>
+              </Link>
+            )}
             <Button
               variant="customTallAccentAmber"
               size="tall"
-              className="w-full lg:w-auto lg:flex-1 lg:min-w-[200px] rounded-[2px]"
+              className="w-full lg:flex-1 rounded-[2px]"
+              onClick={() => {
+                if (data?.origin) {
+                  const url = urlUtils.getMcpUrl(data.origin)
+                  navigator.clipboard.writeText(url)
+                  toast.success("Copied MCP endpoint to clipboard")
+                } else {
+                  toast.error("Server URL not available")
+                }
+              }}
             >
               <PlugZap className="size-4 mr-2" />
               CONNECT

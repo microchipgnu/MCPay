@@ -187,7 +187,7 @@ export default function MinimalExplorer() {
     loading?: boolean
   }) => (
     <motion.div variants={fadeUp} layout>
-      <Card className="border bg-background rounded-md p-0 gap-0">
+      <Card className="border bg-background rounded-[2px] p-0 gap-0">
         <CardContent className="px-6 py-6">
           <div className="text-sm font-medium text-muted-foreground mb-2">
             {label}

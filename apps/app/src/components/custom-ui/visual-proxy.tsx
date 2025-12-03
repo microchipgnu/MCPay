@@ -112,7 +112,7 @@ export default function VisualProxy({
   return (
     <div
       className={cn(
-        "flex flex-col gap-12 rounded-lg bg-card p-6",
+        "flex flex-col gap-12 rounded-[2px] bg-card p-6",
         className
       )}
       {...props}

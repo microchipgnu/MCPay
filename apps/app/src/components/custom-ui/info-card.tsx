@@ -25,7 +25,7 @@ export default function InfoCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-8 p-6 rounded-lg bg-card",
+        "flex flex-col gap-8 p-6 rounded-[2px] bg-card",
         className
       )}
       {...props}
