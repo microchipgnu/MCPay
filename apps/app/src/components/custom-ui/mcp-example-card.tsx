@@ -264,6 +264,7 @@ export default function McpExampleCard({
           }}
           tool={selectedTool}
           serverId={data?.serverId || ""}
+          url={data?.origin}
         />
       )}
     </>
