@@ -227,7 +227,7 @@ export default function Hero3D({
           >
             {/* Heading */}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
-              Pay cents per tool calls instead of subscriptions
+              Pay cents per tool call instead of subscriptions
             </h1>
 
             {/* Subheading */}
