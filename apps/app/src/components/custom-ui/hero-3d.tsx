@@ -120,7 +120,7 @@ export default function Hero3D({
           variants={fadeUp}
         >
           <h1 className="text-3xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
-            Payments infrastructure for the agent economy
+            The best way for AI to access and pay for online services
           </h1>
           <p className="text-sm sm:text-lg text-foreground/80 leading-relaxed max-w-lg">
             Single connection to use paid MCP tools across any client.<br />
@@ -227,7 +227,7 @@ export default function Hero3D({
           >
             {/* Heading */}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
-              Payments infrastructure for the agent economy
+              The best way for AI to access and pay for online services
             </h1>
 
             {/* Subheading */}

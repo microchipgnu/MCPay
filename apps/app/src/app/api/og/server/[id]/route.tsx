@@ -116,7 +116,7 @@ export async function GET(
                     display: "block",
                   }}
                 />
-                <div style={{ fontWeight: 500, display: "block" }}>MCPay — Payments for MCPs</div>
+                <div style={{ fontWeight: 500, display: "block" }}>MCPay — Make AI more capable</div>
               </div>
               <div style={{ fontSize: 15, opacity: 0.55, paddingLeft: 22, display: "block" }}>mcpay.tech</div>
             </div>
