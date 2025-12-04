@@ -119,7 +119,7 @@ export default function Hero3D({
           animate={isMounted ? "visible" : "hidden"}
           variants={fadeUp}
         >
-          <h1 className="text-3xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
+          <h1 className="text-3xl sm:text-3xl lg:text-4xl font-semibold font-host text-foreground leading-tight">
             The best way for AI to access and pay for online services
           </h1>
           <p className="text-sm sm:text-lg text-foreground/80 leading-relaxed max-w-lg">
@@ -226,7 +226,7 @@ export default function Hero3D({
             variants={fadeUp}
           >
             {/* Heading */}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold font-host text-foreground leading-tight">
               The best way for AI to access and pay for online services
             </h1>
 
