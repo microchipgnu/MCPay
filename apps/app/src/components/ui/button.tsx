@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import { ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -56,19 +57,59 @@ function Button({
   variant,
   size,
   asChild = false,
+  animated = false,
+  children,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    animated?: boolean
   }) {
   const Comp = asChild ? Slot : "button"
+
+  const buttonClasses = cn(
+    buttonVariants({ variant, size }),
+    animated && "relative overflow-hidden group",
+    className
+  )
+
+  if (animated && !asChild) {
+    return (
+      <Comp
+        data-slot="button"
+        className={buttonClasses}
+        {...props}
+      >
+        <span className="relative inline-flex items-center transition-transform duration-300 ease-out group-hover:-translate-x-1">
+          {children}
+          <ChevronRight className="absolute left-full ml-2 h-4 w-4 shrink-0 opacity-0 -translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0" />
+        </span>
+      </Comp>
+    )
+  }
+  
+  if (animated && asChild) {
+    // When asChild is true, we can't add the icon, so just add the group class
+    // The parent component should handle the animation
+    return (
+      <Comp
+        data-slot="button"
+        className={buttonClasses}
+        {...props}
+      >
+        {children}
+      </Comp>
+    )
+  }
 
   return (
     <Comp
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={buttonClasses}
       {...props}
-    />
+    >
+      {children}
+    </Comp>
   )
 }
 

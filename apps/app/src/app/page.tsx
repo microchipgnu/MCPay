@@ -165,7 +165,7 @@ export default function MCPBrowser() {
           <GithubInfo />
         </section>
 
-        <section className="mb-2">
+        <section className="mb-20">
           <div className="max-w-6xl px-4 md:px-6 mx-auto text-center space-y-6">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium font-host text-foreground leading-tight">
               Make your AIs more capable.

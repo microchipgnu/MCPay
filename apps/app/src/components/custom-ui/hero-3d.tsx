@@ -198,12 +198,12 @@ export default function Hero3D({
           variants={fadeUp}
         >
           <Link href="/servers" className="w-full">
-            <Button variant="customTallPrimary" size="tall" className="w-full px-3 lg:px-6">
+            <Button variant="customTallPrimary" size="tall" animated className="w-full px-3 lg:px-6">
               BROWSE SERVERS
             </Button>
           </Link>
           <Link href="/register" className="w-full">
-            <Button variant="customTallSecondary" size="tall" className="w-full px-3 lg:px-6">
+            <Button variant="customTallSecondary" size="tall" animated className="w-full px-3 lg:px-6">
               MONETIZE SERVERS
             </Button>
           </Link>
@@ -243,12 +243,12 @@ export default function Hero3D({
             {/* CTAs */}
             <div className="flex flex-wrap gap-4 pt-6">
               <Link href="/servers" className="flex-1 lg:flex-none">
-                <Button variant="customTallPrimary" size="tall" className="w-full min-w-[220px]">
+                <Button variant="customTallPrimary" size="tall" animated className="w-full min-w-[220px]">
                   BROWSE SERVERS
                 </Button>
               </Link>
               <Link href="/register" className="flex-1 lg:flex-none">
-                <Button variant="customTallSecondary" size="tall" className="w-full min-w-[220px]">
+                <Button variant="customTallSecondary" size="tall" animated className="w-full min-w-[220px]">
                   MONETIZE SERVERS
                 </Button>
               </Link>
