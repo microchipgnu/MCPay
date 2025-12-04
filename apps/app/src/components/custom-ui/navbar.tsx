@@ -103,7 +103,7 @@ export default function Navbar() {
               onClick={() => openModal("wallets")}
               disabled={sessionLoading}
               className="flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors duration-200 cursor-pointer"
-              aria-label={session?.user ? "Open account" : "Connect"}
+              aria-label={session?.user ? "Open account" : "Sign in"}
             >
               {session?.user ? (
                 <>
@@ -127,8 +127,8 @@ export default function Navbar() {
                   </span>
                 </>
               ) : (
-                // No icon; always show "Connect" label (mobile + desktop)
-                <span>Connect</span>
+                // No icon; always show "SIGN IN" label (mobile + desktop)
+                <span>SIGN IN</span>
               )}
             </Button>
 
