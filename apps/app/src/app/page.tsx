@@ -5,7 +5,7 @@ import DeveloperInfo from "@/components/custom-ui/developer-info"
 import FAQSection from "@/components/custom-ui/faq-section"
 import Footer from "@/components/custom-ui/footer"
 import GithubInfo from "@/components/custom-ui/github-info"
-import Hero3D from "@/components/custom-ui/hero-3d"
+import Hero3D, { SupportedBySection } from "@/components/custom-ui/hero-3d"
 import ServersGrid from "@/components/custom-ui/servers-grid"
 import Stats from "@/components/custom-ui/stats"
 import { useTheme } from "@/components/providers/theme-context"
@@ -125,6 +125,10 @@ export default function MCPBrowser() {
 
         <section className="mb-16 md:mb-24">
           <Hero3D />
+        </section>
+
+        <section className="mb-8 md:mb-12">
+          <SupportedBySection />
         </section>
 
         <section>
