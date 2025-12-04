@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { PlugZap } from "lucide-react"
+import { PlugZap, Info } from "lucide-react"
 import { ToolExecutionModal, type ToolFromMcpServerWithStats } from "./tool-execution-modal"
 import { mcpDataApi, urlUtils } from "@/lib/client/utils"
 import { Spinner } from "@/components/ui/spinner"
 import Image from "next/image"
 import { toast } from "sonner"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface McpExampleCardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
@@ -157,9 +158,9 @@ export default function McpExampleCard({
               {/* Description - hidden on mobile, shown next to title on desktop */}
               <p className="hidden sm:block text-sm sm:text-base text-muted-foreground">
                 <span className="text-foreground">Regular subscription</span>{" "}
-                <HighlighterText variant="red" className="!text-sm">$200 /month</HighlighterText>{" "}
+                <HighlighterText variant="red">$200 /month</HighlighterText>{" "}
                 <span className="text-foreground">via MCPay</span>{" "}
-                <HighlighterText variant="green" className="!text-sm">$0.05 /tool</HighlighterText>
+                <HighlighterText variant="green">$0.05 /tool</HighlighterText>
               </p>
             </div>
           </div>
@@ -178,43 +179,54 @@ export default function McpExampleCard({
         </div>
 
         {/* Tools List - First 5 tools */}
-        <div className="space-y-3">
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading tools...</div>
-          ) : displayTools.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No tools available</div>
-          ) : (
-            displayTools.map((tool) => (
-            <div
-              key={tool.id}
-              className="flex items-center justify-between gap-4 p-4 pr-6 md:pr-4 rounded-[2px] bg-muted-2"
-            >
-              {/* Left: Name + Description */}
-              <div className="flex-1 min-w-0">
-                <h4 className="font-mono text-sm font-medium text-foreground mb-1">{tool.name}</h4>
-                {tool.description && (
-                  <p className="text-sm text-muted-foreground">{tool.description}</p>
-                )}
+        <TooltipProvider>
+          <div className="space-y-3">
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading tools...</div>
+            ) : displayTools.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No tools available</div>
+            ) : (
+              displayTools.map((tool) => (
+              <div
+                key={tool.id}
+                className="flex items-center justify-between gap-4 p-4 pr-6 md:pr-4 rounded-[2px] bg-muted-2"
+              >
+                {/* Left: Name + Info Icon */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-mono text-sm font-medium text-foreground">{tool.name}</h4>
+                    {tool.description && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-4 w-4 text-muted-foreground opacity-60" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">{tool.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Right: Price + RUN Button */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {tool.paymentHint && tool.paymentPriceUSD && (
+                    <HighlighterText variant="blue" className="h-8 py-0 flex items-center text-sm">${tool.paymentPriceUSD}</HighlighterText>
+                  )}
+                  <Button
+                    variant="customTallAccent"
+                    size="sm"
+                    className="h-8 rounded-[2px]"
+                    onClick={() => openToolModal(tool)}
+                  >
+                    RUN
+                  </Button>
+                </div>
               </div>
-              
-              {/* Right: Price + RUN Button */}
-              <div className="flex items-center gap-2 shrink-0">
-                {tool.paymentHint && tool.paymentPriceUSD && (
-                  <HighlighterText variant="blue">${tool.paymentPriceUSD}</HighlighterText>
-                )}
-                <Button
-                  variant="customTallAccent"
-                  size="sm"
-                  className="h-8 rounded-[2px]"
-                  onClick={() => openToolModal(tool)}
-                >
-                  RUN
-                </Button>
-              </div>
-            </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        </TooltipProvider>
 
         {/* Text + Buttons Section */}
         <div className="flex flex-col lg:flex-row lg:items-center gap-6 lg:gap-12">
@@ -222,34 +234,36 @@ export default function McpExampleCard({
             <span className="text-foreground">Consume any paid MCP server with a single account.</span>{" "}
             <span className="text-muted-foreground">Pay per tool call, no subscriptions required.</span>
           </p>
-          <div className="flex flex-col lg:flex-row gap-4 lg:max-w-[50%] lg:flex-1">
+          <div className="flex flex-col lg:flex-row gap-4 lg:flex-1">
             {data?.serverId && (
               <Link 
                 href={`/servers/${data.serverId}`}
-                className="w-full lg:flex-1 block"
+                className="w-full lg:flex-1 lg:min-w-0"
               >
-                <Button variant="customTallSecondary" size="tall" className="w-full rounded-[2px]">
+                <Button variant="customTallPrimary" size="tall" className="w-full rounded-[2px]">
                   SERVER DETAILS
                 </Button>
               </Link>
             )}
-            <Button
-              variant="customTallAccentAmber"
-              size="tall"
-              className="w-full lg:flex-1 rounded-[2px]"
-              onClick={() => {
-                if (data?.origin) {
-                  const url = urlUtils.getMcpUrl(data.origin)
-                  navigator.clipboard.writeText(url)
-                  toast.success("Copied MCP endpoint to clipboard")
-                } else {
-                  toast.error("Server URL not available")
-                }
-              }}
-            >
-              <PlugZap className="size-4 mr-2" />
-              CONNECT
-            </Button>
+            <div className="w-full lg:flex-1 lg:min-w-0">
+              <Button
+                variant="customTallSecondary"
+                size="tall"
+                className="w-full rounded-[2px]"
+                onClick={() => {
+                  if (data?.origin) {
+                    const url = urlUtils.getMcpUrl(data.origin)
+                    navigator.clipboard.writeText(url)
+                    toast.success("Copied MCP endpoint to clipboard")
+                  } else {
+                    toast.error("Server URL not available")
+                  }
+                }}
+              >
+                <PlugZap className="size-4 mr-2" />
+                CONNECT
+              </Button>
+            </div>
           </div>
         </div>
       </div>
