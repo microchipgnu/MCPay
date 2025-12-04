@@ -5,17 +5,18 @@ import DeveloperInfo from "@/components/custom-ui/developer-info"
 import FAQSection from "@/components/custom-ui/faq-section"
 import Footer from "@/components/custom-ui/footer"
 import GithubInfo from "@/components/custom-ui/github-info"
-import Hero3D from "@/components/custom-ui/hero-3d"
+import Hero3D, { SupportedBySection } from "@/components/custom-ui/hero-3d"
 import ServersGrid from "@/components/custom-ui/servers-grid"
 import Stats from "@/components/custom-ui/stats"
-import TypingAnimation from "@/components/custom-ui/typing-animation"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
-import { useWindowScroll } from "@/hooks/use-chat-scroll"
 import { mcpDataApi, McpServer } from "@/lib/client/utils"
 import { ArrowRight, Rocket } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { useAccountModal } from "@/components/hooks/use-account-modal"
+import { AccountModal } from "@/components/custom-ui/account-modal"
+import { useSession } from "@/lib/client/auth"
 
 
 export default function MCPBrowser() {
@@ -37,7 +38,8 @@ export default function MCPBrowser() {
 
 
   const { isDark } = useTheme()
-  const { isAtBottom: hasReachedBottom } = useWindowScroll(200)
+  const { isOpen, defaultTab, openModal, closeModal } = useAccountModal()
+  const { data: session } = useSession()
 
   const getFriendlyErrorMessage = (error: string) => {
     if (error.includes('404')) {
@@ -125,6 +127,10 @@ export default function MCPBrowser() {
           <Hero3D />
         </section>
 
+        <section className="mb-8 md:mb-12">
+          <SupportedBySection />
+        </section>
+
         <section>
           <ConsumerInfo />
         </section>
@@ -159,17 +165,26 @@ export default function MCPBrowser() {
           <GithubInfo />
         </section>
 
-        <section className="mb-2">
-          <div className="max-w-6xl px-4 md:px-6 mx-auto text-center">
-            <TypingAnimation
-              text="Join the future of agentic payments."
-              trigger={hasReachedBottom}
-              speed={20}
-            />
+        <section className="mb-20">
+          <div className="max-w-6xl px-4 md:px-6 mx-auto text-center space-y-6">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium font-host text-foreground leading-tight">
+              Make your AIs more capable.
+            </h2>
+            {!session?.user && (
+              <Button
+                variant="customTallAccent"
+                size="tall"
+                onClick={() => openModal("wallets")}
+                className="min-w-[220px]"
+              >
+                SIGN IN
+              </Button>
+            )}
           </div>
         </section>
       </div>
       <Footer />
+      <AccountModal isOpen={isOpen} onClose={closeModal} defaultTab={defaultTab} />
     </div>
   )
 }

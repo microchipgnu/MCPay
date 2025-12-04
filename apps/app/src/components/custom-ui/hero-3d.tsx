@@ -64,6 +64,79 @@ const getMaskStyle = (src: string): React.CSSProperties => ({
   WebkitMaskPosition: "center",
 })
 
+export function SupportedBySection() {
+  const prefersReduced = useReducedMotion()
+  const [isMounted, setIsMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  const fadeUp: Variants = React.useMemo(
+    () => ({
+      hidden: { opacity: 0, y: prefersReduced ? 0 : 8 },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: prefersReduced ? 0 : 0.4, ease: easeOut },
+      },
+    }),
+    [prefersReduced]
+  )
+
+  return (
+    <motion.section
+      className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
+      initial="hidden"
+      animate={isMounted ? "visible" : "hidden"}
+      variants={fadeUp}
+    >
+      <div className="flex flex-col items-start space-y-4">
+        <HighlighterText>SUPPORTED BY</HighlighterText>
+        <div className="flex flex-wrap gap-3">
+          {SUPPORTED_BY_LOGOS.map((logo) => {
+            const logoSize = getLogoSize(logo.name)
+            return (
+              <Link
+                key={logo.name}
+                href={logo.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+              >
+                <div
+                  className={cn(
+                    "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300",
+                    "bg-muted/50",
+                    "group-hover:bg-muted"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "transition-all duration-300",
+                      logoSize.className,
+                      "opacity-70 group-hover:opacity-100",
+                      "[background-color:var(--foreground)]"
+                    )}
+                    style={getMaskStyle(logo.src)}
+                  />
+                  <Image
+                    src={logo.src}
+                    alt={`${logo.name} logo`}
+                    width={logoSize.width}
+                    height={logoSize.height}
+                    className="sr-only"
+                  />
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+      </div>
+    </motion.section>
+  )
+}
+
 export default function Hero3D({
   className,
 }: {
@@ -97,137 +170,68 @@ export default function Hero3D({
     >
       <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8 lg:gap-12 lg:items-stretch lg:min-h-[600px]">
         {/* Mobile Layout */}
-        {/* Stats */}
-        <motion.div
-          className="flex flex-wrap gap-3 order-1 lg:hidden"
-          initial="hidden"
-          animate={isMounted ? "visible" : "hidden"}
-          variants={fadeUp}
-        >
-          <HighlighterText>
-            TRANSACTIONS: <span className="!text-foreground">+ 100,000</span>
-          </HighlighterText>
-          <HighlighterText>
-            VOLUME: <span className="!text-foreground">+ $30,000</span>
-          </HighlighterText>
-        </motion.div>
-
         {/* Heading and Subheading - Mobile */}
         <motion.div
-          className="flex flex-col gap-1 order-2 lg:hidden"
+          className="flex flex-col gap-1 order-1 lg:hidden"
           initial="hidden"
           animate={isMounted ? "visible" : "hidden"}
           variants={fadeUp}
         >
-          <h1 className="text-3xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
-            Payments infrastructure for the agent economy
+          <h1 className="text-3xl sm:text-3xl lg:text-4xl font-semibold font-host text-foreground leading-tight">
+            The best way for AI to access and pay for online services
           </h1>
           <p className="text-sm sm:text-lg text-foreground/80 leading-relaxed max-w-lg">
-            Single connection to use paid MCP tools across any client.<br />
-            Pay-per-use instead of expensive subscriptions.
+            Single connection to use paid MCP tools across any client. Pay-per-use instead of expensive subscriptions.
           </p>
         </motion.div>
 
         {/* 3D Container - Mobile */}
-        <div className="order-4 lg:hidden">
+        <div className="order-2 lg:hidden">
           <Logo3D className="h-[300px] min-h-0" delay={prefersReduced ? 0 : 0.4} duration={prefersReduced ? 0 : 1.2} />
         </div>
 
         {/* CTAs - Mobile */}
         <motion.div
-          className="flex gap-4 pt-2 order-5 lg:hidden -mx-4 px-4"
+          className="flex flex-col gap-4 pt-2 order-3 lg:hidden -mx-4 px-4"
           initial="hidden"
           animate={isMounted ? "visible" : "hidden"}
           variants={fadeUp}
         >
-          <Link href="/servers" className="flex-1 min-w-0">
-            <Button variant="customTallPrimary" size="tall" className="w-full px-3 lg:px-6">
+          <Link href="/servers" className="w-full">
+            <Button variant="customTallPrimary" size="tall" animated className="w-full px-3 lg:px-6">
               BROWSE SERVERS
             </Button>
           </Link>
-          <Link href="/register" className="flex-1 min-w-0">
-            <Button variant="customTallSecondary" size="tall" className="w-full px-3 lg:px-6">
+          <Link href="/register" className="w-full">
+            <Button variant="customTallSecondary" size="tall" animated className="w-full px-3 lg:px-6">
               MONETIZE SERVERS
             </Button>
           </Link>
         </motion.div>
 
-        {/* Supported By Section - Mobile */}
+        {/* Stats - Mobile (moved to bottom) */}
         <motion.div
-          className="space-y-4 order-6 lg:hidden"
+          className="flex flex-wrap gap-3 order-4 lg:hidden text-muted-foreground font-mono text-sm tracking-wider uppercase"
           initial="hidden"
           animate={isMounted ? "visible" : "hidden"}
           variants={fadeUp}
         >
-          <HighlighterText>SUPPORTED BY</HighlighterText>
-          <div className="flex flex-wrap gap-3">
-            {SUPPORTED_BY_LOGOS.map((logo) => {
-              const logoSize = getLogoSize(logo.name)
-              return (
-                <Link
-                  key={logo.name}
-                  href={logo.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group"
-                >
-                  <div
-                    className={cn(
-                      "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300",
-                      "bg-muted/50",
-                      "group-hover:bg-muted"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "transition-all duration-300",
-                        logoSize.className,
-                        "opacity-70 group-hover:opacity-100",
-                        "[background-color:var(--foreground)]"
-                      )}
-                      style={getMaskStyle(logo.src)}
-                    />
-                    <Image
-                      src={logo.src}
-                      alt={`${logo.name} logo`}
-                      width={logoSize.width}
-                      height={logoSize.height}
-                      className="sr-only"
-                    />
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
+          <span>TRANSACTIONS: <span className="!text-foreground font-medium">+100,000</span></span>
+          <span>VOLUME: <span className="!text-foreground font-medium">+$30,000</span></span>
         </motion.div>
 
         {/* Desktop Layout - Left Column */}
         <div className="hidden lg:flex lg:flex-col lg:justify-between lg:gap-24 lg:order-1 lg:col-span-1 lg:h-full">
-          {/* Stats */}
+          {/* Main Content - Top Aligned */}
           <motion.div
-            className="flex flex-wrap gap-3"
-            initial="hidden"
-            animate={isMounted ? "visible" : "hidden"}
-            variants={fadeUp}
-          >
-            <HighlighterText>
-              TRANSACTIONS: <span className="text-foreground">+ 100,000</span>
-            </HighlighterText>
-            <HighlighterText>
-              VOLUME: <span className="text-foreground">+ $30,000</span>
-            </HighlighterText>
-          </motion.div>
-
-          {/* Main Content */}
-          <motion.div
-            className="flex-1 flex flex-col justify-center space-y-3 max-w-lg"
+            className="flex flex-col space-y-3 max-w-lg"
             initial="hidden"
             animate={isMounted ? "visible" : "hidden"}
             variants={fadeUp}
           >
             {/* Heading */}
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-host text-foreground leading-tight">
-              Payments infrastructure for the agent economy
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold font-host text-foreground leading-tight">
+              The best way for AI to access and pay for online services
             </h1>
 
             {/* Subheading */}
@@ -237,73 +241,29 @@ export default function Hero3D({
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-wrap gap-4 pt-6">
               <Link href="/servers" className="flex-1 lg:flex-none">
-                <Button variant="customTallPrimary" size="tall" className="w-full min-w-[220px]">
+                <Button variant="customTallPrimary" size="tall" animated className="w-full min-w-[220px]">
                   BROWSE SERVERS
                 </Button>
               </Link>
               <Link href="/register" className="flex-1 lg:flex-none">
-                <Button variant="customTallSecondary" size="tall" className="w-full min-w-[220px]">
+                <Button variant="customTallSecondary" size="tall" animated className="w-full min-w-[220px]">
                   MONETIZE SERVERS
                 </Button>
               </Link>
             </div>
           </motion.div>
 
-          {/* Supported By Section */}
+          {/* Stats - Bottom Aligned */}
           <motion.div
-            className="space-y-4"
+            className="flex flex-wrap gap-3 text-muted-foreground font-mono text-sm tracking-wider uppercase"
             initial="hidden"
             animate={isMounted ? "visible" : "hidden"}
             variants={fadeUp}
           >
-            <HighlighterText>SUPPORTED BY</HighlighterText>
-            <div className="flex flex-wrap gap-3">
-              {SUPPORTED_BY_LOGOS.map((logo) => (
-                <Link
-                  key={logo.name}
-                  href={logo.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group"
-                >
-                  <div
-                    className={cn(
-                      "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300",
-                      "bg-muted/50",
-                      "group-hover:bg-muted"
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "transition-all duration-300",
-                        logo.name === "coinbase" ? "h-7 w-[70px]" : logo.name === "polygon" ? "h-8 w-[80px]" : logo.name === "vlayer" ? "h-6 w-[60px]" : logo.name === "ethglobal" ? "h-5 w-[80px]" : "h-12 w-[160px]",
-                        "opacity-70 group-hover:opacity-100",
-                        "[background-color:var(--foreground)]"
-                      )}
-                      style={{
-                        maskImage: `url(${logo.src})`,
-                        maskSize: "contain",
-                        maskRepeat: "no-repeat",
-                        maskPosition: "center",
-                        WebkitMaskImage: `url(${logo.src})`,
-                        WebkitMaskSize: "contain",
-                        WebkitMaskRepeat: "no-repeat",
-                        WebkitMaskPosition: "center"
-                      }}
-                    />
-                    <Image
-                      src={logo.src}
-                      alt={`${logo.name} logo`}
-                      width={logo.name === "coinbase" ? 35 : logo.name === "polygon" ? 45 : logo.name === "vlayer" ? 40 : logo.name === "ethglobal" ? 40 : 80}
-                      height={logo.name === "coinbase" ? 14 : logo.name === "polygon" ? 18 : logo.name === "vlayer" ? 16 : logo.name === "ethglobal" ? 10 : 32}
-                      className="sr-only"
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <span>TRANSACTIONS: <span className="text-foreground font-medium">+100,000</span></span>
+            <span>VOLUME: <span className="text-foreground font-medium">+$30,000</span></span>
           </motion.div>
         </div>
 
