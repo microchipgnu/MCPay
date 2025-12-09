@@ -1,7 +1,5 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { useTheme } from "@/components/providers/theme-context"
 import { RefreshCcw, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -40,8 +38,6 @@ export function ServerDetailsCard({
   onRefresh?: () => void
   isRefreshing?: boolean
 }) {
-  const { isDark } = useTheme()
-
   return (
     <div className="rounded-[2px] bg-card p-4">
       <div className="mb-4 flex items-center justify-between">
