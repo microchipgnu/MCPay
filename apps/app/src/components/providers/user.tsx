@@ -179,7 +179,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setError(null)
     
     try {
-      await api.addWalletToUser(userId, walletInfo)
+      await authApi.addWallet(walletInfo)
       await refreshWallets()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to add wallet'

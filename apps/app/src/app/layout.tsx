@@ -8,6 +8,7 @@ import Navbar from "@/components/custom-ui/navbar";
 import { wagmiConfig } from "@/lib/client/config";
 import { WagmiProvider } from "wagmi";
 import { AppReactQueryProvider } from "@/components/providers/query-client";
+import { SolanaWalletProvider } from "@/components/providers/solana-wallet-provider";
 import { Analytics } from "@vercel/analytics/next"
 
 const inter = Inter({
@@ -124,13 +125,15 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <WagmiProvider config={wagmiConfig}>
-            <AppReactQueryProvider>
-              <UserProvider>
-                <Navbar />
-                {children}
-                <Toaster />
-              </UserProvider>
-            </AppReactQueryProvider>
+            <SolanaWalletProvider>
+              <AppReactQueryProvider>
+                <UserProvider>
+                  <Navbar />
+                  {children}
+                  <Toaster />
+                </UserProvider>
+              </AppReactQueryProvider>
+            </SolanaWalletProvider>
           </WagmiProvider>
         </ThemeProvider>
         <Analytics />

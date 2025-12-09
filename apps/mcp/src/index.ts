@@ -8,8 +8,11 @@ import { AnalyticsHook } from "mcpay/handler";
 import { z } from "zod";
 import env, { getPort, getTrustedOrigins, isDevelopment } from "./env.js";
 import { auth, db } from "./lib/auth.js";
+import * as schema from "../auth-schema.js";
 import { getBalancesSummary } from "./lib/balance-tracker.js";
 import { isNetworkSupported, type UnifiedNetwork } from "./lib/3rd-parties/cdp/wallet/networks.js";
+import { randomUUID } from "node:crypto";
+import { and, eq } from "drizzle-orm";
 import { SecurityHook } from "./lib/proxy/hooks/security-hook.js";
 import { X402WalletHook } from "./lib/proxy/hooks/x402-wallet-hook.js";
 import { VLayerHook } from "./lib/proxy/hooks/vlayer-hook.js";
@@ -180,6 +183,102 @@ app.get("/api/wallets", async (c) => {
 
         return c.json(wallets);
     } catch (error) {
+        return c.json({ error: (error as Error).message }, 400);
+    }
+});
+
+// Wallets - create/link a new wallet for current user
+app.post("/api/wallets", async (c) => {
+    try {
+        const session = await auth.api.getSession({ headers: c.req.raw.headers });
+        if (!session) return c.json({ error: "Unauthorized" }, 401);
+
+        const body = await c.req.json().catch(() => ({} as any)) as any;
+        
+        // Validate required fields
+        const walletAddress = typeof body.walletAddress === "string" ? body.walletAddress.trim() : "";
+        const blockchain = typeof body.blockchain === "string" ? body.blockchain.trim() : "";
+        const walletType = typeof body.walletType === "string" ? body.walletType.trim() : "";
+
+        if (!walletAddress) {
+            return c.json({ error: "Missing walletAddress" }, 400);
+        }
+        if (!blockchain) {
+            return c.json({ error: "Missing blockchain" }, 400);
+        }
+        if (!walletType || !["external", "managed", "custodial"].includes(walletType)) {
+            return c.json({ error: "Missing or invalid walletType (must be 'external', 'managed', or 'custodial')" }, 400);
+        }
+
+        // Check if wallet already exists for this user
+        const existingWallet = await db.query.userWallets.findFirst({
+            where: (t, { and, eq }) => {
+                return and(
+                    eq(t.userId, session.user.id),
+                    eq(t.walletAddress, walletAddress),
+                    eq(t.isActive, true)
+                );
+            },
+        });
+
+        if (existingWallet) {
+            return c.json({ error: "Wallet already linked to your account" }, 409);
+        }
+
+        // Determine architecture from blockchain
+        const { getBlockchainArchitecture } = await import("./lib/3rd-parties/cdp/wallet/networks.js");
+        const architecture = getBlockchainArchitecture(blockchain);
+
+        // Check if user has any primary wallet
+        const hasPrimaryWallet = await db.query.userWallets.findFirst({
+            where: (t, { and, eq }) => {
+                return and(
+                    eq(t.userId, session.user.id),
+                    eq(t.isPrimary, true),
+                    eq(t.isActive, true)
+                );
+            },
+        });
+
+        // Set as primary if explicitly requested, or if user has no primary wallet
+        const isPrimary = body.isPrimary === true || (!hasPrimaryWallet && body.isPrimary !== false);
+
+        // If setting as primary and user already has a primary wallet, unset the old one
+        if (isPrimary && hasPrimaryWallet) {
+            await db.update(schema.userWallets)
+                .set({ isPrimary: false, updatedAt: new Date() })
+                .where(
+                    and(
+                        eq(schema.userWallets.userId, session.user.id),
+                        eq(schema.userWallets.isPrimary, true)
+                    ) as any
+                );
+        }
+
+        // Create wallet record
+        const walletId = randomUUID();
+        const now = new Date();
+        
+        const [newWallet] = await db.insert(schema.userWallets).values({
+            id: walletId,
+            userId: session.user.id,
+            walletAddress,
+            walletType,
+            provider: typeof body.provider === "string" ? body.provider : null,
+            blockchain,
+            architecture,
+            isPrimary,
+            isActive: true,
+            walletMetadata: body.walletMetadata || {},
+            externalWalletId: typeof body.externalWalletId === "string" ? body.externalWalletId : null,
+            externalUserId: typeof body.externalUserId === "string" ? body.externalUserId : session.user.id,
+            createdAt: now,
+            updatedAt: now,
+        }).returning();
+
+        return c.json(newWallet, 201);
+    } catch (error) {
+        console.error("Failed to create wallet:", error);
         return c.json({ error: (error as Error).message }, 400);
     }
 });

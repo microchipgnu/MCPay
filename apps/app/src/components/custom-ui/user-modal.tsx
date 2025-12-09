@@ -11,6 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import { useTheme } from "@/components/providers/theme-context"
+import { LinkWalletDialog } from "./link-wallet-dialog"
+import { Plus } from "lucide-react"
 
 type UserModalProps = {
   open: boolean
@@ -80,6 +82,7 @@ export function UserAccountPanel({ isActive = true, initialTab }: UserAccountPan
   const [apiKeyCreated, setApiKeyCreated] = useState<string>("")
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [bulkDeleting, setBulkDeleting] = useState(false)
+  const [linkWalletDialogOpen, setLinkWalletDialogOpen] = useState(false)
 
 
   const loadWallets = useCallback(async () => {
@@ -352,7 +355,24 @@ export function UserAccountPanel({ isActive = true, initialTab }: UserAccountPan
               <div className={`text-xs ${isDark ? "text-gray-400" : "text-gray-600"}`}>
                 Linked wallets{typeof wallets?.length === 'number' ? ` · ${wallets.length}` : ''}
               </div>
+              {session?.user && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-xs h-7 px-2"
+                  onClick={() => setLinkWalletDialogOpen(true)}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Link Wallet
+                </Button>
+              )}
             </div>
+            
+            <LinkWalletDialog 
+              open={linkWalletDialogOpen} 
+              onOpenChange={setLinkWalletDialogOpen}
+              onWalletLinked={loadWallets}
+            />
 
             <div className="flex-1 min-h-0">
               {walletsLoading ? (

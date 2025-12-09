@@ -226,6 +226,21 @@ export const authApi = {
     return serviceApiCall(urlUtils.getAuthUrl(), '/api/wallets')
   },
 
+  // Add/link a wallet to user account
+  addWallet: async (walletData: {
+    walletAddress: string;
+    blockchain: string;
+    walletType: 'external' | 'managed' | 'custodial';
+    provider?: string;
+    isPrimary?: boolean;
+    walletMetadata?: Record<string, unknown>;
+  }) => {
+    return serviceApiCall(urlUtils.getAuthUrl(), '/api/wallets', {
+      method: 'POST',
+      body: JSON.stringify(walletData),
+    })
+  },
+
   // Get wallet balance for specific network
   getBalance: async (
     walletAddress: string,
