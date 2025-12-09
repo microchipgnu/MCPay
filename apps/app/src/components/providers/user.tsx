@@ -94,7 +94,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
 
   // Load user wallets with balance information
-  const loadWallets = useCallback(async (includeTestnet = true, isRefresh = false) => {
+  const loadWallets = useCallback(async (isRefresh = false) => {
     if (!userId) {
       setWalletData(null)
       return
@@ -160,7 +160,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Refresh wallets function
   const refreshWallets = useCallback(async () => {
-    await loadWallets(true, true) // includeTestnet=true, isRefresh=true
+    await loadWallets(true) // isRefresh=true
   }, [loadWallets])
 
   // Add wallet function
@@ -242,7 +242,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Load wallets when user session changes
   useEffect(() => {
     if (userId) {
-      loadWallets(true, false) // includeTestnet=true, isRefresh=false (initial load)
+      loadWallets(false) // isRefresh=false (initial load)
     } else {
       setWalletData(null)
       setError(null)
