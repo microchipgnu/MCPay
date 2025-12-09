@@ -1,14 +1,19 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useWallet, useConnection } from '@solana/wallet-adapter-react'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, AlertTriangle } from 'lucide-react'
 
+interface WindowWithSolana extends Window {
+  solana?: {
+    isPhantom?: boolean
+  }
+}
+
 export function SolanaConnectButton() {
   const { wallet, connect, disconnect, connecting, connected, publicKey } = useWallet()
-  const { connection } = useConnection()
   
   const [connectionError, setConnectionError] = useState<string | null>(null)
 
@@ -38,7 +43,7 @@ export function SolanaConnectButton() {
   // Check if Phantom wallet is available
   const isPhantomAvailable = useMemo(() => {
     if (typeof window === 'undefined') return false
-    return !!(window as any).solana?.isPhantom
+    return !!(window as WindowWithSolana).solana?.isPhantom
   }, [])
 
   if (!isPhantomAvailable) {

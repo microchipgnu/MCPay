@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { useTheme } from "@/components/providers/theme-context"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -20,8 +19,7 @@ import { TokenIcon } from "@/components/custom-ui/token-icon"
 import { getExplorerUrl } from "@/lib/client/blockscout"
 import { mcpDataApi } from "@/lib/client/utils"
 import { isNetworkSupported, type UnifiedNetwork } from "@/lib/commons"
-import { ArrowUpRight, CheckCircle2, Clock, Pause, Play, RefreshCcw } from "lucide-react"
-import Image from "next/image"
+import { ArrowUpRight, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -90,7 +88,6 @@ export function RecentPaymentsCard({ serverId, initialPayments, className, rende
   const { isDark } = useTheme()
   const [payments, setPayments] = useState<RecentPayment[]>(initialPayments || [])
   const [loading, setLoading] = useState<boolean>(!initialPayments || initialPayments.length === 0)
-  const [error, setError] = useState<string | null>(null)
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true)
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null)
   const [selectedProof, setSelectedProof] = useState<RecentPayment['vlayerProof'] | null>(null)
@@ -133,13 +130,12 @@ export function RecentPaymentsCard({ serverId, initialPayments, className, rende
     return async () => {
       try {
         if (payments.length === 0) setLoading(true)
-        setError(null)
         const res = await mcpDataApi.getServerById(serverId)
         const next = (res as { recentPayments?: RecentPayment[] }).recentPayments || []
         setPayments(next)
         setLastRefreshTime(new Date())
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load payments")
+      } catch {
+        // Error handled silently - component will show empty state
       } finally {
         setLoading(false)
       }
@@ -147,11 +143,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className, rende
   }, [serverId, payments.length])
 
   useEffect(() => {
-    let alive = true
-    ;(async () => {
-      await fetchPayments()
-    })()
-    return () => { alive = false }
+    fetchPayments()
   }, [fetchPayments])
 
   useEffect(() => {
@@ -159,7 +151,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className, rende
     const interval = setInterval(async () => {
       try {
         await fetchPayments()
-      } catch (e) {
+      } catch {
         // ignore periodic errors
       }
     }, 10000)
@@ -174,7 +166,7 @@ export function RecentPaymentsCard({ serverId, initialPayments, className, rende
     try {
       await fetchPayments()
       toast.success("Data refreshed")
-    } catch (e) {
+    } catch {
       toast.error("Failed to refresh data")
     }
   }
