@@ -40,7 +40,7 @@ const faqData: FAQItem[] = [
     question: "How do I consume paid MCPs?",
     answer: (
       <>
-        Sign in, add funds to your account (no crypto needed), and <Link href="/servers" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">browse</Link> available MCP servers. You can run tools directly inside MCPay or connect them to clients like ChatGPT, where they'll execute automatically when needed.
+        Sign in, add funds to your account (no crypto needed), and <Link href="/servers" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">browse</Link> available MCP servers. You can run tools directly inside MCPay or connect them to clients like ChatGPT, where they&apos;ll execute automatically when needed.
       </>
     )
   },
@@ -67,6 +67,14 @@ const faqData: FAQItem[] = [
         Use our open-source SDK to add payments in a few lines of code.
         <br /><br />
         Or, if you prefer no-code, you can configure pricing directly through our UI.
+      </>
+    )
+  },
+  {
+    question: "Does this project have a token?",
+    answer: (
+      <>
+        There is no official $MCPAY token, be careful with impersonators. Trust only official announcement on <Link href="https://t.me/mcpay_tech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">Telegram</Link> or <Link href="https://x.com/mcpaytech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">X</Link>.
       </>
     )
   }
