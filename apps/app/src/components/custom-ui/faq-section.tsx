@@ -17,36 +17,56 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   {
-    question: "What is MCPay?",
+    question: "What is MCPay and who is it for?",
     answer: (
       <>
-        MCPay is a <strong>payment layer for MCP servers and plain HTTP APIs</strong>. It uses <code>HTTP 402 Payment Required</code> with the <strong>x402</strong> flow so clients (apps/agents/browsers) can pay per call and automatically retry to get the result. <strong>No subscriptions, no OAuth, no manual API keys.</strong>
+        MCPay is payment and access infrastructure for MCP servers. We offer solution for both ends:
+        <div className="mt-3 space-y-2">
+          <div><strong>A) People who want to use paid MCP tools:</strong> Sign up, find a server and start using paid tools across clients like ChatGPT. No crypto or technical setup required.</div>
+          <div><strong>B) Developers who want to monetize MCP Servers or APIs:</strong> Use our open-source SDK or no-code UI to monetize your tools. Get access to a new range of developers and get ready for the agentic future.</div>
+        </div>
       </>
     )
   },
   {
-    question: "Do I have to use MCP?",
+    question: "Why would I want to consume paid MCPs?",
     answer: (
       <>
-        No. MCPay works great for <strong>plain HTTP</strong> endpoints. Using MCP adds niceties like <strong>tool discovery and pricing metadata</strong> for agent ecosystems.
+        Instead of paying for expensive B2B/Enterprise subscriptions you can consume only the tools calls you want and pay cents per use.
       </>
     )
   },
   {
-    question: "Who is MCPay for?",
+    question: "How do I consume paid MCPs?",
     answer: (
-      <div className="space-y-2">
-        <div><strong>Providers</strong> (API/MCP owners) who want to <strong>price and monetize</strong> specific tools or routes.</div>
-        <div><strong>Integrators/Agents</strong> who need <strong>programmatic, per-call payments</strong> without human sign-ups.</div>
-        <div><strong>Builders</strong> who want the <strong>fastest path</strong> to ship paid MCP servers.</div>
-      </div>
+      <>
+        Sign in, add funds to your account (no crypto needed), and <Link href="/servers" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">browse</Link> available MCP servers. You can run tools directly inside MCPay or connect them to clients like ChatGPT, where they'll execute automatically when needed.
+      </>
     )
   },
   {
-    question: "What's the MCPay Registry?",
+    question: "How much do I pay?",
     answer: (
       <>
-        A machine-readable catalog of MCP servers and their priced tools (analytics, recent payments, integration snippets). Browse the Registry at <Link href="/servers" className="text-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300 font-semibold">Servers</Link>.
+        Each MCP tool sets its own price, typically a few cents (e.g., $0.05). We do not charge any fees on top of that.
+      </>
+    )
+  },
+  {
+    question: "Why would I want to monetize MCPs?",
+    answer: (
+      <>
+        If you manage an API that normally requires subscriptions or API keys, converting it to an MCP server gives you exposure to a growing new audience: individual developers, LLMs, agents, and MCP-compatible clients.
+      </>
+    )
+  },
+  {
+    question: "How do I monetize my API or MCP Server?",
+    answer: (
+      <>
+        Use our open-source SDK to add payments in a few lines of code.
+        <br /><br />
+        Or, if you prefer no-code, you can configure pricing directly through our UI.
       </>
     )
   }
@@ -73,7 +93,7 @@ export default function FAQSection() {
                 value={`item-${index}`} 
                 className={cn(
                   "border border-transparent rounded-[2px] bg-card mb-4 last:mb-0",
-                  "hover:shadow-lg hover:border-teal-700 dark:hover:border-teal-200",
+                  "hover:shadow-lg",
                   "transition-all duration-300 cursor-pointer"
                 )}
               >
@@ -81,7 +101,7 @@ export default function FAQSection() {
                   "text-left hover:no-underline group cursor-pointer px-4",
                   "data-[state=closed]:py-3 data-[state=open]:py-4"
                 )}>
-                  <span className="text-sm sm:text-[15px] leading-relaxed font-mono uppercase text-foreground group-hover:text-teal-700 dark:group-hover:text-teal-200 transition-all duration-300">
+                  <span className="text-sm sm:text-[15px] leading-relaxed font-mono font-medium uppercase text-muted-foreground group-hover:text-foreground group-hover:underline group-hover:decoration-dotted group-hover:underline-offset-2 transition-all duration-300">
                     {item.question}
                   </span>
                 </AccordionTrigger>
