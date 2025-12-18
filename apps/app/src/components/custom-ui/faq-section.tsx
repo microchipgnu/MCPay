@@ -40,7 +40,7 @@ const faqData: FAQItem[] = [
     question: "How do I consume paid MCPs?",
     answer: (
       <>
-        Sign in, add funds to your account (no crypto needed), and <Link href="/servers" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">browse</Link> available MCP servers. You can run tools directly inside MCPay or connect them to clients like ChatGPT, where they&apos;ll execute automatically when needed.
+        Sign in, add funds to your account (no crypto needed), and <Link href="/servers" className="text-teal-700 dark:text-teal-200 hover:underline hover:decoration-dotted hover:underline-offset-2 transition-all duration-300">browse</Link> available MCP servers. You can run tools directly inside MCPay or connect them to clients like ChatGPT, where they&apos;ll execute automatically when needed.
       </>
     )
   },
@@ -74,7 +74,7 @@ const faqData: FAQItem[] = [
     question: "Does this project have a token?",
     answer: (
       <>
-        There is no official $MCPAY token, be careful with impersonators. Trust only official announcement on <Link href="https://t.me/mcpay_tech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">Telegram</Link> or <Link href="https://x.com/mcpaytech" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-teal-600 underline decoration-dotted underline-offset-2 transition-all duration-300">X</Link>.
+        There is no official $MCPAY token, be careful with impersonators. Trust only official announcement on <Link href="https://t.me/mcpay_tech" target="_blank" rel="noopener noreferrer" className="text-teal-700 dark:text-teal-200 hover:underline hover:decoration-dotted hover:underline-offset-2 transition-all duration-300">Telegram</Link> or <Link href="https://x.com/mcpaytech" target="_blank" rel="noopener noreferrer" className="text-teal-700 dark:text-teal-200 hover:underline hover:decoration-dotted hover:underline-offset-2 transition-all duration-300">X</Link>.
       </>
     )
   }
@@ -107,9 +107,10 @@ export default function FAQSection() {
               >
                 <AccordionTrigger className={cn(
                   "text-left hover:no-underline group cursor-pointer px-4",
-                  "data-[state=closed]:py-3 data-[state=open]:py-4"
+                  "data-[state=closed]:py-3 data-[state=open]:py-4",
+                  "[&[data-state=open]_span]:text-foreground"
                 )}>
-                  <span className="text-sm sm:text-[15px] leading-relaxed font-mono font-medium uppercase text-muted-foreground group-hover:text-foreground group-hover:underline group-hover:decoration-dotted group-hover:underline-offset-2 transition-all duration-300">
+                  <span className="text-sm sm:text-[15px] leading-relaxed font-mono font-normal uppercase text-muted-foreground group-hover:text-foreground group-hover:underline group-hover:decoration-dotted group-hover:underline-offset-2 transition-all duration-300">
                     {item.question}
                   </span>
                 </AccordionTrigger>
