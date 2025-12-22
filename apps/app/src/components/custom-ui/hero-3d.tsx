@@ -83,7 +83,7 @@ const renderLogo = (logo: typeof SUPPORTED_BY_LOGOS[number], index?: number) => 
     >
       <div
         className={cn(
-          "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px]",
+          "h-10 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px] w-full",
           logo.name === "colosseum" 
             ? "bg-[#1C2123] dark:bg-[#D8DDDF] group-hover:opacity-90"
             : "bg-muted/50 group-hover:bg-muted"
@@ -131,9 +131,6 @@ export function SupportedBySection() {
     [prefersReduced]
   )
 
-  // Duplicate logos for seamless infinite scroll (exactly 2 copies for -50% animation)
-  const duplicatedLogos = [...SUPPORTED_BY_LOGOS, ...SUPPORTED_BY_LOGOS]
-
   return (
     <motion.section
       className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
@@ -142,23 +139,23 @@ export function SupportedBySection() {
       variants={fadeUp}
     >
       <div className="flex flex-col items-start space-y-4">
-        <HighlighterText>SUPPORTED BY</HighlighterText>
+        <HighlighterText>BACKED BY</HighlighterText>
         
-        {/* Desktop: flex-wrap layout */}
-        <div className="hidden md:flex flex-wrap gap-3">
+        {/* Desktop: grid layout - equal width logos */}
+        <div className="hidden md:grid md:grid-cols-5 gap-3 w-full">
           {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
         </div>
 
-        {/* Mobile: auto-scrolling carousel */}
-        <div className="md:hidden overflow-hidden mt-4 -mx-4 sm:-mx-6">
-          <div
-            className="flex gap-3 inline-flex"
-            style={{
-              animation: prefersReduced ? 'none' : 'scroll-carousel 25s linear infinite',
-            }}
-          >
-            {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
-          </div>
+        {/* Mobile: grid layout - 2 columns, Colosseum spans full width */}
+        <div className="md:hidden grid grid-cols-2 gap-3 w-full mt-4">
+          {SUPPORTED_BY_LOGOS.map((logo, index) => (
+            <div
+              key={logo.name}
+              className={logo.name === "colosseum" ? "col-span-2" : ""}
+            >
+              {renderLogo(logo)}
+            </div>
+          ))}
         </div>
       </div>
     </motion.section>
