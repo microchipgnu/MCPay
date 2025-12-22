@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import Logo3D from "./logo-3d"
+import { ArrowUpRight } from "lucide-react"
 import {
   motion,
   useReducedMotion,
@@ -83,22 +84,32 @@ const renderLogo = (logo: typeof SUPPORTED_BY_LOGOS[number], index?: number) => 
     >
       <div
         className={cn(
-          "h-10 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px] w-full",
+          "h-10 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px] w-full relative overflow-hidden",
           logo.name === "colosseum" 
             ? "bg-[#1C2123] dark:bg-[#D8DDDF] group-hover:opacity-90"
             : "bg-muted/50 group-hover:bg-muted"
         )}
       >
-        <div
-          className={cn(
-            "transition-all duration-300",
-            logoSize.className,
-            logo.name === "colosseum"
-              ? "[background-color:var(--background)] dark:[background-color:var(--background)]"
-              : "opacity-70 group-hover:opacity-100 [background-color:var(--foreground)]"
-          )}
-          style={getMaskStyle(logo.src)}
-        />
+        <span className="relative inline-flex items-center transition-transform duration-300 ease-out group-hover:-translate-x-1">
+          <div
+            className={cn(
+              "transition-all duration-300",
+              logoSize.className,
+              logo.name === "colosseum"
+                ? "[background-color:var(--background)] dark:[background-color:var(--background)]"
+                : "opacity-70 group-hover:opacity-100 [background-color:var(--foreground)]"
+            )}
+            style={getMaskStyle(logo.src)}
+          />
+          <ArrowUpRight 
+            className={cn(
+              "absolute left-full ml-2 h-3.5 w-3.5 shrink-0 opacity-0 -translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0",
+              logo.name === "colosseum"
+                ? "[color:var(--background)] dark:[color:var(--background)]"
+                : "text-foreground"
+            )}
+          />
+        </span>
         <Image
           src={logo.src}
           alt={`${logo.name} logo`}
