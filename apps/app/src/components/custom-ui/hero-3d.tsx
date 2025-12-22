@@ -135,25 +135,23 @@ export function SupportedBySection() {
   const duplicatedLogos = [...SUPPORTED_BY_LOGOS, ...SUPPORTED_BY_LOGOS]
 
   return (
-    <>
-      <motion.section
-        className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
-        initial="hidden"
-        animate={isMounted ? "visible" : "hidden"}
-        variants={fadeUp}
-      >
-        <div className="flex flex-col items-start space-y-4">
-          <HighlighterText>SUPPORTED BY</HighlighterText>
-          
-          {/* Desktop: flex-wrap layout */}
-          <div className="hidden md:flex flex-wrap gap-3">
-            {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
-          </div>
+    <motion.section
+      className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
+      initial="hidden"
+      animate={isMounted ? "visible" : "hidden"}
+      variants={fadeUp}
+    >
+      <div className="flex flex-col items-start space-y-4">
+        <HighlighterText>SUPPORTED BY</HighlighterText>
+        
+        {/* Desktop: flex-wrap layout */}
+        <div className="hidden md:flex flex-wrap gap-3">
+          {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
         </div>
-      </motion.section>
+      </div>
 
       {/* Mobile: auto-scrolling carousel - full width to edge */}
-      <div className="md:hidden -mt-4 overflow-hidden" style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)' }}>
+      <div className="md:hidden -mx-4 sm:-mx-6 -mb-8 sm:-mb-16 mt-4 overflow-hidden">
         <div
           className="flex gap-3"
           style={{
@@ -164,7 +162,7 @@ export function SupportedBySection() {
           {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
         </div>
       </div>
-    </>
+    </motion.section>
   )
 }
 
