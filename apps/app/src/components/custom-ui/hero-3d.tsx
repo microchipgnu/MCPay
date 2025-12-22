@@ -148,18 +148,17 @@ export function SupportedBySection() {
         <div className="hidden md:flex flex-wrap gap-3">
           {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
         </div>
-      </div>
 
-      {/* Mobile: auto-scrolling carousel - full width to edge */}
-      <div className="md:hidden -mx-4 sm:-mx-6 -mb-8 sm:-mb-16 mt-4 overflow-hidden">
-        <div
-          className="flex gap-3"
-          style={{
-            width: 'max-content',
-            animation: prefersReduced ? 'none' : 'scroll-carousel 25s linear infinite',
-          }}
-        >
-          {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
+        {/* Mobile: auto-scrolling carousel */}
+        <div className="md:hidden overflow-hidden mt-4 -mx-4 sm:-mx-6">
+          <div
+            className="flex gap-3 inline-flex"
+            style={{
+              animation: prefersReduced ? 'none' : 'scroll-carousel 25s linear infinite',
+            }}
+          >
+            {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
+          </div>
         </div>
       </div>
     </motion.section>
