@@ -16,6 +16,11 @@ import { easeOut } from "motion"
 
 const SUPPORTED_BY_LOGOS = [
   {
+    name: "colosseum",
+    href: "https://blog.colosseum.com/announcing-colosseums-accelerator-cohort-4/",
+    src: "/colosseum-logo-white.svg",
+  },
+  {
     name: "coinbase",
     href: "https://www.coinbase.com/developer-platform/discover/launches/summer-builder-grants",
     src: "/logos/coinbase-logo.svg",
@@ -48,6 +53,8 @@ const getLogoSize = (name: string) => {
       return { className: "h-6 w-[60px]", width: 60, height: 24 }
     case "ethglobal":
       return { className: "h-5 w-[90px]", width: 80, height: 20 }
+    case "colosseum":
+      return { className: "h-6 w-[120px]", width: 120, height: 24 }
     default:
       return { className: "h-12 w-[160px]", width: 160, height: 64 }
   }
@@ -63,6 +70,46 @@ const getMaskStyle = (src: string): React.CSSProperties => ({
   WebkitMaskRepeat: "no-repeat",
   WebkitMaskPosition: "center",
 })
+
+const renderLogo = (logo: typeof SUPPORTED_BY_LOGOS[number], index?: number) => {
+  const logoSize = getLogoSize(logo.name)
+  return (
+    <Link
+      key={`${logo.name}-${index ?? ''}`}
+      href={logo.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex-shrink-0"
+    >
+      <div
+        className={cn(
+          "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px]",
+          logo.name === "colosseum" 
+            ? "bg-[#1C2123] dark:bg-[#D8DDDF] group-hover:opacity-90"
+            : "bg-muted/50 group-hover:bg-muted"
+        )}
+      >
+        <div
+          className={cn(
+            "transition-all duration-300",
+            logoSize.className,
+            logo.name === "colosseum"
+              ? "[background-color:var(--background)] dark:[background-color:var(--background)]"
+              : "opacity-70 group-hover:opacity-100 [background-color:var(--foreground)]"
+          )}
+          style={getMaskStyle(logo.src)}
+        />
+        <Image
+          src={logo.src}
+          alt={`${logo.name} logo`}
+          width={logoSize.width}
+          height={logoSize.height}
+          className="sr-only"
+        />
+      </div>
+    </Link>
+  )
+}
 
 export function SupportedBySection() {
   const prefersReduced = useReducedMotion()
@@ -84,56 +131,41 @@ export function SupportedBySection() {
     [prefersReduced]
   )
 
+  // Duplicate logos for seamless infinite scroll (exactly 2 copies for -50% animation)
+  const duplicatedLogos = [...SUPPORTED_BY_LOGOS, ...SUPPORTED_BY_LOGOS]
+
   return (
-    <motion.section
-      className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
-      initial="hidden"
-      animate={isMounted ? "visible" : "hidden"}
-      variants={fadeUp}
-    >
-      <div className="flex flex-col items-start space-y-4">
-        <HighlighterText>SUPPORTED BY</HighlighterText>
-        <div className="flex flex-wrap gap-3">
-          {SUPPORTED_BY_LOGOS.map((logo) => {
-            const logoSize = getLogoSize(logo.name)
-            return (
-              <Link
-                key={logo.name}
-                href={logo.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group"
-              >
-                <div
-                  className={cn(
-                    "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300",
-                    "bg-muted/50",
-                    "group-hover:bg-muted"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "transition-all duration-300",
-                      logoSize.className,
-                      "opacity-70 group-hover:opacity-100",
-                      "[background-color:var(--foreground)]"
-                    )}
-                    style={getMaskStyle(logo.src)}
-                  />
-                  <Image
-                    src={logo.src}
-                    alt={`${logo.name} logo`}
-                    width={logoSize.width}
-                    height={logoSize.height}
-                    className="sr-only"
-                  />
-                </div>
-              </Link>
-            )
-          })}
+    <>
+      <motion.section
+        className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
+        initial="hidden"
+        animate={isMounted ? "visible" : "hidden"}
+        variants={fadeUp}
+      >
+        <div className="flex flex-col items-start space-y-4">
+          <HighlighterText>SUPPORTED BY</HighlighterText>
+          
+          {/* Desktop: flex-wrap layout */}
+          <div className="hidden md:flex flex-wrap gap-3">
+            {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Mobile: auto-scrolling carousel - full width to edge */}
+      <div className="md:hidden w-screen overflow-x-scroll scrollbar-hide -mt-4">
+        <div
+          className="flex gap-3"
+          style={{
+            width: 'max-content',
+            animation: prefersReduced ? 'none' : 'scroll-carousel 25s linear infinite',
+            animationFillMode: 'both',
+          }}
+        >
+          {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
         </div>
       </div>
-    </motion.section>
+    </>
   )
 }
 
