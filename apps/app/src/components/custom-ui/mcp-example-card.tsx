@@ -13,6 +13,7 @@ import { Spinner } from "@/components/ui/spinner"
 import Image from "next/image"
 import { toast } from "sonner"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer"
 
 interface McpExampleCardProps extends React.HTMLAttributes<HTMLDivElement> {
   className?: string
@@ -26,6 +27,7 @@ export default function McpExampleCard({
 }: McpExampleCardProps) {
   const [selectedTool, setSelectedTool] = useState<ToolFromMcpServerWithStats | null>(null)
   const [showToolModal, setShowToolModal] = useState(false)
+  const [toolDescriptionDrawer, setToolDescriptionDrawer] = useState<{ toolName: string; description: string } | null>(null)
   const [data, setData] = useState<{
     serverId: string
     origin?: string
@@ -189,34 +191,47 @@ export default function McpExampleCard({
               displayTools.map((tool) => (
               <div
                 key={tool.id}
-                className="flex items-center justify-between gap-4 p-4 pr-6 md:pr-4 rounded-[2px] bg-muted-2"
+                className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4 p-4 pr-6 md:pr-4 rounded-[2px] bg-muted-2"
               >
-                {/* Left: Name + Info Icon */}
+                {/* Mobile: First line - Tool name + Info Icon */}
+                {/* Desktop: Left - Name + Info Icon */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-mono text-sm font-medium text-foreground">{tool.name}</h4>
                     {tool.description && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                      <>
+                        {/* Desktop: Tooltip */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="hidden md:block h-4 w-4 text-muted-foreground opacity-60 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">{tool.description}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        {/* Mobile: Clickable button to open drawer */}
+                        <button
+                          type="button"
+                          onClick={() => setToolDescriptionDrawer({ toolName: tool.name, description: tool.description })}
+                          className="md:hidden"
+                        >
                           <Info className="h-4 w-4 text-muted-foreground opacity-60" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">{tool.description}</p>
-                        </TooltipContent>
-                      </Tooltip>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
                 
-                {/* Right: Price + RUN Button */}
-                <div className="flex items-center gap-2 shrink-0">
+                {/* Mobile: Second line - Price (1/4) + RUN Button (3/4) */}
+                {/* Desktop: Right - Price + RUN Button */}
+                <div className="flex items-center gap-2 md:shrink-0 w-full md:w-auto">
                   {tool.paymentHint && tool.paymentPriceUSD && (
-                    <HighlighterText variant="blue" className="h-8 py-0 flex items-center text-sm">${tool.paymentPriceUSD}</HighlighterText>
+                    <HighlighterText variant="blue" className="h-8 py-0 flex items-center justify-center text-sm w-[25%] md:w-auto shrink-0">${tool.paymentPriceUSD}</HighlighterText>
                   )}
                   <Button
                     variant="customTallAccent"
                     size="sm"
-                    className="h-8 rounded-[2px]"
+                    className="h-8 rounded-[2px] w-[75%] md:w-auto md:flex-none"
                     onClick={() => openToolModal(tool)}
                   >
                     RUN
@@ -281,6 +296,22 @@ export default function McpExampleCard({
           url={data?.origin}
         />
       )}
+
+      {/* Tool Description Drawer (Mobile only) */}
+      <Drawer open={!!toolDescriptionDrawer} onOpenChange={(open) => !open && setToolDescriptionDrawer(null)}>
+        <DrawerContent className="max-h-[85vh] bg-background border-border">
+          <DrawerHeader>
+            <DrawerTitle className="text-foreground text-left font-mono">
+              {toolDescriptionDrawer?.toolName}
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-16 overflow-y-auto">
+            <p className="text-base text-muted-foreground">
+              {toolDescriptionDrawer?.description}
+            </p>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </>
   )
 }
