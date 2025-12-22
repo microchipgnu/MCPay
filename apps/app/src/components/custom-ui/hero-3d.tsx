@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import HighlighterText from "./highlighter-text"
 import Logo3D from "./logo-3d"
+import { ArrowUpRight } from "lucide-react"
 import {
   motion,
   useReducedMotion,
@@ -83,22 +84,32 @@ const renderLogo = (logo: typeof SUPPORTED_BY_LOGOS[number], index?: number) => 
     >
       <div
         className={cn(
-          "h-8 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px]",
+          "h-10 px-4 flex items-center justify-center rounded-[2px] transition-all duration-300 min-w-[140px] w-full relative overflow-hidden",
           logo.name === "colosseum" 
             ? "bg-[#1C2123] dark:bg-[#D8DDDF] group-hover:opacity-90"
             : "bg-muted/50 group-hover:bg-muted"
         )}
       >
-        <div
-          className={cn(
-            "transition-all duration-300",
-            logoSize.className,
-            logo.name === "colosseum"
-              ? "[background-color:var(--background)] dark:[background-color:var(--background)]"
-              : "opacity-70 group-hover:opacity-100 [background-color:var(--foreground)]"
-          )}
-          style={getMaskStyle(logo.src)}
-        />
+        <span className="relative inline-flex items-center transition-transform duration-300 ease-out group-hover:-translate-x-1">
+          <div
+            className={cn(
+              "transition-all duration-300",
+              logoSize.className,
+              logo.name === "colosseum"
+                ? "[background-color:var(--background)] dark:[background-color:var(--background)]"
+                : "opacity-70 group-hover:opacity-100 [background-color:var(--foreground)]"
+            )}
+            style={getMaskStyle(logo.src)}
+          />
+          <ArrowUpRight 
+            className={cn(
+              "absolute left-full ml-2 h-3.5 w-3.5 shrink-0 opacity-0 -translate-x-2 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-x-0",
+              logo.name === "colosseum"
+                ? "[color:var(--background)] dark:[color:var(--background)]"
+                : "text-foreground"
+            )}
+          />
+        </span>
         <Image
           src={logo.src}
           alt={`${logo.name} logo`}
@@ -131,40 +142,34 @@ export function SupportedBySection() {
     [prefersReduced]
   )
 
-  // Duplicate logos for seamless infinite scroll (exactly 2 copies for -50% animation)
-  const duplicatedLogos = [...SUPPORTED_BY_LOGOS, ...SUPPORTED_BY_LOGOS]
-
   return (
-    <>
-      <motion.section
-        className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
-        initial="hidden"
-        animate={isMounted ? "visible" : "hidden"}
-        variants={fadeUp}
-      >
-        <div className="flex flex-col items-start space-y-4">
-          <HighlighterText>SUPPORTED BY</HighlighterText>
-          
-          {/* Desktop: flex-wrap layout */}
-          <div className="hidden md:flex flex-wrap gap-3">
-            {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
-          </div>
+    <motion.section
+      className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-16"
+      initial="hidden"
+      animate={isMounted ? "visible" : "hidden"}
+      variants={fadeUp}
+    >
+      <div className="flex flex-col items-start space-y-4">
+        <HighlighterText>BACKED BY</HighlighterText>
+        
+        {/* Desktop: grid layout - equal width logos */}
+        <div className="hidden md:grid md:grid-cols-5 gap-3 w-full">
+          {SUPPORTED_BY_LOGOS.map((logo) => renderLogo(logo))}
         </div>
-      </motion.section>
 
-      {/* Mobile: auto-scrolling carousel - full width to edge */}
-      <div className="md:hidden -mt-4 overflow-hidden" style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)' }}>
-        <div
-          className="flex gap-3"
-          style={{
-            width: 'max-content',
-            animation: prefersReduced ? 'none' : 'scroll-carousel 25s linear infinite',
-          }}
-        >
-          {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
+        {/* Mobile: grid layout - 2 columns, Colosseum spans full width */}
+        <div className="md:hidden grid grid-cols-2 gap-3 w-full mt-4">
+          {SUPPORTED_BY_LOGOS.map((logo, index) => (
+            <div
+              key={logo.name}
+              className={logo.name === "colosseum" ? "col-span-2" : ""}
+            >
+              {renderLogo(logo)}
+            </div>
+          ))}
         </div>
       </div>
-    </>
+    </motion.section>
   )
 }
 
