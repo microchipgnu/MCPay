@@ -153,13 +153,12 @@ export function SupportedBySection() {
       </motion.section>
 
       {/* Mobile: auto-scrolling carousel - full width to edge */}
-      <div className="md:hidden w-screen overflow-x-scroll scrollbar-hide -mt-4">
+      <div className="md:hidden -mt-4 overflow-hidden" style={{ width: '100vw', marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)' }}>
         <div
           className="flex gap-3"
           style={{
             width: 'max-content',
             animation: prefersReduced ? 'none' : 'scroll-carousel 25s linear infinite',
-            animationFillMode: 'both',
           }}
         >
           {duplicatedLogos.map((logo, index) => renderLogo(logo, index))}
