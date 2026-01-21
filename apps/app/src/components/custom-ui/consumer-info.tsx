@@ -36,7 +36,7 @@ export default function ConsumerInfo({
         </div>
 
         {/* MCP Example Card */}
-        <McpExampleCard serverId="d534ddca-b113-4807-9f9f-e28f74f2cc49" />
+        <McpExampleCard serverId="6bb6607e-073b-458e-acf8-cfa449360da2" />
 
         {/* Info Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
